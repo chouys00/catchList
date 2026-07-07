@@ -1,0 +1,11 @@
+node_modules/
+logs/
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+
+# 各專案執行期快取
+.title_cache.json
+.appdetails_cache.json
+anime-cache.json

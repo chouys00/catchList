@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>Steam 遊戲一鍵開啟工具</title>
+  <style>
+    :root {
+      --bg-color: #0b0e14;
+      --card-bg: #151922;
+      --text-color: #abb2bf;
+      --primary-color: #3b82f6;
+      --primary-hover: #2563eb;
+      --tip-bg: rgba(245, 158, 11, 0.1);
+      --tip-border: #f59e0b;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 24px;
+      line-height: 1.6;
+    }
+    h1 {
+      text-align: center;
+      color: #ffffff;
+      margin-bottom: 8px;
+      font-size: 2.2rem;
+    }
+    p.subtitle {
+      text-align: center;
+      color: #7d8590;
+      margin-bottom: 32px;
+      font-size: 1.1rem;
+    }
+    .tip-box {
+      background-color: var(--tip-bg);
+      border-left: 4px solid var(--tip-border);
+      padding: 16px;
+      margin-bottom: 32px;
+      border-radius: 8px;
+    }
+    .tip-box h3 {
+      margin-top: 0;
+      color: #fbbf24;
+      margin-bottom: 8px;
+    }
+    .tip-box p {
+      margin: 4px 0;
+      font-size: 0.95rem;
+    }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid #2d3139;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: var(--primary-color);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .card:target {
+      border-color: var(--primary-color);
+      background-color: #1e2638;
+      box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+      transform: translateY(-2px);
+    }
+    .card-info h2 {
+      margin: 0 0 6px 0;
+      color: #ffffff;
+      font-size: 1.3rem;
+    }
+    .card-info p {
+      margin: 0;
+      color: #7d8590;
+      font-size: 0.95rem;
+    }
+    .btn {
+      background-color: var(--primary-color);
+      color: #ffffff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: background-color 0.2s;
+    }
+    .btn:hover {
+      background-color: var(--primary-hover);
+    }
+  </style>
+  <script>
+    function openAll(urls) {
+      if (urls.length === 0) return;
+      urls.forEach(url => {
+        window.open(url, '_blank');
+      });
+    }
+  </script>
+</head>
+<body>
+  <h1>🎮 Steam 遊戲一鍵開啟工具</h1>
+  <p class="subtitle">在 Chrome 瀏覽器中一鍵打開各月份所有優質 Steam 遊戲的商店分頁</p>
+
+  <div class="tip-box">
+    <h3>💡 首次點擊須知</h3>
+    <p>第一次點擊按鈕時，Chrome 瀏覽器可能會在右上角網址列顯示<b>「已封鎖彈出式視窗」</b>。</p>
+    <p>請點擊該圖示並選擇<b>「一律允許從此檔案開啟彈出式視窗」</b>，然後再次點擊按鈕即可一鍵打開所有分頁！</p>
+  </div>
+
+  <div id="cards-container">
+    
+      <div class="card" id="2026-01">
+        <div class="card-info">
+          <h2>📅 2026 年 01 月</h2>
+          <p>符合條件遊戲共 <b>10</b> 款</p>
+        </div>
+        <button class="btn" onclick='openAll(["https://store.steampowered.com/app/3741860","https://store.steampowered.com/app/3151270","https://store.steampowered.com/app/1176470","https://store.steampowered.com/app/1560250","https://store.steampowered.com/app/1672810","https://store.steampowered.com/app/2492040","https://store.steampowered.com/app/3850560","https://store.steampowered.com/app/2788520","https://store.steampowered.com/app/2678830","https://store.steampowered.com/app/3039500"])'>
+          🚀 一鍵開啟 (10 款)
+        </button>
+      </div>
+      
+
+      <div class="card" id="2025-12">
+        <div class="card-info">
+          <h2>📅 2025 年 12 月</h2>
+          <p>符合條件遊戲共 <b>14</b> 款</p>
+        </div>
+        <button class="btn" onclick='openAll(["https://store.steampowered.com/app/774181","https://store.steampowered.com/app/4035270","https://store.steampowered.com/app/1589570","https://store.steampowered.com/app/4038320","https://store.steampowered.com/app/1929290","https://store.steampowered.com/app/3767740","https://store.steampowered.com/app/1718460","https://store.steampowered.com/app/2824660","https://store.steampowered.com/app/2753970","https://store.steampowered.com/app/3629780","https://store.steampowered.com/app/3014320","https://store.steampowered.com/app/3406910","https://store.steampowered.com/app/1264970","https://store.steampowered.com/app/3573070"])'>
+          🚀 一鍵開啟 (14 款)
+        </button>
+      </div>
+      
+
+      <div class="card" id="2025-11">
+        <div class="card-info">
+          <h2>📅 2025 年 11 月</h2>
+          <p>符合條件遊戲共 <b>29</b> 款</p>
+        </div>
+        <button class="btn" onclick='openAll(["https://store.steampowered.com/app/3862670","https://store.steampowered.com/app/3731020","https://store.steampowered.com/app/3609750","https://store.steampowered.com/app/3548580","https://store.steampowered.com/app/2416100","https://store.steampowered.com/app/2102040","https://store.steampowered.com/app/2455780","https://store.steampowered.com/app/2799860","https://store.steampowered.com/app/3772810","https://store.steampowered.com/app/2870920","https://store.steampowered.com/app/2208350","https://store.steampowered.com/app/3008740","https://store.steampowered.com/app/3649580","https://store.steampowered.com/app/3124340","https://store.steampowered.com/app/2313700","https://store.steampowered.com/app/3255860","https://store.steampowered.com/app/3521410","https://store.steampowered.com/app/2712380","https://store.steampowered.com/app/2325920","https://store.steampowered.com/app/2370000","https://store.steampowered.com/app/1817500","https://store.steampowered.com/app/1780940","https://store.steampowered.com/app/1483370","https://store.steampowered.com/app/3469750","https://store.steampowered.com/app/2555950","https://store.steampowered.com/app/2348540","https://store.steampowered.com/app/3772240","https://store.steampowered.com/app/2468550","https://store.steampowered.com/app/3625210"])'>
+          🚀 一鍵開啟 (29 款)
+        </button>
+      </div>
+      
+
+      <div class="card" id="2025-10">
+        <div class="card-info">
+          <h2>📅 2025 年 10 月</h2>
+          <p>符合條件遊戲共 <b>29</b> 款</p>
+        </div>
+        <button class="btn" onclick='openAll(["https://store.steampowered.com/app/2592160","https://store.steampowered.com/app/2062430","https://store.steampowered.com/app/3981100","https://store.steampowered.com/app/3673060","https://store.steampowered.com/app/2891020","https://store.steampowered.com/app/3864530","https://store.steampowered.com/app/3570370","https://store.steampowered.com/app/2064610","https://store.steampowered.com/app/3265060","https://store.steampowered.com/app/1943950","https://store.steampowered.com/app/3949040","https://store.steampowered.com/app/1169040","https://store.steampowered.com/app/1044720","https://store.steampowered.com/app/3167020","https://store.steampowered.com/app/1984270","https://store.steampowered.com/app/1904480","https://store.steampowered.com/app/1330460","https://store.steampowered.com/app/2893570","https://store.steampowered.com/app/2464280","https://store.steampowered.com/app/1880620","https://store.steampowered.com/app/2448020","https://store.steampowered.com/app/2115390","https://store.steampowered.com/app/3389200","https://store.steampowered.com/app/3841970","https://store.steampowered.com/app/3811390","https://store.steampowered.com/app/1598780","https://store.steampowered.com/app/2717010","https://store.steampowered.com/app/3593490","https://store.steampowered.com/app/3838290"])'>
+          🚀 一鍵開啟 (29 款)
+        </button>
+      </div>
+      
+
+      <div class="card" id="2025-09">
+        <div class="card-info">
+          <h2>📅 2025 年 09 月</h2>
+          <p>符合條件遊戲共 <b>45</b> 款</p>
+        </div>
+        <button class="btn" onclick='openAll(["https://store.steampowered.com/app/1145350","https://store.steampowered.com/app/1211020","https://store.steampowered.com/app/2634950","https://store.steampowered.com/app/3447040","https://store.steampowered.com/app/3191050","https://store.steampowered.com/app/2885870","https://store.steampowered.com/app/3446680","https://store.steampowered.com/app/2698470","https://store.steampowered.com/app/3185890","https://store.steampowered.com/app/2912430","https://store.steampowered.com/app/2256450","https://store.steampowered.com/app/1030300","https://store.steampowered.com/app/3008130","https://store.steampowered.com/app/2321470","https://store.steampowered.com/app/3180070","https://store.steampowered.com/app/2486820","https://store.steampowered.com/app/1594940","https://store.steampowered.com/app/2101960","https://store.steampowered.com/app/2820820","https://store.steampowered.com/app/1763250","https://store.steampowered.com/app/956680","https://store.steampowered.com/app/990380","https://store.steampowered.com/app/1538550","https://store.steampowered.com/app/2419670","https://store.steampowered.com/app/1281040","https://store.steampowered.com/app/3453600","https://store.steampowered.com/app/2877170","https://store.steampowered.com/app/3364770","https://store.steampowered.com/app/3208560","https://store.steampowered.com/app/2359120","https://store.steampowered.com/app/3067890","https://store.steampowered.com/app/2389040","https://store.steampowered.com/app/2988620","https://store.steampowered.com/app/3194360","https://store.steampowered.com/app/3415230","https://store.steampowered.com/app/2494810","https://store.steampowered.com/app/2743460","https://store.steampowered.com/app/3077570","https://store.steampowered.com/app/3259600","https://store.steampowered.com/app/2324290","https://store.steampowered.com/app/3216500","https://store.steampowered.com/app/3288270","https://store.steampowered.com/app/3449040","https://store.steampowered.com/app/2731330","https://store.steampowered.com/app/2218400"])'>
+          🚀 一鍵開啟 (45 款)
+        </button>
+      </div>
+      
+
+      <div class="card" id="2025-08">
+        <div class="card-info">
+          <h2>📅 2025 年 08 月</h2>
+          <p>符合條件遊戲共 <b>23</b> 款</p>
+        </div>
+        <button class="btn" onclick='openAll(["https://store.steampowered.com/app/3035120","https://store.steampowered.com/app/2133760","https://store.steampowered.com/app/2678640","https://store.steampowered.com/app/2721890","https://store.steampowered.com/app/2701720","https://store.steampowered.com/app/2908050","https://store.steampowered.com/app/3003460","https://store.steampowered.com/app/3930300","https://store.steampowered.com/app/3228590","https://store.steampowered.com/app/3556750","https://store.steampowered.com/app/1721110","https://store.steampowered.com/app/3755860","https://store.steampowered.com/app/3363270","https://store.steampowered.com/app/2106670","https://store.steampowered.com/app/2274620","https://store.steampowered.com/app/3298940","https://store.steampowered.com/app/2717880","https://store.steampowered.com/app/2223700","https://store.steampowered.com/app/1812860","https://store.steampowered.com/app/2836100","https://store.steampowered.com/app/3047750","https://store.steampowered.com/app/2447680","https://store.steampowered.com/app/3630410"])'>
+          🚀 一鍵開啟 (23 款)
+        </button>
+      </div>
+      
+  </div>
+</body>
+</html>
