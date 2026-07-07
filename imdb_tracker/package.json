@@ -1,0 +1,17 @@
+{
+  "name": "imdb-tracker",
+  "version": "1.0.0",
+  "description": "IMDb 新上映電影 ➔ 豆瓣估算評分轉換器",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js",
+    "fetch": "node main.js --months 1",
+    "fetch:3": "node main.js --months 3"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "commander": "^12.1.0",
+    "dayjs": "^1.11.11"
+  }
+}
