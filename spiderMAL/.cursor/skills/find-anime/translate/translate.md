@@ -2,7 +2,7 @@
 
 ## 專案位置
 
-`d:\練習\spiderMAL`
+`d:\練習\CatchList\spiderMAL`
 
 ## 執行指令
 

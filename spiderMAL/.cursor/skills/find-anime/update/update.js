@@ -92,6 +92,7 @@ async function main() {
   seasonsToFetch.forEach((s) => console.log(`   → ${s.year} ${s.season}`));
 
   // Fetch and write each season (oldest first so stacking puts newest on top)
+  const failedSeasons = [];
   for (const { year, season } of seasonsToFetch) {
     console.log(`\n${'─'.repeat(50)}`);
     console.log(`🔍 正在搜尋 ${year} ${season}...`);
@@ -155,11 +156,21 @@ async function main() {
       console.log(`   ✅ ${year} ${season} 已寫入（${items.length} 部）`);
     } catch (err) {
       console.error(`   ❌ ${year} ${season} 處理失敗：${err.message || err}`);
+      failedSeasons.push(`${year} ${season}`);
+      // 檔案以「最新一季在頂部」判斷進度,若跳過失敗季度繼續寫更新的季度,
+      // 中間的缺季將永遠不會被回補 —— 因此一失敗就中斷,下次從此季重試。
+      break;
     }
   }
 
   console.log(`\n${'─'.repeat(50)}`);
-  console.log(`\n✅ 全部完成！已補齊 ${seasonsToFetch.length} 個季度到：${TARGET_PATH}`);
+  if (failedSeasons.length > 0) {
+    // 失敗的季度未寫入檔案,下次執行會自動重補;以非零 exit code 通知排程器
+    console.error(`\n⚠️ 有 ${failedSeasons.length} 個季度處理失敗：${failedSeasons.join(', ')}(下次執行將自動重試)`);
+    process.exitCode = 1;
+  } else {
+    console.log(`\n✅ 全部完成！已補齊 ${seasonsToFetch.length} 個季度到：${TARGET_PATH}`);
+  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

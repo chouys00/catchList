@@ -1,46 +1,25 @@
 // ============================================================
 // writer.js — Markdown 報告生成器 (增量寫入與鎖定版)
+// 區段解析與寫檔邏輯共用 @catchlist/core 的 mdstore。
 // ============================================================
 
 import fs from "node:fs";
 import path from "node:path";
 import dayjs from "dayjs";
+import { loadSections, writeSectionsFile, monthKey } from "@catchlist/core";
 import { CONFIG } from "./config.js";
 
 /**
  * 解析現有 遊戲.md 的既有區塊
- * @param {string} filepath 
+ * @param {string} filepath
  * @returns {Map<string, string>} - key: "YYYY-MM", value: markdown block
  */
 export function loadExistingSections(filepath) {
-  const sections = new Map();
-
-  if (!fs.existsSync(filepath)) return sections;
-
-  let content = fs.readFileSync(filepath, "utf-8");
-  // 💡 移除頂部一鍵開啟連結與等號分隔線，避免干擾第一個月的標題解析
-  content = content.replace(/^👉\s+\[點此打開[\s\S]*?={10,}\s*/, "").trim();
-
-  const blocks = content.split("------------------------------");
-
-  for (const block of blocks) {
-    const trimmed = block.trim();
-    if (!trimmed) continue;
-
-    const firstLine = trimmed.split("\n")[0].trim();
-    // 支援「YYYY  MM月」標題，例：「2026  6月  (更新時間: ...」
-    const yearMatch = firstLine.match(/^(\d{4})/);
-    if (yearMatch) {
-      const year = parseInt(yearMatch[1]);
-      let month = 0;
-      const monthMatch = firstLine.match(/\s+(\d+)月/);
-      if (monthMatch) month = parseInt(monthMatch[1]);
-      
-      sections.set(`${year}-${String(month).padStart(2, "0")}`, trimmed);
-    }
-  }
-
-  return sections;
+  return loadSections(filepath, {
+    // 💡 移除頂部一鍵開啟連結與等號分隔線,避免干擾第一個月的標題解析
+    preprocess: (content) =>
+      content.replace(/^👉\s+\[點此打開[\s\S]*?={10,}\s*/, "").trim(),
+  });
 }
 
 /**
@@ -56,7 +35,7 @@ function formatSection(year, month, games, updatedAt) {
   lines.push(`[🚀 一鍵開啟本月所有 Steam 商店分頁](file:///${htmlPath}#${year}-${String(month).padStart(2, "0")})`);
   lines.push("");
 
-  // 排序：評分 score (9 先, 再 8, 7)，接著按評論數由多到少
+  // 排序:評分 score (9 先, 再 8, 7),接著按評論數由多到少
   const sorted = [...games].sort((a, b) => {
     if (b.reviewScore !== a.reviewScore) {
       return b.reviewScore - a.reviewScore;
@@ -67,13 +46,11 @@ function formatSection(year, month, games, updatedAt) {
   for (const g of sorted) {
     const chName = g.chineseName || g.englishName;
     const egName = g.englishName;
-    const price = g.priceText;
-    const rating = g.ratingLabel;
     const reviews = g.totalReviews.toLocaleString();
     const release = g.releaseDate; // YYYY-MM-DD
     const genres = g.genres.join(", ");
-    
-    // 建立徽章標籤 (已排除 VR；只保留手把支援 🎮 與 18+ 標籤)
+
+    // 建立徽章標籤 (已排除 VR;只保留手把支援 🎮 與 18+ 標籤)
     const badges = [];
     if (g.supportsController) badges.push("🎮");
     if (g.isAdult) badges.push("18+");
@@ -92,7 +69,7 @@ function formatSection(year, month, games, updatedAt) {
 
 /**
  * 產生 Chrome 一鍵開啟 Steam 頁面的 HTML 工具檔
- * @param {Map<string, string>} existingSections 
+ * @param {Map<string, string>} existingSections
  */
 function generateOpenLinksPage(existingSections) {
   const htmlPath = path.resolve("open_links.html");
@@ -231,8 +208,8 @@ function generateOpenLinksPage(existingSections) {
 
   <div class="tip-box">
     <h3>💡 首次點擊須知</h3>
-    <p>第一次點擊按鈕時，Chrome 瀏覽器可能會在右上角網址列顯示<b>「已封鎖彈出式視窗」</b>。</p>
-    <p>請點擊該圖示並選擇<b>「一律允許從此檔案開啟彈出式視窗」</b>，然後再次點擊按鈕即可一鍵打開所有分頁！</p>
+    <p>第一次點擊按鈕時,Chrome 瀏覽器可能會在右上角網址列顯示<b>「已封鎖彈出式視窗」</b>。</p>
+    <p>請點擊該圖示並選擇<b>「一律允許從此檔案開啟彈出式視窗」</b>,然後再次點擊按鈕即可一鍵打開所有分頁!</p>
   </div>
 
   <div id="cards-container">
@@ -255,12 +232,13 @@ function generateOpenLinksPage(existingSections) {
 </html>`;
 
   fs.writeFileSync(htmlPath, htmlContent, "utf-8");
-  console.log(`✅ 連結網頁已更新：${htmlPath}`);
+  console.log(`✅ 連結網頁已更新:${htmlPath}`);
 }
 
 /**
- * 更新 遊戲.md 報告（補上新月份，不變更已鎖定的舊月份）
- * @param {Array<{ year, month, games }>} allMonthData 
+ * 更新 遊戲.md 報告(補上新月份,不變更已鎖定的舊月份)。
+ * 每次呼叫都重新讀檔合併,可安全地逐月呼叫。
+ * @param {Array<{ year, month, games }>} allMonthData
  */
 export function updateReport(allMonthData) {
   const filepath = path.resolve(CONFIG.OUTPUT_FILE);
@@ -270,34 +248,25 @@ export function updateReport(allMonthData) {
   let totalWritten = 0;
   for (const { year, month, games } of allMonthData) {
     if (games.length === 0) {
-      // 即使該月沒有符合的遊戲，也寫入一個空白區塊以標記該月份已被處理鎖定
+      // 即使該月沒有符合的遊戲,也寫入一個空白區塊以標記該月份已被處理鎖定
       const monthZh = CONFIG.MONTH_ZH[month];
-      const emptySection = `${year}  ${monthZh}  (更新時間: ${today})\n\n（本月無符合條件的優質單人/合作遊戲）\n`;
-      existing.set(`${year}-${String(month).padStart(2, "0")}`, emptySection);
+      const emptySection = `${year}  ${monthZh}  (更新時間: ${today})\n\n(本月無符合條件的優質單人/合作遊戲)\n`;
+      existing.set(monthKey(year, month), emptySection);
       continue;
     }
 
     const section = formatSection(year, month, games, today);
-    existing.set(`${year}-${String(month).padStart(2, "0")}`, section);
+    existing.set(monthKey(year, month), section);
     totalWritten += games.length;
   }
 
   // 1. 產生一鍵開啟的 HTML 輔助頁面
   generateOpenLinksPage(existing);
 
-  // 2. 準備寫入 遊戲.md
-  const sortedKeys = [...existing.keys()].sort((a, b) => b.localeCompare(a));
-  const parts = [];
-  for (const key of sortedKeys) {
-    parts.push(existing.get(key));
-    parts.push("------------------------------");
-    parts.push("");
-  }
-
-  // 在 Markdown 最頂部加入直達網頁的一鍵開啟超連結
+  // 2. 寫入 遊戲.md(頂部加入直達網頁的一鍵開啟超連結)
   const htmlPath = path.resolve("open_links.html").replace(/\\/g, "/");
   const header = `👉 [點此打開「一鍵開啟工具」頁面](file:///${htmlPath}) (可在 Chrome 一鍵打開各月份所有 Steam 商店分頁)\n\n============================================================\n\n`;
 
-  fs.writeFileSync(filepath, header + parts.join("\n").trimEnd() + "\n", "utf-8");
-  console.log(`✅ 報告已更新：${filepath}\n   共追加/覆蓋寫入 ${totalWritten} 款符合條件的遊戲。`);
+  writeSectionsFile(filepath, existing, { header });
+  console.log(`✅ 報告已更新:${filepath}\n   本次寫入 ${totalWritten} 款符合條件的遊戲。`);
 }

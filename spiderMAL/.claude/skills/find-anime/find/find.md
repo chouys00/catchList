@@ -2,7 +2,7 @@
 
 ## 專案位置
 
-`d:\練習\spiderMAL`
+`d:\練習\CatchList\spiderMAL`
 
 ## 執行指令
 
@@ -22,7 +22,7 @@ node .cursor/skills/find-anime/find/find.js [年份] [季節] [最低評分]
 1. 從使用者輸入判斷年份與季節
    - 有指定 → 帶入對應參數
    - 未指定 → 使用預設值（2025 winter）
-2. 在 `d:\練習\spiderMAL` 目錄執行指令
+2. 在 `d:\練習\CatchList\spiderMAL` 目錄執行指令
 3. 將輸出結果顯示給使用者
 
 ## 季節對應

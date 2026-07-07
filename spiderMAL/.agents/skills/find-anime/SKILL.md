@@ -20,4 +20,4 @@ description: 搜尋季節動畫與名稱轉換。當使用者說「找」、「�
 
 ## 專案位置
 
-`d:\練習\spiderMAL`（所有指令都在此目錄下執行）
+`d:\練習\CatchList\spiderMAL`（所有指令都在此目錄下執行）
