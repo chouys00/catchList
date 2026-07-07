@@ -104,6 +104,7 @@ export async function getSeasonAnimeFromAniList(year, season) {
   console.log(`   [AniList Fallback] 找到 ${results.length} 部動畫，初步篩選出 ${candidates.length} 部評分較高的動畫，開始獲取 Jikan 詳細評分...`);
 
   const enrichedAnime = [];
+  let failCount = 0;
   for (let i = 0; i < candidates.length; i++) {
     const candidate = candidates[i];
     const idMal = candidate.idMal;
@@ -137,10 +138,21 @@ export async function getSeasonAnimeFromAniList(year, season) {
         }
       }
     }
+    if (!success) failCount++;
     await new Promise((r) => setTimeout(r, 700));
   }
 
   process.stdout.write('\r' + ' '.repeat(80) + '\r');
-  console.log(`   [AniList Fallback] 成功獲取 ${enrichedAnime.length} 部動畫的 Jikan 評分資訊`);
+  console.log(`   [AniList Fallback] 成功獲取 ${enrichedAnime.length} 部動畫的 Jikan 評分資訊(查詢失敗 ${failCount} 部)`);
+
+  // 若個別查詢失敗過多(Jikan 大範圍故障),放棄本季不寫入。
+  // 否則殘缺清單會被標記為「已完成」,缺漏的動畫永遠不會補回來;
+  // 拋錯讓 update.js 以非零 exit code 結束,下次排程執行自動重試。
+  if (failCount > Math.ceil(candidates.length * 0.2)) {
+    throw new Error(
+      `AniList 備援中 Jikan 個別查詢失敗過多 (${failCount}/${candidates.length}),放棄本季以免寫入不完整清單`
+    );
+  }
+
   return enrichedAnime;
 }
