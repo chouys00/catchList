@@ -12,7 +12,7 @@ export const CONFIG = {
   TMDB_API_KEY: "YOUR_TMDB_API_KEY_HERE",
 
   // 輸出檔案
-  OUTPUT_FILE: "D:/GoogleDrive_Sync/電影.md",
+  OUTPUT_FILE: "G:/我的雲端硬碟/CatchList/電影.md",
 
   // 預設抓取最近幾個月
   MONTHS_TO_FETCH: 3,

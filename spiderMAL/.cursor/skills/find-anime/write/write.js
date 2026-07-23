@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildBatchText, saveStacked, seasonToZh } from '../lib/writer.js';
+import { TARGET_PATH } from '../lib/constants.js';
 
 function loadCache() {
   const cachePath = path.resolve(process.cwd(), 'anime-cache.json');
@@ -30,11 +31,10 @@ async function main() {
     const cache = loadCache();
     const batchText = buildBatchText(cache);
 
-    const targetPath = 'D:/GoogleDrive_Sync/動畫.md';
-    saveStacked(targetPath, batchText);
+    saveStacked(TARGET_PATH, batchText);
 
     const seasonZh = seasonToZh(cache.season);
-    console.log(`\n✅ 已寫入一批動畫資料到：${targetPath}`);
+    console.log(`\n✅ 已寫入一批動畫資料到：${TARGET_PATH}`);
     console.log(`   來源：${cache.year} ${seasonZh}季，評分門檻 > ${cache.minScore.toFixed(2)}，共 ${cache.items.length} 部`);
   } catch (err) {
     console.error('\n❌ 寫入失敗：', err.message || err);

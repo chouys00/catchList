@@ -4,7 +4,7 @@
 
 export const CONFIG = {
   // 輸出檔案名稱
-  OUTPUT_FILE: "D:/GoogleDrive_Sync/遊戲.md",
+  OUTPUT_FILE: "G:/我的雲端硬碟/CatchList/遊戲.md",
 
   // 沉澱期（月）：往前推 N 個月以前上市的遊戲才列入考慮（確保評價有足夠時間累積）
   SETTLE_MONTHS: 6,

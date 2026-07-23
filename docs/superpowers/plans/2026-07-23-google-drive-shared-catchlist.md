@@ -61,6 +61,7 @@ Expected: 每個同名檔案的兩個雜湊一致。
 
 **Files:**
 - Modify: `spiderMAL/.cursor/skills/find-anime/lib/constants.js`
+- Modify: `spiderMAL/.cursor/skills/find-anime/write/write.js`
 - Modify: `imdb_tracker/config.js`
 - Modify: `steam_discovery/config.js`
 
@@ -80,13 +81,20 @@ export const TARGET_PATH = 'G:/我的雲端硬碟/CatchList/動畫.md';
 OUTPUT_FILE: "G:/我的雲端硬碟/CatchList/電影.md",
 ```
 
-- [ ] **Step 3: 將遊戲路徑改為共用位置**
+- [ ] **Step 3: 讓動畫手動寫入入口共用同一個常數**
+
+```js
+import { TARGET_PATH } from '../lib/constants.js';
+saveStacked(TARGET_PATH, batchText);
+```
+
+- [ ] **Step 4: 將遊戲路徑改為共用位置**
 
 ```js
 OUTPUT_FILE: "G:/我的雲端硬碟/CatchList/遊戲.md",
 ```
 
-- [ ] **Step 4: 驗證所有執行路徑已切換**
+- [ ] **Step 5: 驗證所有執行路徑已切換**
 
 Run:
 
