@@ -1,187 +1,138 @@
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildImdbRatingIndex } from "./sources/imdb.js";
-import { TmdbClient } from "./sources/tmdb.js";
-import { filterByTaiwanSubscription } from "./availability.js";
-import { WESTERN_COUNTRIES } from "./classifier.js";
-import { createWikidataNameResolver } from "./names.js";
-import { buildRegionalSelections } from "./pipeline.js";
+import { DEFAULT_OUTPUT_FILE } from "./config.js";
 import { REGION_KEYS } from "./schema.js";
-import { scoreCandidate } from "./scoring.js";
-import { DEFAULT_OUTPUT_FILE, INITIAL_BACKFILL_MONTHS, OBSERVATION_DELAY_MONTHS, defaultCachePaths } from "./config.js";
-import { formatMonthSection, loadReportSections, writeMonthReport } from "./writer.js";
+import { annualKey, formatYearSection, loadAnnualReportSections, writeAnnualReport } from "./writer.js";
 
-const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
-const ORIGINS = Object.freeze({
-  kr: ["KR"], jp: ["JP"], tw: ["TW"], cn: ["CN"], western: [...WESTERN_COUNTRIES]
-});
+export const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
 
-function asUtcMonth(date) {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+function parseYear(value) {
+  if (!/^\d{4}$/.test(value ?? "")) return null;
+  const year = Number(value);
+  return year >= 1900 && year <= 9999 ? year : null;
 }
 
-function addMonths(date, count) {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + count, 1));
-}
-
-function monthInfo(date) {
-  const start = asUtcMonth(date);
-  const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0));
-  const key = start.toISOString().slice(0, 7);
-  return { key, year: start.getUTCFullYear(), month: start.getUTCMonth() + 1, startDate: key + "-01", endDate: end.toISOString().slice(0, 10) };
-}
-
-export function observationEndMonth(referenceDate = new Date(), delayMonths = OBSERVATION_DELAY_MONTHS) {
-  return monthInfo(addMonths(asUtcMonth(referenceDate), -delayMonths));
-}
-
-export function monthsEndingAt(endMonth, count = INITIAL_BACKFILL_MONTHS) {
-  return Array.from({ length: count }, (_, index) => monthInfo(addMonths(
-    new Date(Date.UTC(endMonth.year, endMonth.month - 1, 1)), index - count + 1
-  )));
-}
-
-function parseMonthKey(key) {
-  const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(key ?? "");
-  return match ? { year: Number(match[1]), month: Number(match[2]) } : null;
-}
-
-/** 已有報告由最早月份補到觀察期終點；全新報告則回補最近 12 個月。 */
-export function pendingMonths(sections, { referenceDate = new Date(), delayMonths = OBSERVATION_DELAY_MONTHS, initialMonths = INITIAL_BACKFILL_MONTHS } = {}) {
-  const end = observationEndMonth(referenceDate, delayMonths);
-  const endIndex = end.year * 12 + end.month - 1;
-  const existing = [...sections.keys()]
-    .map(parseMonthKey)
-    .filter(Boolean)
-    .filter(({ year, month }) => year * 12 + month - 1 <= endIndex);
-  if (existing.length === 0) return monthsEndingAt(end, initialMonths);
-
-  const start = existing.reduce((earliest, current) => (
-    current.year * 12 + current.month < earliest.year * 12 + earliest.month ? current : earliest
-  ));
-  const result = [];
-  for (let current = new Date(Date.UTC(start.year, start.month - 1, 1)); current <= new Date(Date.UTC(end.year, end.month - 1, 1)); current = addMonths(current, 1)) {
-    const info = monthInfo(current);
-    if (!sections.has(info.key)) result.push(info);
+function asOptionalImdbData(show, index) {
+  const hasScore = show.imdbScore != null;
+  const hasVotes = show.imdbVotes != null;
+  if (hasScore !== hasVotes) throw new Error(`第 ${index + 1} 筆作品的 IMDb 分數與票數必須同時提供。`);
+  if (!hasScore) return { imdbScore: null, imdbVotes: null };
+  const imdbScore = Number(show.imdbScore);
+  const imdbVotes = Number(show.imdbVotes);
+  if (!Number.isFinite(imdbScore) || imdbScore < 0 || imdbScore > 10) {
+    throw new Error(`第 ${index + 1} 筆作品的 IMDb 分數必須介於 0 到 10。`);
   }
-  return result;
+  if (!Number.isInteger(imdbVotes) || imdbVotes < 0) {
+    throw new Error(`第 ${index + 1} 筆作品的 IMDb 票數必須是非負整數。`);
+  }
+  return { imdbScore, imdbVotes };
+}
+
+function validateImdbUrl(value, index) {
+  if (value == null) return null;
+  if (typeof value !== "string") throw new Error(`第 ${index + 1} 筆作品的 IMDb 連結格式無效。`);
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`第 ${index + 1} 筆作品的 IMDb 連結格式無效。`);
+  }
+  if (url.protocol !== "https:" || url.hostname !== "www.imdb.com" || !/^\/title\/tt\d+\/?$/.test(url.pathname)) {
+    throw new Error(`第 ${index + 1} 筆作品的 IMDb 連結必須是 imdb.com/title/tt...。`);
+  }
+  return url.toString();
+}
+
+/**
+ * 讀取 AI 年度研究結果。這裡只驗證輸入結構，絕不以外部評分或票數決定是否入選。
+ */
+export function loadAnnualSelections(inputFile, year) {
+  let source;
+  try {
+    source = JSON.parse(fs.readFileSync(inputFile, "utf8"));
+  } catch (error) {
+    throw new Error(`無法讀取年度清單：${error.message}`);
+  }
+  if (!source || typeof source !== "object" || Array.isArray(source)) throw new Error("年度清單必須是 JSON 物件。");
+  if (source.year !== year) throw new Error(`年度清單的 year 必須是 ${year}。`);
+  if (!Array.isArray(source.selections)) throw new Error("年度清單缺少 selections 陣列。");
+
+  const countByRegion = new Map(REGION_KEYS.map((region) => [region, 0]));
+  const seen = new Set();
+  const selections = source.selections.map((show, index) => {
+    if (!show || typeof show !== "object") throw new Error(`第 ${index + 1} 筆作品必須是物件。`);
+    if (!REGION_KEYS.includes(show.region)) throw new Error(`第 ${index + 1} 筆作品的 region 無效。`);
+    if (typeof show.title !== "string" || show.title.trim().length === 0) throw new Error(`第 ${index + 1} 筆作品缺少 title。`);
+    const title = show.title.trim();
+    const key = `${show.region}:${title}`;
+    if (seen.has(key)) throw new Error(`同一地區不可重複列入「${title}」。`);
+    seen.add(key);
+    countByRegion.set(show.region, countByRegion.get(show.region) + 1);
+    return {
+      region: show.region,
+      title,
+      imdbUrl: validateImdbUrl(show.imdbUrl, index),
+      ...asOptionalImdbData(show, index)
+    };
+  });
+  for (const region of REGION_KEYS) {
+    if (countByRegion.get(region) !== 10) throw new Error(`${region} 必須剛好有 10 部年度必看作品。`);
+  }
+  return {
+    selections,
+    selectedAt: typeof source.selectedAt === "string" ? source.selectedAt : null,
+    imdbDataDate: typeof source.imdbDataDate === "string" ? source.imdbDataDate : null
+  };
 }
 
 export function parseCliArgs(argv) {
-  const options = { dryRun: false, outputFile: DEFAULT_OUTPUT_FILE, month: null, imdbRatingsFile: null };
+  const options = { dryRun: false, outputFile: DEFAULT_OUTPUT_FILE, year: null, inputFile: null };
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
     if (value === "--dry-run") options.dryRun = true;
     else if (value === "--output") options.outputFile = argv[++index];
-    else if (value === "--month") options.month = argv[++index];
-    else if (value === "--imdb-ratings") options.imdbRatingsFile = argv[++index];
+    else if (value === "--year") options.year = parseYear(argv[++index]);
+    else if (value === "--input") options.inputFile = argv[++index];
     else throw new Error(`不支援的參數：${value}`);
   }
   if (!options.outputFile) throw new Error("--output 需要檔案路徑。");
-  if (options.month && !parseMonthKey(options.month)) throw new Error("--month 必須為 YYYY-MM。");
+  if (!options.year) throw new Error("--year 必須是四位數年份。");
+  if (!options.inputFile) throw new Error("--input 需要 AI 年度清單 JSON 檔案路徑。");
   return options;
 }
 
-async function collectMonthCandidates(client, month, { candidateConcurrency = 4 } = {}) {
-  const discovered = [];
-  for (const region of REGION_KEYS) {
-    discovered.push(...await client.discoverMonth({ ...month, originCountries: ORIGINS[region] }));
-  }
-  const unique = new Map();
-  for (const item of discovered) if (Number.isInteger(item?.id) && !unique.has(item.id)) unique.set(item.id, item);
-  const candidates = [];
-  const items = [...unique.values()];
-  for (let index = 0; index < items.length; index += candidateConcurrency) {
-    candidates.push(...await Promise.all(items
-      .slice(index, index + candidateConcurrency)
-      .map((item) => client.getCandidate(item))));
-  }
-  return candidates;
-}
-
-async function defaultProcessMonth(month, { client, imdbRatingsFile, wikidataResolver }) {
-  const candidates = await collectMonthCandidates(client, month);
-  let imdbIndex = new Map();
-  if (imdbRatingsFile) {
-    const targetIds = candidates.map((candidate) => candidate.externalIds?.imdbId).filter(Boolean);
-    imdbIndex = (await buildImdbRatingIndex({ input: imdbRatingsFile, targetIds })).ratings;
-  }
-  const result = await buildRegionalSelections(candidates, { imdbIndex, wikidataResolver });
-  const availability = await filterByTaiwanSubscription(result.selections, {
-    getWatchProviders: (tmdbId) => client.getWatchProviders(tmdbId)
-  });
-  return { ...result, selections: availability.selections, availabilityExcluded: availability.excluded, candidates };
-}
-
-function previewExclusions(candidates) {
-  return (candidates ?? []).flatMap((candidate) => {
-    const scored = scoreCandidate(candidate);
-    return scored.exclusionReasons.length > 0
-      ? [`TMDb ${scored.tmdbId}：排除 ${scored.exclusionReasons.join(", ")}`]
-      : [];
-  });
-}
-
-/** 正式模式每完成一月立即原子寫入；預覽完全不寫入。 */
-export async function runUpdate({
+/** 同年度已寫入時立即略過，不讀取輸入、不重新取得資料，也不改寫既有內容。 */
+export async function runAnnualUpdate({
   outputFile = DEFAULT_OUTPUT_FILE,
   dryRun = false,
-  requestedMonth = null,
-  referenceDate = new Date(),
-  updatedAt = referenceDate.toISOString().slice(0, 10),
-  client = null,
-  imdbRatingsFile = null,
-  wikidataResolver = null,
-  processMonth = null,
+  year,
+  inputFile = null,
+  processYear = null,
   log = () => {}
 } = {}) {
-  const sections = loadReportSections(outputFile);
-  const observationEnd = observationEndMonth(referenceDate);
-  const requested = requestedMonth ? monthInfo(new Date(`${requestedMonth}-01T00:00:00Z`)) : null;
-  if (requested && !dryRun && requested.key > observationEnd.key) {
-    throw new Error(`正式更新只能處理至 ${observationEnd.key}；較新月份請使用 --dry-run。`);
+  if (!parseYear(String(year ?? ""))) throw new Error("year 必須是四位數年份。");
+  const sections = loadAnnualReportSections(outputFile);
+  const key = annualKey(year);
+  if (!dryRun && sections.has(key)) {
+    log(`已跳過 ${year} 全年度：既有年度清單不更新。`);
+    return { year, key, written: false, skipped: true, section: sections.get(key) };
   }
-  const months = requested ? [requested] : pendingMonths(sections, { referenceDate });
-  const runtimeClient = processMonth ? client : (client ?? new TmdbClient({ cacheFile: defaultCachePaths().tmdb }));
-  const runtimeResolver = processMonth ? wikidataResolver : (wikidataResolver ?? createWikidataNameResolver({ cacheFile: defaultCachePaths().wikidata }));
-  const process = processMonth ?? ((month) => defaultProcessMonth(month, {
-    client: runtimeClient, imdbRatingsFile, wikidataResolver: runtimeResolver
-  }));
-  const results = [];
-
-  for (const month of months) {
-    if (!dryRun && sections.has(month.key)) {
-      results.push({ key: month.key, written: false, section: sections.get(month.key) });
-      log(`已跳過 ${month.key}`);
-      continue;
-    }
-    const processed = await process(month);
-    const selections = Array.isArray(processed) ? processed : processed.selections ?? [];
-    const section = formatMonthSection({ ...month, selections, updatedAt });
-    if (dryRun) {
-      log(`預覽 ${month.key}\n${section}`);
-      for (const exclusion of previewExclusions(processed.candidates)) log(exclusion);
-      results.push({ key: month.key, written: false, preview: section });
-      continue;
-    }
-    const written = writeMonthReport(outputFile, { ...month, selections, updatedAt });
-    results.push(written);
-    log(`${written.written ? "已寫入" : "已跳過"} ${month.key}`);
+  const annual = processYear ? await processYear({ year, inputFile }) : loadAnnualSelections(inputFile, year);
+  const section = formatYearSection({ year, ...annual });
+  if (dryRun) {
+    log(`預覽 ${year} 全年度\n${section}`);
+    return { year, key, written: false, skipped: false, preview: section };
   }
-  runtimeClient?.flushCache?.();
-  return { months, results };
+  const written = writeAnnualReport(outputFile, { year, ...annual });
+  log(`${written.written ? "已寫入" : "已跳過"} ${year} 全年度`);
+  return { year, ...written, skipped: !written.written };
 }
 
 async function main() {
   const options = parseCliArgs(process.argv.slice(2));
-  const result = await runUpdate({
-    outputFile: options.outputFile,
-    dryRun: options.dryRun,
-    requestedMonth: options.month,
-    imdbRatingsFile: options.imdbRatingsFile,
-    log: (line) => console.log(line)
-  });
-  console.log(`${options.dryRun ? "預覽" : "更新"}完成：${result.months.length} 個月份。`);
+  const result = await runAnnualUpdate({ ...options, log: (line) => console.log(line) });
+  console.log(result.skipped ? "年度清單維持原樣。" : `${options.dryRun ? "預覽" : "更新"}完成：${options.year} 全年度。`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {
@@ -190,5 +141,3 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
     process.exitCode = 1;
   });
 }
-
-export { PACKAGE_ROOT };

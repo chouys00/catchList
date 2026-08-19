@@ -1,5 +1,5 @@
 // ============================================================
-// update-all.mjs — 依序執行四個專案的每月更新
+// update-all.mjs — 依序執行三個專案的每月更新
 //
 // 特性(為排程執行設計):
 //   - 任一專案失敗不會中斷其他專案,全部跑完後統一回報
@@ -17,7 +17,6 @@ export const PROJECTS = Object.freeze([
   { name: "動畫 (spiderMAL)",      dir: "spiderMAL" },
   { name: "電影 (imdb_tracker)",   dir: "imdb_tracker" },
   { name: "遊戲 (steam_discovery)", dir: "steam_discovery" },
-  { name: "真人劇 (live_action_tracker)", dir: "live_action_tracker" },
 ]);
 
 /**
@@ -62,7 +61,7 @@ export function runAllUpdates({
     return { failures, exitCode: 1 };
   }
 
-  log("✅ 四個專案全部更新完成!");
+  log("✅ 三個每月專案全部更新完成!");
   return { failures, exitCode: 0 };
 }
 

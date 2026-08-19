@@ -3,78 +3,41 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { formatMonthSection, loadReportSections, REPORT_HEADER, writeMonthReport } from "../writer.js";
+import { REGION_KEYS } from "../schema.js";
+import { formatYearSection, loadAnnualReportSections, REPORT_HEADER, writeAnnualReport } from "../writer.js";
 
-function sample(tmdbId, region, overrides = {}) {
-  return {
-    tmdbId,
+function selections() {
+  return REGION_KEYS.flatMap((region) => Array.from({ length: 10 }, (_, index) => ({
     region,
-    weightedScore: 8,
-    displayName: "繁中\u0000名",
-    originalName: "Original * Name",
-    firstAirDate: "2025-03-15",
-    voteAverage: 8.2,
-    voteCount: 1234,
-    imdb: { imdbScore: 8.1, imdbVotes: 5678, status: "consistent" },
-    confidence: "high",
-    genreNames: ["Drama", "Crime"],
-    ...overrides
-  };
+    title: index === 0 ? "名稱 * 保留" : `${region} ${index + 1}`,
+    imdbUrl: `https://www.imdb.com/title/tt${String(index + 1).padStart(7, "0")}/`,
+    imdbScore: 8,
+    imdbVotes: 1234
+  })));
 }
 
-test("月份輸出固定五區順序、區內排序、名稱清理與 TMDb 連結", () => {
-  const section = formatMonthSection({
-    year: 2025, month: 3, updatedAt: "2026-08-17",
-    selections: [
-      sample(2, "western", { weightedScore: 9 }),
-      sample(3, "kr", { weightedScore: 7, displayName: "較低" }),
-      sample(1, "kr", { weightedScore: 9, displayName: "較高" })
-    ]
-  });
+test("年度輸出固定五區、IMDb 連結、分數與票數格式", () => {
+  const section = formatYearSection({ year: 2022, selections: selections(), selectedAt: "2026-08-19", imdbDataDate: "2026-08-17" });
   assert.deepEqual(section.split("\n\n").map((part) => part.split("\n")[0]), [
-    "2025  3月  (更新時間: 2026-08-17)", "## 韓劇", "## 日劇", "## 台劇", "## 陸劇", "## 歐美劇"
+    "2022  全年度  (整理時間: 2026-08-19)", "## 韓劇", "## 日劇", "## 台劇", "## 陸劇", "## 歐美劇", "IMDb 資料日期：2026-08-17"
   ]);
-  assert.ok(section.indexOf("**較高**") < section.indexOf("**較低**"));
-  assert.match(section, /繁中名/);
-  assert.ok(section.includes("Original \\* Name"));
-  assert.match(section, /\[TMDb\]\(https:\/\/www\.themoviedb\.org\/tv\/1\)/);
-  assert.match(REPORT_HEADER, /JustWatch/);
+  assert.ok(section.includes("[名稱 \\* 保留](https://www.imdb.com/title/tt0000001/)"));
+  assert.match(section, /8\.0／10（1,234 票）/);
+  assert.match(section, /IMDb 資料日期：2026-08-17/);
+  assert.match(REPORT_HEADER, /同一年度首次寫入後不會自動更新/);
 });
 
-test("所有區域顯示臺灣訂閱制供應商與 JustWatch 來源", () => {
-  const section = formatMonthSection({
-    year: 2025, month: 3, updatedAt: "2026-08-17",
-    selections: [sample(2, "tw", { taiwanSubscriptionProviders: ["Netflix", "Disney Plus"] })]
-  });
-  assert.match(section, /臺灣訂閱制：Netflix、Disney Plus｜資料來源：JustWatch（經 TMDb）/);
-});
-
-test("空月份與空區輸出固定完成標記", () => {
-  const section = formatMonthSection({ year: 2025, month: 4, updatedAt: "2026-08-17" });
-  assert.match(section, /本月無符合門檻的真人劇/);
-  assert.equal((section.match(/本區無符合門檻作品/g) ?? []).length, 5);
-});
-
-test("同批重複 TMDb ID 只保留一筆，同名不同 ID 都保留", () => {
-  const section = formatMonthSection({
-    year: 2025, month: 5, updatedAt: "2026-08-17",
-    selections: [sample(1, "kr", { displayName: "同名" }), sample(1, "kr", { displayName: "重複" }), sample(2, "kr", { displayName: "同名" })]
-  });
-  assert.equal((section.match(/https:\/\/www\.themoviedb\.org\/tv\/1/g) ?? []).length, 1);
-  assert.equal((section.match(/\*\*同名\*\*/g) ?? []).length, 2);
-});
-
-test("頁首不會遮蔽第一個月份，既有月份區段不會被覆寫", () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "live-action-writer-"));
-  const report = path.join(dir, "真人劇.md");
+test("年度區段以 00 鍵去重，既有內容不會被覆寫", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "live-action-annual-writer-"));
+  const report = path.join(dir, "真人劇年度.md");
   try {
-    const first = writeMonthReport(report, { year: 2025, month: 3, selections: [sample(1, "kr")], updatedAt: "2026-08-17" });
+    const first = writeAnnualReport(report, { year: 2022, selections: selections() });
     const original = fs.readFileSync(report, "utf8");
-    const second = writeMonthReport(report, { year: 2025, month: 3, selections: [sample(2, "kr")], updatedAt: "2026-08-18" });
+    const second = writeAnnualReport(report, { year: 2022, selections: [] });
     assert.equal(first.written, true);
     assert.equal(second.written, false);
     assert.ok(original.startsWith(REPORT_HEADER));
-    assert.deepEqual([...loadReportSections(report).keys()], ["2025-03"]);
+    assert.deepEqual([...loadAnnualReportSections(report).keys()], ["2022-00"]);
     assert.equal(fs.readFileSync(report, "utf8"), original);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });

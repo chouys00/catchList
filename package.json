@@ -15,7 +15,7 @@
     "update:anime": "npm run update --workspace spiderMAL",
     "update:movies": "npm run update --workspace imdb_tracker",
     "update:games": "npm run update --workspace steam_discovery",
-    "update:tv": "npm run update --workspace live-action-tracker",
+    "update:tv": "npm run update --workspace live-action-tracker --",
     "update:all": "node scripts/update-all.mjs"
   }
 }

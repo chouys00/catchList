@@ -1,5 +1,15 @@
 # 真人劇追蹤器專案規格
 
+## 現行規格（DEC-022，優先於下列月度歷史規格）
+
+真人劇改為每年一次的 AI 編輯清單。AI 研究各地公開口碑、創作代表性與年度話題後，韓劇、日劇、台劇、陸劇、歐美劇各列 10 部年度必看；TMDb、IMDb、Wikidata 與臺灣串流資料均不參與入選。IMDb 連結、分數與票數只供讀者參考。
+
+- 年度來源：`live_action_tracker/annual-selections/YYYY.json`，必須剛好有五區各 10 部作品。
+- 指令：`npm run update:tv -- --year YYYY --input annual-selections/YYYY.json`；`--dry-run` 只預覽。
+- 輸出：`G:/我的雲端硬碟/CatchList/真人劇年度.md`。舊版月報 `真人劇.md` 不會被改動。
+- 冪等：同一年區段已存在時，程式立即略過，完全不讀取來源 JSON、不重新取得資料，也不改寫報告。
+- 排程：真人劇不再加入 `update:all` 或 `run_monthly.bat`。
+
 ## 背景與目標
 
 CatchList 已能按季或按月整理動畫、電影與遊戲。真人劇沒有可直接沿用的單一評分平台，而且韓劇、日劇、台劇、陸劇與歐美劇的投票母體差異很大。本功能要新增 `live_action_tracker` workspace，每月整理六個月前首播、已有足夠評價的優質真人劇，增量寫入 `G:/我的雲端硬碟/CatchList/真人劇.md`。
