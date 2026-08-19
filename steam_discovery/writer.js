@@ -6,7 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import dayjs from "dayjs";
-import { loadSections, writeSectionsFile, monthKey } from "@catchlist/core";
+import { atomicWriteFile, loadSections, writeSectionsFile, monthKey, sanitizeDisplayText } from "@catchlist/core";
 import { CONFIG } from "./config.js";
 
 /**
@@ -44,11 +44,11 @@ function formatSection(year, month, games, updatedAt) {
   });
 
   for (const g of sorted) {
-    const chName = g.chineseName || g.englishName;
-    const egName = g.englishName;
+    const chName = sanitizeDisplayText(g.chineseName || g.englishName);
+    const egName = sanitizeDisplayText(g.englishName);
     const reviews = g.totalReviews.toLocaleString();
     const release = g.releaseDate; // YYYY-MM-DD
-    const genres = g.genres.join(", ");
+    const genres = g.genres.map((genre) => sanitizeDisplayText(genre, { maxLength: 80 })).join(", ");
 
     // 建立徽章標籤 (已排除 VR;只保留手把支援 🎮 與 18+ 標籤)
     const badges = [];
@@ -231,7 +231,7 @@ function generateOpenLinksPage(existingSections) {
 </body>
 </html>`;
 
-  fs.writeFileSync(htmlPath, htmlContent, "utf-8");
+  atomicWriteFile(htmlPath, htmlContent, "utf-8");
   console.log(`✅ 連結網頁已更新:${htmlPath}`);
 }
 

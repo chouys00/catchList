@@ -1,0 +1,33 @@
+schema_version: 2
+plan_revision: 14
+profile: audited
+
+stage_sequence:
+  - A1
+  - A2
+  - A3
+  - A4
+  - A5
+
+active_stage: A5
+stage_status: accepted
+gate_result: PASS
+next_stage: null
+handoff_mode: complete
+review_required: false
+checkpoint_policy: record-only
+blocking_acceptance_open: false
+
+execution:
+  mode: sequential
+  active_parallel_group: null
+  max_workers: 3
+
+documents:
+  spec: docs/live-action-tracker/PROJECT_SPEC.md
+  roadmap: docs/live-action-tracker/PROJECT_ROADMAP.md
+  status: docs/live-action-tracker/DEVELOPMENT_STATUS.md
+  log: docs/live-action-tracker/DEVELOPMENT_LOG.md
+  decisions: docs/live-action-tracker/DECISIONS.md
+  handoff: docs/live-action-tracker/NEXT_TASK_HANDOFF_A5.md
+  acceptance: docs/live-action-tracker/ACCEPTANCE.md

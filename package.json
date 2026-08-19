@@ -2,11 +2,12 @@
   "name": "catchlist",
   "private": true,
   "version": "1.0.0",
-  "description": "動畫/電影/遊戲三個抓取專案的 monorepo",
+  "description": "動畫、電影、遊戲與真人劇追蹤器的 monorepo",
   "type": "module",
   "workspaces": [
     "packages/*",
     "imdb_tracker",
+    "live_action_tracker",
     "spiderMAL",
     "steam_discovery"
   ],
@@ -14,6 +15,7 @@
     "update:anime": "npm run update --workspace spiderMAL",
     "update:movies": "npm run update --workspace imdb_tracker",
     "update:games": "npm run update --workspace steam_discovery",
+    "update:tv": "npm run update --workspace live-action-tracker",
     "update:all": "node scripts/update-all.mjs"
   }
 }

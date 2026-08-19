@@ -6,6 +6,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { atomicWriteFile } from "./safe-output.js";
 
 export const SECTION_DELIMITER = "------------------------------";
 
@@ -73,6 +74,5 @@ export function writeSectionsFile(filepath, sections, opts = {}) {
     parts.push("");
   }
 
-  fs.mkdirSync(path.dirname(path.resolve(filepath)), { recursive: true });
-  fs.writeFileSync(filepath, header + parts.join("\n").trimEnd() + "\n", "utf-8");
+  atomicWriteFile(filepath, header + parts.join("\n").trimEnd() + "\n", "utf-8");
 }

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { EN_TO_ZH } from './constants.js';
+import { atomicWriteFile, sanitizeDisplayText } from '@catchlist/core';
 
 export function seasonToZh(season) {
   const s = String(season || '').toLowerCase();
@@ -32,14 +33,14 @@ export function buildBatchText({ year, season, minScore, items }) {
 
   for (const item of items) {
     const name =
-      (item && (item.name_cn || item.title_cn || item.title_japanese || item.title)) || '未命名';
+      sanitizeDisplayText(item && (item.name_cn || item.title_cn || item.title_japanese || item.title)) || '未命名';
     const scoreVal = item && typeof item.score === 'number' ? item.score : null;
     const score    = scoreVal != null ? scoreVal.toFixed(2) : '-';
     const episodes =
       item && (item.episodes || item.episodes === 0)
         ? String(item.episodes)
         : '未定';
-    const type = (item && item.type) || '未知';
+    const type = sanitizeDisplayText(item && item.type, { maxLength: 80 }) || '未知';
 
     lines.push(`- ${name}  **${score}**  (${episodes} · ${type})`);
   }
@@ -53,6 +54,5 @@ export function saveStacked(targetPath, batchText) {
   const existing = fs.existsSync(targetPath) ? fs.readFileSync(targetPath, 'utf8') : '';
   const hasExisting = existing.trim().length > 0;
   const finalText = hasExisting ? `${batchText}\n\n${existing}` : batchText;
-  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-  fs.writeFileSync(targetPath, finalText, 'utf8');
+  atomicWriteFile(targetPath, finalText, 'utf8');
 }

@@ -5,7 +5,7 @@
 
 import path from "node:path";
 import dayjs from "dayjs";
-import { loadSections, writeSectionsFile, monthKey } from "@catchlist/core";
+import { loadSections, writeSectionsFile, monthKey, sanitizeDisplayText } from "@catchlist/core";
 import { CONFIG, MONTH_ZH } from "./config.js";
 
 // ─── 解析現有 電影.md 的既有區塊 ─────────────────────────────
@@ -53,7 +53,7 @@ function formatSection(year, month, movies, threshold, updatedAt, voteThreshold)
   const sorted = [...movies].sort((a, b) => b.doubanEstimated - a.doubanEstimated);
 
   for (const m of sorted) {
-    const displayTitle = m.displayTitle || m.title;
+    const displayTitle = sanitizeDisplayText(m.displayTitle || m.title);
     const votesStr     = m.votes >= 10000
       ? `${Math.round(m.votes / 1000)}k票`
       : `${m.votes.toLocaleString()}票`;

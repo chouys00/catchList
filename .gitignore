@@ -10,3 +10,5 @@ Thumbs.db
 .title_cache.json
 .appdetails_cache.json
 anime-cache.json
+live_action_tracker/.cache/
+live_action_tracker/.env

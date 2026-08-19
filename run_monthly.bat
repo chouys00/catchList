@@ -1,7 +1,7 @@
 @echo off
 rem ============================================================
-rem run_monthly.bat — 每月排程入口(供 Antigravity Scheduled
-rem Tasks 或 Windows 工作排程器呼叫)
+rem run_monthly.bat — 每月排程入口，依序更新動畫、電影、遊戲與真人劇
+rem 供 Antigravity Scheduled Tasks 或 Windows 工作排程器呼叫
 rem 輸出完整記錄到 logs\update-<日期時間>.log
 rem ============================================================
 cd /d "%~dp0"
