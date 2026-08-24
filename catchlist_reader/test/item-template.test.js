@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import { renderItemTemplate } from "../src/renderer/item-template.js";
@@ -57,4 +59,11 @@ test("遊戲列把好評率與評論數組合為同一欄", () => {
   assert.match(markup, /<span class="rating"><strong>92%<\/strong><small>\(18,452\)<\/small><\/span>/);
   assert.ok(markup.indexOf("2026-02-18") < markup.indexOf("92%"));
   assert.ok(markup.indexOf("92%") < markup.indexOf("動作、冒險"));
+});
+
+test("renderer 以 module 載入含 import 的 app.js", () => {
+  const htmlPath = fileURLToPath(new URL("../src/renderer/index.html", import.meta.url));
+  const html = fs.readFileSync(htmlPath, "utf8");
+
+  assert.match(html, /<script type="module" src="app\.js"><\/script>/);
 });
