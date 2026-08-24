@@ -14,11 +14,17 @@ const state = {
     anime: { query: "", year: "all", season: "all", min: "0" },
     movies: { query: "", year: "all", category: "all", min: "0" },
   },
+  gameCovers: new Map(),
+  resolvedGameCovers: new Set(),
+  pendingGameCovers: new Set(),
 };
 
 const app = document.querySelector("#app");
 const folderLabel = document.querySelector("#folderLabel");
 const dialog = document.querySelector("#confirmDialog");
+const coverDialog = document.querySelector("#coverDialog");
+const coverImage = document.querySelector("#coverImage");
+const coverTitle = document.querySelector("#coverTitle");
 const toast = document.querySelector("#toast");
 
 function library(media = state.active) {
@@ -51,6 +57,32 @@ function filteredEntries() {
   }).sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, "zh-Hant"));
 }
 
+async function hydrateGameCovers(entries) {
+  if (!window.catchList.resolveGameCovers) return;
+  const appids = entries.map((entry) => entry.appid).filter((appid) => appid && !state.resolvedGameCovers.has(appid) && !state.pendingGameCovers.has(appid));
+  if (appids.length === 0) return;
+  appids.forEach((appid) => state.pendingGameCovers.add(appid));
+  try {
+    const covers = await window.catchList.resolveGameCovers(appids);
+    appids.forEach((appid) => {
+      state.resolvedGameCovers.add(appid);
+      if (covers[appid]) state.gameCovers.set(appid, covers[appid]);
+    });
+  } catch {
+    appids.forEach((appid) => state.resolvedGameCovers.add(appid));
+  } finally {
+    appids.forEach((appid) => state.pendingGameCovers.delete(appid));
+  }
+  if (state.active === "games") render();
+}
+
+function showCover(url, title) {
+  coverImage.src = url;
+  coverImage.alt = `遊戲封面：${title}`;
+  coverTitle.textContent = title;
+  coverDialog.showModal();
+}
+
 function rail(data) {
   if (state.active !== "games") return `<aside class="rail"><p class="eyebrow">跨期探索</p><p class="rail-note">預設顯示所有年代，依評分由高到低排列。</p></aside>`;
   const periods = [...data.sections].sort((a, b) => b.key.localeCompare(a.key));
@@ -81,10 +113,12 @@ function render() {
   const data = library();
   if (state.active === "games" && !state.filters.games.period) state.filters.games.period = newestPeriod(data);
   const entries = filteredEntries();
+  const displayedEntries = state.active === "games" ? entries.map((entry) => ({ ...entry, coverUrl: state.gameCovers.get(entry.appid) })) : entries;
   const openLabel = state.active === "games" ? "開啟本月全部" : `搜尋目前結果 ${entries.length}`;
   const allGames = state.active === "games" ? `<button class="button subtle" data-action="open-all-games">開啟全部 Steam</button>` : "";
   const currentPeriod = state.active === "games" ? data.sections.find((section) => section.key === state.filters.games.period)?.label : "全部年代";
-  app.innerHTML = `<div class="layout">${rail(data)}<section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1><div class="section-status"><strong>${escapeHtml(currentPeriod)}</strong><span>${entries.length} 筆結果</span><span>${escapeHtml(mediaCopy[state.active].intro)}</span></div>${toolbar(data)}<div class="bulkbar"><span>${data.exists ? `${data.entries.length} 筆資料 · 已依分數排序` : `找不到 ${data.filename}`}</span><div class="bulk-actions"><button class="button primary" data-action="open-filtered" ${entries.length ? "" : "disabled"}>${openLabel}</button>${allGames}</div></div><div class="list">${entries.length ? entries.map((entry) => renderItemTemplate(entry, state.active)).join("") : `<div class="empty">目前沒有符合條件的作品。<br>可調整搜尋文字或篩選條件。</div>`}</div></section></div>`;
+  app.innerHTML = `<div class="layout">${rail(data)}<section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1><div class="section-status"><strong>${escapeHtml(currentPeriod)}</strong><span>${entries.length} 筆結果</span><span>${escapeHtml(mediaCopy[state.active].intro)}</span></div>${toolbar(data)}<div class="bulkbar"><span>${data.exists ? `${data.entries.length} 筆資料 · 已依分數排序` : `找不到 ${data.filename}`}</span><div class="bulk-actions"><button class="button primary" data-action="open-filtered" ${entries.length ? "" : "disabled"}>${openLabel}</button>${allGames}</div></div><div class="list">${entries.length ? displayedEntries.map((entry) => renderItemTemplate(entry, state.active)).join("") : `<div class="empty">目前沒有符合條件的作品。<br>可調整搜尋文字或篩選條件。</div>`}</div></section></div>`;
+  if (state.active === "games") void hydrateGameCovers(entries);
 }
 
 function ask({ eyebrow = "請確認", title, message, confirm = "確認", danger = false }) {
@@ -123,6 +157,8 @@ async function openBatch(urls, label) {
 }
 
 document.addEventListener("click", async (event) => {
+  const cover = event.target.closest("[data-cover]");
+  if (cover) { showCover(cover.dataset.cover, cover.dataset.coverTitle); return; }
   const media = event.target.closest("[data-media]")?.dataset.media;
   if (media) { state.active = media; render(); return; }
   const period = event.target.closest("[data-period]")?.dataset.period;

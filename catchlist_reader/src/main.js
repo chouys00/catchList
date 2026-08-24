@@ -4,11 +4,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { deleteEntry, hasReportFiles, loadAllLibraries, undoDelete } from "./library.js";
+import { resolveSteamCover } from "./steam-covers.js";
 
 const sourceDir = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow;
 let dataDir;
 let lastDelete;
+const gameCoverCache = new Map();
 
 function settingsPath() {
   return path.join(app.getPath("userData"), "settings.json");
@@ -49,6 +51,18 @@ function snapshot() {
   };
 }
 
+async function resolveGameCovers(appids) {
+  const uniqueAppids = [...new Set(appids)].map(String).filter((appid) => /^\d+$/.test(appid));
+  const covers = {};
+  for (let index = 0; index < uniqueAppids.length; index += 4) {
+    await Promise.all(uniqueAppids.slice(index, index + 4).map(async (appid) => {
+      if (!gameCoverCache.has(appid)) gameCoverCache.set(appid, await resolveSteamCover(appid));
+      covers[appid] = gameCoverCache.get(appid);
+    }));
+  }
+  return covers;
+}
+
 function validExternalUrl(raw) {
   const url = new URL(raw);
   if (url.protocol !== "https:") return false;
@@ -80,6 +94,10 @@ function registerIpc() {
     const restored = undoDelete(lastDelete);
     lastDelete = null;
     return { ...snapshot(), restored };
+  });
+  ipcMain.handle("library:resolve-game-covers", (_event, appids) => {
+    if (!Array.isArray(appids)) throw new Error("遊戲封面請求格式不正確");
+    return resolveGameCovers(appids);
   });
   ipcMain.handle("external:open-urls", async (_event, urls) => {
     if (!Array.isArray(urls) || urls.length > 250 || urls.some((url) => !validExternalUrl(url))) {

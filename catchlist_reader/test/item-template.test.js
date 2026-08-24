@@ -34,6 +34,8 @@ const game = {
   score: 92,
   reviews: 18452,
   genres: ["動作", "冒險"],
+  appid: "123456",
+  coverUrl: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/123456/hash/header_tchinese.jpg?t=1",
   url: "https://example.com/game"
 };
 
@@ -55,7 +57,8 @@ test("電影列先顯示評分與名稱，再顯示年份、IMDb 與類別", () 
 test("遊戲列把好評率與評論數組合為同一欄", () => {
   const markup = renderItemTemplate(game, "games");
 
-  assert.match(markup, /^<article class="item games"><div class="title">/);
+  assert.match(markup, /^<article class="item games"><button class="game-cover" type="button" data-cover=/);
+  assert.match(markup, /<img src="https:\/\/shared\.akamai\.steamstatic\.com\/store_item_assets\/steam\/apps\/123456\/hash\/header_tchinese\.jpg\?t=1" alt="遊戲封面：測試遊戲">/);
   assert.match(markup, /<span class="rating"><strong>92%<\/strong><small>\(18,452\)<\/small><\/span>/);
   assert.ok(markup.indexOf("2026-02-18") < markup.indexOf("92%"));
   assert.ok(markup.indexOf("92%") < markup.indexOf("動作、冒險"));
@@ -66,4 +69,6 @@ test("renderer 以 module 載入含 import 的 app.js", () => {
   const html = fs.readFileSync(htmlPath, "utf8");
 
   assert.match(html, /<script type="module" src="app\.js"><\/script>/);
+  assert.match(html, /img-src 'self' data: https:\/\/\*\.steamstatic\.com/);
+  assert.match(html, /<dialog id="coverDialog"/);
 });

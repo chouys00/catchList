@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data: https://*.steamstatic.com">
   <title>CatchList 閱讀器</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -36,6 +36,13 @@
         <button value="cancel" class="button subtle">取消</button>
         <button value="confirm" id="dialogConfirm" class="button primary">確認</button>
       </div>
+    </form>
+  </dialog>
+
+  <dialog id="coverDialog" class="cover-dialog">
+    <form method="dialog">
+      <button class="cover-close" type="submit" aria-label="關閉封面預覽">關閉</button>
+      <figure><img id="coverImage" alt=""><figcaption id="coverTitle"></figcaption></figure>
     </form>
   </dialog>
 
