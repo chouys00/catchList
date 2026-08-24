@@ -127,15 +127,12 @@ async function collectGamesForMonth(year, month, scanStart) {
         targetMonthCount++;
         targetMonthFound = true;
 
-        // 💡 評價過濾門檻 (v5 更新):
-        // - 壓倒性好評 (score = 9) -> 直接過關
-        // - 極度好評 (score = 8) 且評論數滿 500 則 -> 過關
-        // - score = 7 (好評率低於 80% 的邊緣極度好評) -> 剔除不要
-        const isOverwhelming = game.reviewScore === 9;
-        const isVeryPositive = game.reviewScore === 8 &&
-                               game.totalReviews >= CONFIG.MIN_REVIEWS_FOR_VERY_POSITIVE;
+        // 評價過濾門檻：好評率至少 85%，且總評論數必須大於 500 則。
+        const meetsReviewThreshold =
+          game.positivePct >= CONFIG.MIN_POSITIVE_PCT &&
+          game.totalReviews > CONFIG.MIN_TOTAL_REVIEWS_EXCLUSIVE;
 
-        if (isOverwhelming || isVeryPositive) {
+        if (meetsReviewThreshold) {
           candidates.push({
             ...game,
             releaseDate: releaseDate.format("YYYY-MM-DD")
@@ -189,8 +186,9 @@ async function main() {
 
   console.log("=".repeat(60));
   console.log("  🎮 Steam 每月優質遊戲發掘工具 (增量鎖定版)");
-  console.log(`  評價門檻:壓倒性好評 (score=9) 直接納入`);
-  console.log(`            極度好評 (score=8) 且評論數 ≥ ${CONFIG.MIN_REVIEWS_FOR_VERY_POSITIVE} 則 (排除代碼7)`);
+  console.log(
+    `  評價門檻:好評率 ≥ ${CONFIG.MIN_POSITIVE_PCT}% 且評論數 > ${CONFIG.MIN_TOTAL_REVIEWS_EXCLUSIVE}`
+  );
   console.log(`  過濾排除:MMO/多人競技、搶先體驗 (EA)、軟體`);
   if (CONFIG.SUPPORTED_LANG) {
     console.log(`  語言過濾:僅限支援「繁體中文」的遊戲 (極速撈取模式)`);

@@ -9,8 +9,9 @@ export const CONFIG = {
   // 沉澱期（月）：往前推 N 個月以前上市的遊戲才列入考慮（確保評價有足夠時間累積）
   SETTLE_MONTHS: 6,
 
-  // 當 Steam 評分為「極度好評 (Very Positive, 代碼 8)」時，所需要的最低評論數量門檻
-  MIN_REVIEWS_FOR_VERY_POSITIVE: 500,
+  // 評價門檻：好評率至少 85%，且總評論數必須大於 500 則
+  MIN_POSITIVE_PCT: 85,
+  MIN_TOTAL_REVIEWS_EXCLUSIVE: 500,
 
   // 💡 語言過濾優化 (加速關鍵！)：
   // 設為 "tchinese" 代表只搜尋有支援「繁體中文」的遊戲，這會過濾掉 90% 的外國無中文獨立小品。
