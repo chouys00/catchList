@@ -240,3 +240,10 @@
 - 寫入規則：年度研究結果存於 `live_action_tracker/annual-selections/YYYY.json`，再由 `update:tv -- --year YYYY --input ...` 輸出至獨立的 `真人劇年度.md`。程式以「YYYY 全年度」作為完成標記；同年已存在時，直接略過且不讀取輸入、不重新取得資料、不改寫內容。
 - 排程與相容性：真人劇移出 `update:all` 與 `run_monthly.bat`。舊版月報 `真人劇.md` 保留，不自動遷移或覆寫。
 - 取代關係：取代 DEC-018 至 DEC-021 所定義的月度評分、票數、串流篩選與月度排程規則；五區分類名稱沿用。
+
+## DEC-023：移除月度版外部資料流程
+
+- 日期：2026-08-19
+- 狀態：accepted
+- 決定：移除只供真人劇月度版使用的 TMDb、IMDb、Wikidata、JustWatch、評分與校準程式、測試及直接依賴。年度版只讀取 AI 研究後的 JSON，並在本機離線產生 Markdown。
+- 安全：不刪除本機 `.env`，但年度流程不再讀取權杖；其他三個追蹤器與共用 core 的 `axios` 依賴保留。
