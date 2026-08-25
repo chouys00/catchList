@@ -5,11 +5,9 @@
   "type": "module",
   "scripts": {
     "update": "node main.js",
-    "calibrate": "node calibration/run.js",
     "test": "node --test --experimental-test-isolation=none"
   },
   "dependencies": {
-    "@catchlist/core": "^1.0.0",
-    "axios": "^1.7.2"
+    "@catchlist/core": "^1.0.0"
   }
 }

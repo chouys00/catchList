@@ -35,7 +35,7 @@ function formatSection(year, month, games, updatedAt) {
   lines.push(`[🚀 一鍵開啟本月所有 Steam 商店分頁](file:///${htmlPath}#${year}-${String(month).padStart(2, "0")})`);
   lines.push("");
 
-  // 排序:評分 score (9 先, 再 8, 7),接著按評論數由多到少
+  // 先依 Steam 評價等級，再依評論數由多到少排序。
   const sorted = [...games].sort((a, b) => {
     if (b.reviewScore !== a.reviewScore) {
       return b.reviewScore - a.reviewScore;

@@ -5,6 +5,9 @@ logs/
 .DS_Store
 Thumbs.db
 .idea/
+.npm-cache/
+catchlist_reader/dist/
+catchlist_reader/.cache/
 
 # 各專案執行期快取
 .title_cache.json

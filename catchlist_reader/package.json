@@ -1,0 +1,39 @@
+{
+  "name": "catchlist-reader",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CatchList 動畫、電影與遊戲 Markdown 桌面閱讀器",
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "dev": "electron .",
+    "test": "node --test --experimental-test-isolation=none",
+    "build:portable": "electron-builder --win portable --x64"
+  },
+  "devDependencies": {
+    "electron": "43.4.1",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "tw.catchlist.reader",
+    "productName": "CatchListReader",
+    "icon": "src/assets/catchlist.ico",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "CatchListReader-${version}-portable.${ext}"
+    }
+  }
+}
