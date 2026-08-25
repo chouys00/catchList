@@ -8,12 +8,38 @@
 // ============================================================
 
 import dayjs from "dayjs";
+import fs from "node:fs";
 import path from "node:path";
-import { program } from "commander";
+import { pathToFileURL } from "node:url";
+import { Command } from "commander";
 import { delay, getMonthsBetween, monthKey } from "@catchlist/core";
 import { CONFIG } from "./config.js";
-import { fetchSearchPage, fetchAppDetails } from "./fetcher.js";
+import { backfillCommunityTags } from "./community-tags.js";
+import { fetchSearchPage, fetchAppDetails, fetchCommunityTags } from "./fetcher.js";
 import { loadExistingSections, updateReport } from "./writer.js";
+
+const REPORT_APP_URL_REGEX = /https:\/\/store\.steampowered\.com\/app\/(\d+)(?:[/?#\s]|$)/g;
+
+export function resolveTagFile(reportFile) {
+  return path.join(path.dirname(path.resolve(reportFile)), CONFIG.TAG_SIDECAR_FILE);
+}
+
+export function extractReportAppids(content) {
+  const appids = [];
+  const seen = new Set();
+
+  for (const match of String(content ?? "").matchAll(REPORT_APP_URL_REGEX)) {
+    const appid = match[1];
+    if (!appid || seen.has(appid)) {
+      continue;
+    }
+
+    seen.add(appid);
+    appids.push(appid);
+  }
+
+  return appids;
+}
 
 /**
  * 解析 Steam 搜尋頁面的日期字串為 dayjs 物件
@@ -33,25 +59,30 @@ function parseSteamSearchDate(dateStr) {
 /**
  * 使用二分搜尋法,快速定位目標年月份的搜尋頁 start 索引
  */
-async function locateMonthBinarySearch(year, month) {
+async function locateMonthBinarySearch(year, month, {
+  config,
+  waitFn,
+  fetchSearchPageFn,
+  logger
+}) {
   const targetKey = monthKey(year, month);
   const targetDate = dayjs(`${targetKey}-15`);
 
   // 💡 如果啟用了語言過濾,因為總遊戲量大幅下降 90%,二分的上限高點可以從 25000 降到 3000!
   let low = 0;
-  let high = CONFIG.SUPPORTED_LANG ? 3000 : 25000;
+  let high = config.SUPPORTED_LANG ? 3000 : 25000;
   let bestStart = -1;
   let attempts = 0;
   const maxAttempts = 12;
 
-  console.log(`   [定位] 開始二分搜尋 ${year} 年 ${month} 月 (${targetKey}) 的起始點...`);
+  logger.log(`   [定位] 開始二分搜尋 ${year} 年 ${month} 月 (${targetKey}) 的起始點...`);
 
   while (low <= high && attempts < maxAttempts) {
     let mid = Math.floor((low + high) / 2);
     mid = Math.floor(mid / 50) * 50;
 
-    await delay(1500);
-    const { games, success } = await fetchSearchPage(mid);
+    await waitFn(1500);
+    const { games, success } = await fetchSearchPageFn(mid);
     attempts++;
 
     if (!success || games.length === 0) {
@@ -71,7 +102,7 @@ async function locateMonthBinarySearch(year, month) {
     }
 
     const midKey = monthKey(midDate.year(), midDate.month() + 1);
-    console.log(`      [二分] 嘗試 start=${mid}: 遊戲日期為 ${midDate.format("YYYY-MM")} (目標: ${targetKey})`);
+    logger.log(`      [二分] 嘗試 start=${mid}: 遊戲日期為 ${midDate.format("YYYY-MM")} (目標: ${targetKey})`);
 
     if (midKey === targetKey) {
       bestStart = mid;
@@ -85,32 +116,37 @@ async function locateMonthBinarySearch(year, month) {
 
   if (bestStart !== -1) {
     // 💡 啟用語言過濾時,每個分頁的時間間隔較大,往前挪 100 就足夠安全
-    const offset = CONFIG.SUPPORTED_LANG ? 100 : 150;
+    const offset = config.SUPPORTED_LANG ? 100 : 150;
     const scanStart = Math.max(0, bestStart - offset);
-    console.log(`      [二分] 成功定位!從 start=${scanStart} 開始掃描`);
+    logger.log(`      [二分] 成功定位!從 start=${scanStart} 開始掃描`);
     return scanStart;
   }
 
-  const defaultStart = CONFIG.SUPPORTED_LANG ? 1000 : 8000;
-  console.log(`      [二分] 未能精確找到,將採用預設估算 start=${defaultStart}`);
+  const defaultStart = config.SUPPORTED_LANG ? 1000 : 8000;
+  logger.log(`      [二分] 未能精確找到,將採用預設估算 start=${defaultStart}`);
   return defaultStart;
 }
 
 /**
  * 從指定起點掃描收集該月份所有符合評價門檻的遊戲
  */
-async function collectGamesForMonth(year, month, scanStart) {
+async function collectGamesForMonth(year, month, scanStart, {
+  config,
+  waitFn,
+  fetchSearchPageFn,
+  logger
+}) {
   const targetKey = monthKey(year, month);
   const candidates = [];
   let start = scanStart;
   let keepScanning = true;
   let targetMonthFound = false;
 
-  console.log(`   [掃描] 從 start=${start} 開始線性掃描...`);
+  logger.log(`   [掃描] 從 start=${start} 開始線性掃描...`);
 
   while (keepScanning) {
-    await delay(1500);
-    const { games, success } = await fetchSearchPage(start);
+    await waitFn(1500);
+    const { games, success } = await fetchSearchPageFn(start);
     if (!success || games.length === 0) break;
 
     let targetMonthCount = 0;
@@ -129,8 +165,8 @@ async function collectGamesForMonth(year, month, scanStart) {
 
         // 評價過濾門檻：好評率至少 85%，且總評論數必須大於 500 則。
         const meetsReviewThreshold =
-          game.positivePct >= CONFIG.MIN_POSITIVE_PCT &&
-          game.totalReviews > CONFIG.MIN_TOTAL_REVIEWS_EXCLUSIVE;
+          game.positivePct >= config.MIN_POSITIVE_PCT &&
+          game.totalReviews > config.MIN_TOTAL_REVIEWS_EXCLUSIVE;
 
         if (meetsReviewThreshold) {
           candidates.push({
@@ -145,17 +181,17 @@ async function collectGamesForMonth(year, month, scanStart) {
       }
     }
 
-    console.log(`      start=${start}: 本月遊戲 ${targetMonthCount} 款,舊月遊戲 ${olderMonthCount} 款,新月遊戲 ${newerMonthCount} 款`);
+    logger.log(`      start=${start}: 本月遊戲 ${targetMonthCount} 款,舊月遊戲 ${olderMonthCount} 款,新月遊戲 ${newerMonthCount} 款`);
 
     // 停止掃描條件:
     // 如果我們已經在這一頁看到了「舊於目標月份」的遊戲,且數量大於 15 則
     if (olderMonthCount > 15) {
-      console.log(`      偵測到足夠的舊月份遊戲 (${olderMonthCount} 款),停止本月掃描。`);
+      logger.log(`      偵測到足夠的舊月份遊戲 (${olderMonthCount} 款),停止本月掃描。`);
       keepScanning = false;
     }
 
     if (targetMonthFound && targetMonthCount === 0 && olderMonthCount > 30) {
-      console.log(`      已經完全度過目標月份,停止本月掃描。`);
+      logger.log(`      已經完全度過目標月份,停止本月掃描。`);
       keepScanning = false;
     }
 
@@ -163,9 +199,9 @@ async function collectGamesForMonth(year, month, scanStart) {
       // 若尚未進入目標月份,且此頁全部都是較新的遊戲,大步前進!
       if (!targetMonthFound && olderMonthCount === 0) {
         // 💡 啟用語言過濾時,大步跨越改為 +150 (約 3 頁) 較為溫和,避免直接跳過整個月份
-        const step = CONFIG.SUPPORTED_LANG ? 150 : 300;
+        const step = config.SUPPORTED_LANG ? 150 : 300;
         start += step;
-        console.log(`      [大步前進] 尚未進入目標月份,跳躍 start += ${step} -> ${start}`);
+        logger.log(`      [大步前進] 尚未進入目標月份,跳躍 start += ${step} -> ${start}`);
       } else {
         start += 50;
       }
@@ -175,46 +211,93 @@ async function collectGamesForMonth(year, month, scanStart) {
   return { candidates, endStart: start };
 }
 
-async function main() {
+function parseOptions(argv = process.argv) {
   // 設定命令列參數
+  const program = new Command();
   program
     .option("-y, --year <year>", "指定要抓取的年份")
     .option("-m, --month <month>", "指定要抓取的月份")
-    .parse(process.argv);
+    .option("--backfill-tags", "只回補既有報告的社群標籤")
+    .parse(argv);
 
-  const options = program.opts();
+  return program.opts();
+}
 
-  console.log("=".repeat(60));
-  console.log("  🎮 Steam 每月優質遊戲發掘工具 (增量鎖定版)");
-  console.log(
-    `  評價門檻:好評率 ≥ ${CONFIG.MIN_POSITIVE_PCT}% 且評論數 > ${CONFIG.MIN_TOTAL_REVIEWS_EXCLUSIVE}`
+export async function runSteamDiscovery({
+  argv = process.argv,
+  config = CONFIG,
+  logger = console,
+  processRef = process,
+  fsImpl = fs,
+  waitFn = delay,
+  fetchSearchPageFn = fetchSearchPage,
+  fetchAppDetailsFn = fetchAppDetails,
+  fetchCommunityTagsFn = fetchCommunityTags,
+  backfillCommunityTagsFn = backfillCommunityTags,
+  loadExistingSectionsFn = loadExistingSections,
+  updateReportFn = updateReport,
+  locateMonthBinarySearchFn = null,
+  collectGamesForMonthFn = null
+} = {}) {
+  const options = parseOptions(argv);
+
+  logger.log("=".repeat(60));
+  logger.log("  🎮 Steam 每月優質遊戲發掘工具 (增量鎖定版)");
+  logger.log(
+    `  評價門檻:好評率 ≥ ${config.MIN_POSITIVE_PCT}% 且評論數 > ${config.MIN_TOTAL_REVIEWS_EXCLUSIVE}`
   );
-  console.log(`  過濾排除:MMO/多人競技、搶先體驗 (EA)、軟體`);
-  if (CONFIG.SUPPORTED_LANG) {
-    console.log(`  語言過濾:僅限支援「繁體中文」的遊戲 (極速撈取模式)`);
+  logger.log(`  過濾排除:MMO/多人競技、搶先體驗 (EA)、軟體`);
+  if (config.SUPPORTED_LANG) {
+    logger.log(`  語言過濾:僅限支援「繁體中文」的遊戲 (極速撈取模式)`);
   }
-  console.log("=".repeat(60));
+  logger.log("=".repeat(60));
 
   let missingList = [];
-  const filepath = path.resolve(CONFIG.OUTPUT_FILE);
+  const filepath = path.resolve(config.OUTPUT_FILE);
+
+  if (options.backfillTags) {
+    if (!fsImpl.existsSync(filepath)) {
+      logger.error(`\n❌ 找不到既有遊戲報告，無法初始化標籤：${filepath}`);
+      processRef.exitCode = 1;
+      return;
+    }
+
+    const reportContent = fsImpl.readFileSync(filepath, "utf8");
+    const appids = extractReportAppids(reportContent);
+    const result = await backfillCommunityTagsFn({
+      appids,
+      filepath: resolveTagFile(filepath),
+      fetchTags: fetchCommunityTagsFn,
+      wait: waitFn
+    });
+
+    if (result.failed.length > 0) {
+      logger.error(`\n❌ 以下 AppID 標籤補抓失敗，可下次續跑：${result.failed.join(", ")}`);
+      processRef.exitCode = 1;
+      return;
+    }
+
+    logger.log(`\n✅ 標籤初始化完成：新抓 ${result.fetched} 款，略過 ${result.skipped} 款。`);
+    return;
+  }
 
   // 判斷是否為使用者手動指定的單月測試模式
   if (options.year && options.month) {
     const y = parseInt(options.year, 10);
     const m = parseInt(options.month, 10);
-    console.log(`🎯 模式:使用者手動指定抓取單一月份 ${y} 年 ${m} 月`);
+    logger.log(`🎯 模式:使用者手動指定抓取單一月份 ${y} 年 ${m} 月`);
     missingList.push({ year: y, month: m, key: monthKey(y, m) });
   } else {
     // 增量回補模式
     const today = dayjs();
-    const targetEnd = today.subtract(CONFIG.SETTLE_MONTHS, "month");
+    const targetEnd = today.subtract(config.SETTLE_MONTHS, "month");
     const endYear = targetEnd.year();
     const endMonth = targetEnd.month() + 1;
 
-    console.log(`\n📅 執行當下時間:${today.format("YYYY-MM-DD")}`);
-    console.log(`⏳ 沉澱期目標終點(往前推 ${CONFIG.SETTLE_MONTHS} 個月):${endYear} 年 ${endMonth} 月`);
+    logger.log(`\n📅 執行當下時間:${today.format("YYYY-MM-DD")}`);
+    logger.log(`⏳ 沉澱期目標終點(往前推 ${config.SETTLE_MONTHS} 個月):${endYear} 年 ${endMonth} 月`);
 
-    const sections = loadExistingSections(filepath);
+    const sections = loadExistingSectionsFn(filepath);
     let oldestRecorded = null;
     const keys = [...sections.keys()].sort();
     if (keys.length > 0) {
@@ -226,12 +309,12 @@ async function main() {
     if (oldestRecorded) {
       startYear = oldestRecorded.year;
       startMonth = oldestRecorded.month;
-      console.log(`⏮️  偵測到最早的歷史紀錄月份為:${startYear} 年 ${startMonth} 月`);
+      logger.log(`⏮️  偵測到最早的歷史紀錄月份為:${startYear} 年 ${startMonth} 月`);
     } else {
       const defaultStart = targetEnd.subtract(5, "month");
       startYear = defaultStart.year();
       startMonth = defaultStart.month() + 1;
-      console.log(`⚠️  未偵測到舊的歷史紀錄,預設將回補最近半年的資訊。`);
+      logger.log(`⚠️  未偵測到舊的歷史紀錄,預設將回補最近半年的資訊。`);
     }
 
     const allPossibleGroups = getMonthsBetween(startYear, startMonth, endYear, endMonth);
@@ -246,39 +329,55 @@ async function main() {
     }
 
     if (missingList.length === 0) {
-      console.log("\n✅ 所有至沉澱終點的歷史月份都已回補完畢,目前無需更新!");
+      logger.log("\n✅ 所有至沉澱終點的歷史月份都已回補完畢,目前無需更新!");
       return;
     }
 
     // 排序由新到舊
     missingList.sort((a, b) => b.key.localeCompare(a.key));
-    console.log(`\n🔎 待回補月份共 ${missingList.length} 個:\n   ${missingList.map(x => x.key).join(", ")}`);
+    logger.log(`\n🔎 待回補月份共 ${missingList.length} 個:\n   ${missingList.map(x => x.key).join(", ")}`);
   }
+
+  const resolveLocateMonthBinarySearch = locateMonthBinarySearchFn ??
+    ((year, month) => locateMonthBinarySearch(year, month, {
+      config,
+      waitFn,
+      fetchSearchPageFn,
+      logger
+    }));
+
+  const resolveCollectGamesForMonth = collectGamesForMonthFn ??
+    ((year, month, scanStart) => collectGamesForMonth(year, month, scanStart, {
+      config,
+      waitFn,
+      fetchSearchPageFn,
+      logger
+    }));
 
   // ── Step 4: 逐個月份進行定位、掃描、詳細資訊獲取,並「立即寫入」 ──────
   let currentStart = -1;
 
   for (const { year, month, key } of missingList) {
-    console.log(`\n============================================================`);
-    console.log(`📅 正在處理:${year} 年 ${month} 月 (${key})`);
-    console.log(`============================================================`);
+    logger.log(`\n============================================================`);
+    logger.log(`📅 正在處理:${year} 年 ${month} 月 (${key})`);
+    logger.log(`============================================================`);
 
     let scanStart = 0;
 
     if (currentStart === -1 || (options.year && options.month)) {
       // 手動模式或首個月份,需要做二分搜尋定位
-      scanStart = await locateMonthBinarySearch(year, month);
+      scanStart = await resolveLocateMonthBinarySearch(year, month);
     } else {
       // 繼承掃描點,往回移 100 以免漏掉邊界
       scanStart = Math.max(0, currentStart - 100);
-      console.log(`      [繼承] 繼承上一次掃描結束點,從 start=${scanStart} 開始`);
+      logger.log(`      [繼承] 繼承上一次掃描結束點,從 start=${scanStart} 開始`);
     }
 
     // 掃描該月份符合評價門檻的遊戲
-    const { candidates, endStart } = await collectGamesForMonth(year, month, scanStart);
+    const { candidates, endStart } = await resolveCollectGamesForMonth(year, month, scanStart);
     currentStart = endStart;
 
-    console.log(`\n   [結果] 找到 ${candidates.length} 款符合評價門檻的候選遊戲,開始獲取詳細資訊...`);
+    logger.log(`\n   [結果] 找到 ${candidates.length} 款符合評價門檻的候選遊戲,開始獲取詳細資訊...`);
 
     const qualifiedGames = [];
 
@@ -286,13 +385,13 @@ async function main() {
     for (const item of candidates) {
       const { appid, englishName, releaseDate, reviewScore, reviewLabel, totalReviews, positivePct } = item;
 
-      await delay(1500);
-      const details = await fetchAppDetails(appid);
+      await waitFn(1500);
+      const details = await fetchAppDetailsFn(appid);
       if (!details) {
         continue;
       }
 
-      console.log(`   🌟 [符合條件] ${details.chineseName || englishName} (${englishName})`);
+      logger.log(`   🌟 [符合條件] ${details.chineseName || englishName} (${englishName})`);
       qualifiedGames.push({
         appid,
         englishName,
@@ -305,14 +404,39 @@ async function main() {
       });
     }
 
+    try {
+      const tagResult = await backfillCommunityTagsFn({
+        appids: qualifiedGames.map((game) => game.appid),
+        filepath: resolveTagFile(filepath),
+        fetchTags: fetchCommunityTagsFn,
+        wait: waitFn
+      });
+
+      if (tagResult.failed.length > 0) {
+        logger.error(`\n⚠️ 以下 AppID 標籤補抓失敗，但不影響本月清單寫入：${tagResult.failed.join(", ")}`);
+      }
+    } catch (error) {
+      logger.error(`\n⚠️ 本月標籤補抓發生例外，但不影響月報寫入：${error.message}`);
+    }
+
     // 逐月立即寫入,中途失敗時已完成的月份不會遺失
-    updateReport([{ year, month, games: qualifiedGames }]);
+    updateReportFn([{ year, month, games: qualifiedGames }], filepath);
   }
 
-  console.log("\n✅ 本次回補全部完成!");
+  logger.log("\n✅ 本次回補全部完成!");
 }
 
-main().catch((err) => {
-  console.error("\n❌ 執行失敗:", err);
-  process.exitCode = 1;
-});
+async function main(argv = process.argv) {
+  return runSteamDiscovery({ argv });
+}
+
+const isDirectExecution = process.argv[1]
+  ? import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href
+  : false;
+
+if (isDirectExecution) {
+  main().catch((err) => {
+    console.error("\n❌ 執行失敗:", err);
+    process.exitCode = 1;
+  });
+}

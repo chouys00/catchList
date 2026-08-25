@@ -1,0 +1,31 @@
+schema_version: 3
+plan_revision: 1
+profile: audited
+
+stage_sequence:
+  - A1
+  - A2
+  - A3
+  - A4
+
+active_stage: A4
+stage_status: accepted
+gate_result: PASS
+next_stage: null
+handoff_mode: start-next-stage
+checkpoint_policy: record-only
+blocking_acceptance_open: false
+
+execution:
+  mode: sequential
+  active_parallel_group: null
+  max_workers: 1
+
+documents:
+  spec: docs/reader-performance-scaling/PROJECT_SPEC.md
+  roadmap: docs/reader-performance-scaling/PROJECT_ROADMAP.md
+  status: docs/reader-performance-scaling/DEVELOPMENT_STATUS.md
+  log: docs/reader-performance-scaling/DEVELOPMENT_LOG.md
+  decisions: docs/reader-performance-scaling/DECISIONS.md
+  handoff: docs/reader-performance-scaling/NEXT_TASK_HANDOFF.md
+  acceptance: docs/reader-performance-scaling/ACCEPTANCE.md

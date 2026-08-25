@@ -25,12 +25,12 @@ export function loadExistingSections(filepath) {
 /**
  * 格式化單一月份區塊
  */
-function formatSection(year, month, games, updatedAt) {
+function formatSection(year, month, games, updatedAt, linksFilepath) {
   const dateStr = updatedAt || dayjs().format("YYYY-MM-DD");
   const monthZh = CONFIG.MONTH_ZH[month];
   const lines = [];
 
-  const htmlPath = path.resolve("open_links.html").replace(/\\/g, "/");
+  const htmlPath = path.resolve(linksFilepath).replace(/\\/g, "/");
   lines.push(`${year}  ${monthZh}  (更新時間: ${dateStr})`);
   lines.push(`[🚀 一鍵開啟本月所有 Steam 商店分頁](file:///${htmlPath}#${year}-${String(month).padStart(2, "0")})`);
   lines.push("");
@@ -71,8 +71,8 @@ function formatSection(year, month, games, updatedAt) {
  * 產生 Chrome 一鍵開啟 Steam 頁面的 HTML 工具檔
  * @param {Map<string, string>} existingSections
  */
-function generateOpenLinksPage(existingSections) {
-  const htmlPath = path.resolve("open_links.html");
+function generateOpenLinksPage(existingSections, linksFilepath) {
+  const htmlPath = path.resolve(linksFilepath);
   const allUrlsByMonth = [];
   const sortedKeys = [...existingSections.keys()].sort((a, b) => b.localeCompare(a));
 
@@ -239,9 +239,11 @@ function generateOpenLinksPage(existingSections) {
  * 更新 遊戲.md 報告(補上新月份,不變更已鎖定的舊月份)。
  * 每次呼叫都重新讀檔合併,可安全地逐月呼叫。
  * @param {Array<{ year, month, games }>} allMonthData
+ * @param {string} reportFilepath
  */
-export function updateReport(allMonthData) {
-  const filepath = path.resolve(CONFIG.OUTPUT_FILE);
+export function updateReport(allMonthData, reportFilepath = CONFIG.OUTPUT_FILE) {
+  const filepath = path.resolve(reportFilepath);
+  const linksFilepath = path.join(path.dirname(filepath), "open_links.html");
   const existing = loadExistingSections(filepath);
   const today = dayjs().format("YYYY-MM-DD");
 
@@ -255,16 +257,16 @@ export function updateReport(allMonthData) {
       continue;
     }
 
-    const section = formatSection(year, month, games, today);
+    const section = formatSection(year, month, games, today, linksFilepath);
     existing.set(monthKey(year, month), section);
     totalWritten += games.length;
   }
 
   // 1. 產生一鍵開啟的 HTML 輔助頁面
-  generateOpenLinksPage(existing);
+  generateOpenLinksPage(existing, linksFilepath);
 
   // 2. 寫入 遊戲.md(頂部加入直達網頁的一鍵開啟超連結)
-  const htmlPath = path.resolve("open_links.html").replace(/\\/g, "/");
+  const htmlPath = path.resolve(linksFilepath).replace(/\\/g, "/");
   const header = `👉 [點此打開「一鍵開啟工具」頁面](file:///${htmlPath}) (可在 Chrome 一鍵打開各月份所有 Steam 商店分頁)\n\n============================================================\n\n`;
 
   writeSectionsFile(filepath, existing, { header });

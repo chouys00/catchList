@@ -7,9 +7,23 @@ export const MEDIA_CONFIG = {
   anime: { label: "動畫", filename: "動畫.md", unit: "部" },
   movies: { label: "電影", filename: "電影.md", unit: "部" },
 };
+const GAME_TAGS_FILENAME = "遊戲標籤.json";
 
 function clean(value) {
   return String(value ?? "").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+}
+
+function normalizeTags(tags) {
+  const seen = new Set();
+  const normalized = [];
+  for (const tag of tags) {
+    const value = clean(tag);
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    normalized.push(value);
+    if (normalized.length === 20) break;
+  }
+  return normalized;
 }
 
 function createId(media, sectionKey, raw, occurrence) {
@@ -189,10 +203,96 @@ export function resolveReportPath(dataDir, media) {
   return target;
 }
 
+export function isCanonicalPathInsideDirectory(directory, filepath) {
+  const base = path.resolve(directory);
+  const target = path.resolve(filepath);
+  const relative = path.relative(base, target);
+  return relative !== ""
+    && relative !== ".."
+    && !relative.startsWith(`..${path.sep}`)
+    && !path.isAbsolute(relative);
+}
+
+function loadGameTags(dataDir) {
+  const base = path.resolve(dataDir);
+  const target = path.resolve(base, GAME_TAGS_FILENAME);
+  if (path.dirname(target) !== base) throw new Error("標籤路徑超出資料資料夾");
+
+  let metadata;
+  try {
+    metadata = fs.lstatSync(target);
+  } catch (error) {
+    if (error?.code === "ENOENT") return { games: {}, warning: null };
+    return { games: {}, warning: `無法讀取遊戲標籤：${error.message}` };
+  }
+
+  try {
+    if (metadata.isSymbolicLink() || !metadata.isFile()) {
+      throw new Error("遊戲標籤檔不可為連結，且必須是一般檔案");
+    }
+    const canonicalBase = fs.realpathSync(base);
+    const canonicalTarget = fs.realpathSync(target);
+    if (!isCanonicalPathInsideDirectory(canonicalBase, canonicalTarget)) {
+      throw new Error("遊戲標籤 canonical 路徑超出所選資料夾");
+    }
+
+    const payload = JSON.parse(fs.readFileSync(canonicalTarget, "utf8"));
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      throw new Error("檔案格式不正確");
+    }
+    if (payload.version !== 1) {
+      throw new Error(`不支援的 sidecar 版本：${payload.version ?? "缺少版本"}`);
+    }
+    if (payload.locale !== "tchinese") {
+      throw new Error(`不支援的 sidecar 語系：${payload.locale ?? "缺少語系"}`);
+    }
+    if (!payload.games || typeof payload.games !== "object" || Array.isArray(payload.games)) {
+      throw new Error("games 欄位格式不正確");
+    }
+
+    const games = {};
+    const warnings = [];
+    for (const [appid, entry] of Object.entries(payload.games)) {
+      if (!/^\d+$/.test(appid)) {
+        warnings.push(`AppID 格式不正確：${appid}`);
+        continue;
+      }
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        warnings.push(`AppID ${appid} 的資料格式不正確`);
+        continue;
+      }
+      if (!Array.isArray(entry.tags) || entry.tags.some((tag) => typeof tag !== "string")) {
+        warnings.push(`AppID ${appid} 的 tags 格式不正確`);
+        continue;
+      }
+      if (typeof entry.fetchedAt !== "string" || !entry.fetchedAt.trim()) {
+        warnings.push(`AppID ${appid} 缺少 fetchedAt`);
+        continue;
+      }
+      games[appid] = { tags: normalizeTags(entry.tags), fetchedAt: entry.fetchedAt };
+    }
+    return {
+      games,
+      warning: warnings.length ? `遊戲標籤部分資料無法讀取：${warnings.join("；")}` : null,
+    };
+  } catch (error) {
+    return { games: {}, warning: `無法讀取遊戲標籤：${error.message}` };
+  }
+}
+
 export function loadLibrary(dataDir, media) {
   const filepath = resolveReportPath(dataDir, media);
+  const tagState = media === "games" ? loadGameTags(dataDir) : { games: {}, warning: null };
   if (!fs.existsSync(filepath)) {
-    return { ...MEDIA_CONFIG[media], media, filepath, exists: false, entries: [], sections: [] };
+    return {
+      ...MEDIA_CONFIG[media],
+      media,
+      filepath,
+      exists: false,
+      entries: [],
+      sections: [],
+      tagWarning: tagState.warning,
+    };
   }
   const content = fs.readFileSync(filepath, "utf8");
   const parsed = parseReport(media, content);
@@ -203,8 +303,12 @@ export function loadLibrary(dataDir, media) {
     filepath,
     exists: true,
     updatedAt: stat.mtime.toISOString(),
-    entries: parsed.entries.map(({ lineStart, lineEnd, ...entry }) => entry),
+    entries: parsed.entries.map(({ lineStart, lineEnd, ...entry }) => {
+      if (media !== "games") return entry;
+      return { ...entry, tags: [...(tagState.games[entry.appid]?.tags ?? [])] };
+    }),
     sections: parsed.sections,
+    tagWarning: tagState.warning,
   };
 }
 

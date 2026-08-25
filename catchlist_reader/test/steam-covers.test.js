@@ -32,3 +32,11 @@ test("Steam 封面解析拒絕非 Steam 的圖片網址", async () => {
 
   assert.equal(coverUrl, null);
 });
+
+test("Steam 封面請求逾時時回傳空結果", async () => {
+  const coverUrl = await resolveSteamCover("123", async (_url, { signal }) => new Promise((_resolve, reject) => {
+    signal.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+  }), { timeoutMs: 5 });
+
+  assert.equal(coverUrl, null);
+});

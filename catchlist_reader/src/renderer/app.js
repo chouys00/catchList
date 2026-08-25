@@ -1,7 +1,11 @@
+import { collectTagOptionsFromIndex, createTagIndex, filterAndSortGames } from "./game-browser.js";
 import { renderItemTemplate } from "./item-template.js";
 
+const GAME_BATCH_SIZE = 50;
+const MAX_EXTERNAL_BATCH_SIZE = 50;
+
 const mediaCopy = {
-  games: { title: "每月遊戲精選", intro: "按月份檢視值得玩的作品，直接開啟 Steam 商店頁面。", search: "搜尋遊戲名稱…" },
+  games: { title: "遊戲探索", intro: "跨月份檢視值得玩的作品，組合名稱、日期、好評率與社群標籤縮小範圍。", search: "搜尋遊戲名稱…" },
   anime: { title: "動畫探索", intro: "跨季度搜尋高評分動畫，從年份、季度與評分縮小範圍。", search: "搜尋動畫名稱…" },
   movies: { title: "電影探索", intro: "跨月份尋找值得看的電影，以豆瓣估算分數由高到低排列。", search: "搜尋電影名稱…" },
 };
@@ -10,13 +14,21 @@ const state = {
   active: "games",
   payload: null,
   filters: {
-    games: { query: "", genre: "all", period: null },
+    games: { query: "", year: "all", month: "all", min: "0", tags: [], tagsOpen: false, tagQuery: "", tagOptionsExpanded: false },
     anime: { query: "", year: "all", season: "all", min: "0" },
     movies: { query: "", year: "all", category: "all", min: "0" },
   },
+  expandedGameTags: new Set(),
   gameCovers: new Map(),
   resolvedGameCovers: new Set(),
   pendingGameCovers: new Set(),
+  visibleGameCount: GAME_BATCH_SIZE,
+  gameLoadObserver: null,
+  gameLoadInFlight: false,
+  gameTagIndex: null,
+  gameTagEntries: null,
+  gameTagCompact: window.matchMedia?.("(max-width: 560px)").matches ?? false,
+  gameResizeFrame: null,
 };
 
 const app = document.querySelector("#app");
@@ -39,17 +51,13 @@ function options(values, selected, allLabel) {
   return [`<option value="all">${allLabel}</option>`, ...values.map((value) => `<option value="${escapeHtml(value)}" ${String(value) === String(selected) ? "selected" : ""}>${escapeHtml(value)}</option>`)].join("");
 }
 
-function newestPeriod(data) {
-  return [...data.sections].sort((a, b) => b.key.localeCompare(a.key))[0]?.key ?? null;
-}
-
 function filteredEntries() {
   const data = library();
   const filter = state.filters[state.active];
+  if (state.active === "games") return filterAndSortGames(data.entries, filter);
   const query = filter.query.trim().toLocaleLowerCase("zh-Hant");
   return data.entries.filter((entry) => {
     if (query && !`${entry.title} ${entry.originalTitle ?? ""}`.toLocaleLowerCase("zh-Hant").includes(query)) return false;
-    if (state.active === "games") return entry.sectionKey === filter.period && (filter.genre === "all" || entry.genres.includes(filter.genre));
     if (filter.year !== "all" && entry.year !== Number(filter.year)) return false;
     if (state.active === "anime" && filter.season !== "all" && entry.season !== filter.season) return false;
     if (state.active === "movies" && filter.category !== "all" && entry.category !== filter.category) return false;
@@ -73,7 +81,18 @@ async function hydrateGameCovers(entries) {
   } finally {
     appids.forEach((appid) => state.pendingGameCovers.delete(appid));
   }
-  if (state.active === "games") refreshResults({ hydrateCovers: false });
+  if (state.active === "games") updateRenderedGameCovers(appids);
+}
+
+function updateRenderedGameCovers(appids) {
+  for (const appid of appids) {
+    const coverUrl = state.gameCovers.get(appid);
+    if (!coverUrl) continue;
+    const placeholder = [...app.querySelectorAll(".game-cover-loading[data-game-appid]")].find((element) => element.dataset.gameAppid === String(appid));
+    if (!placeholder) continue;
+    const title = placeholder.closest(".item.games")?.querySelector(".title strong")?.textContent ?? "遊戲";
+    placeholder.outerHTML = `<button class="game-cover" type="button" data-cover="${escapeHtml(coverUrl)}" data-cover-title="${escapeHtml(title)}" data-game-appid="${escapeHtml(appid)}"><img src="${escapeHtml(coverUrl)}" alt="遊戲封面"></button>`;
+  }
 }
 
 function showCover(url, title) {
@@ -83,51 +102,228 @@ function showCover(url, title) {
   coverDialog.showModal();
 }
 
-function rail(data) {
-  if (state.active !== "games") return `<aside class="rail"><p class="eyebrow">跨期探索</p><p class="rail-note">預設顯示所有年代，依評分由高到低排列。</p></aside>`;
-  const periods = [...data.sections].sort((a, b) => b.key.localeCompare(a.key));
-  return `<aside class="rail"><p class="eyebrow">月份</p><div class="periods">${periods.map((period) => `<button class="period ${period.key === state.filters.games.period ? "active" : ""}" data-period="${period.key}">${escapeHtml(period.label)}</button>`).join("")}</div><p class="rail-note">月份標題會保留，刪除作品不會影響 CatchList 判斷更新進度。</p></aside>`;
+function rail() {
+  if (state.active === "games") return "";
+  return `<aside class="rail"><p class="eyebrow">跨期探索</p><p class="rail-note">預設顯示所有年代，依評分由高到低排列。</p></aside>`;
+}
+
+function scoreOptions(selected, game = false) {
+  const values = game ? [80, 85, 90, 95, 97] : [7, 7.5, 8, 8.5, 9];
+  const label = game ? "不限好評率" : "不限分數";
+  return `<option value="0">${label}</option>${values.map((score) => `<option value="${score}" ${Number(selected) === score ? "selected" : ""}>最低 ${game ? `${score}%` : score.toFixed(1)}</option>`).join("")}`;
 }
 
 function toolbar(data) {
   const filter = state.filters[state.active];
   const search = `<input class="field search" data-filter="query" value="${escapeHtml(filter.query)}" placeholder="${mediaCopy[state.active].search}" aria-label="搜尋名稱">`;
   if (state.active === "games") {
-    const genres = [...new Set(data.entries.flatMap((entry) => entry.genres))].sort((a, b) => a.localeCompare(b, "zh-Hant"));
-    return `<div class="toolbar games">${search}<select class="field" data-filter="genre" aria-label="遊戲類型">${options(genres, filter.genre, "所有類型")}</select><button class="button subtle" data-action="clear-filters">清除篩選</button></div>`;
+    const years = [...new Set(data.entries.map((entry) => entry.year))].filter(Number.isFinite).sort((a, b) => b - a);
+    const months = [...new Set(data.entries.map((entry) => entry.month))].filter(Number.isFinite).sort((a, b) => a - b);
+    return `<div class="toolbar games">${search}<select class="field" data-filter="year" aria-label="遊戲年份">${options(years, filter.year, "所有年份")}</select><select class="field" data-filter="month" aria-label="遊戲月份">${options(months, filter.month, "所有月份")}</select><select class="field" data-filter="min" aria-label="最低好評率">${scoreOptions(filter.min, true)}</select><button class="button tag-toggle" type="button" data-action="toggle-tags" aria-controls="gameTagPanel" aria-expanded="${filter.tagsOpen}">標籤 ${filter.tags.length}</button><button class="button subtle" type="button" data-action="clear-filters">清除篩選</button></div>`;
   }
   const years = [...new Set(data.entries.map((entry) => entry.year))].sort((a, b) => b - a);
   const third = state.active === "anime"
     ? `<select class="field" data-filter="season" aria-label="季度">${options(["春", "夏", "秋", "冬"], filter.season, "所有季度")}</select>`
     : `<select class="field" data-filter="category" aria-label="影片類別">${options([...new Set(data.entries.map((entry) => entry.category))].sort((a, b) => a.localeCompare(b, "zh-Hant")), filter.category, "所有類別")}</select>`;
-  return `<div class="toolbar">${search}<select class="field" data-filter="year" aria-label="年份">${options(years, filter.year, "所有年份")}</select>${third}<select class="field" data-filter="min" aria-label="最低評分"><option value="0">不限分數</option>${[7, 7.5, 8, 8.5, 9].map((score) => `<option value="${score}" ${Number(filter.min) === score ? "selected" : ""}>最低 ${score.toFixed(1)}</option>`).join("")}</select></div>`;
+  return `<div class="toolbar">${search}<select class="field" data-filter="year" aria-label="年份">${options(years, filter.year, "所有年份")}</select>${third}<select class="field" data-filter="min" aria-label="最低評分">${scoreOptions(filter.min)}</select></div>`;
+}
+
+function tagOptionMarkup({ tag, count, selected }) {
+  return `<button class="game-tag filter-tag${selected ? " selected" : ""}" type="button" data-game-tag="${escapeHtml(tag)}" aria-pressed="${selected ? "true" : "false"}"><span>${escapeHtml(tag)}</span><small>${count}</small></button>`;
+}
+
+function gameTagIndex() {
+  const entries = library("games").entries;
+  if (state.gameTagEntries !== entries) {
+    state.gameTagEntries = entries;
+    state.gameTagIndex = createTagIndex(entries);
+  }
+  return state.gameTagIndex;
+}
+
+function syncGameTagViewport() {
+  const compact = window.matchMedia?.("(max-width: 560px)").matches ?? false;
+  const changed = state.gameTagCompact !== compact;
+  state.gameTagCompact = compact;
+  return changed;
+}
+
+function gameTagPanelContent() {
+  const filter = state.filters.games;
+  const index = gameTagIndex();
+  const allOptions = collectTagOptionsFromIndex(index, filter.tags, "");
+  const filteredOptions = collectTagOptionsFromIndex(index, filter.tags, filter.tagQuery);
+  const selected = filteredOptions.filter((option) => option.selected);
+  const available = filteredOptions.filter((option) => !option.selected);
+  const searching = filter.tagQuery.trim().length > 0;
+  const scrollable = searching || filter.tagOptionsExpanded;
+  return {
+    selectedMarkup: selected.map(tagOptionMarkup).join(""),
+    selectedHidden: selected.length === 0,
+    availableMarkup: available.length ? available.map(tagOptionMarkup).join("") : `<p class="tag-panel-empty">沒有符合文字的社群標籤。</p>`,
+    availableClass: `tag-options available-tags ${scrollable ? "scrollable" : "compact"}`,
+    summary: `${available.length} 個符合 · 共 ${allOptions.length} 個標籤`,
+    expanded: filter.tagOptionsExpanded,
+  };
+}
+
+function gameTagPanel() {
+  const filter = state.filters.games;
+  const content = gameTagPanelContent();
+  return `<section class="tag-panel" id="gameTagPanel" ${filter.tagsOpen ? "" : "hidden"} aria-label="社群標籤篩選"><div class="tag-panel-heading"><div class="tag-panel-title"><strong>社群標籤</strong><span>多選時需同時符合所有標籤</span></div><div class="tag-panel-controls"><input class="field" data-filter="tagQuery" value="${escapeHtml(filter.tagQuery)}" placeholder="搜尋標籤…" aria-label="搜尋社群標籤"><button class="button subtle" type="button" data-action="close-tag-panel">收起篩選</button></div></div><div class="selected-tags" data-selected-tags ${content.selectedHidden ? "hidden" : ""}><span>已選</span><div class="tag-options">${content.selectedMarkup}</div></div><div class="tag-options-meta"><span data-tag-summary>${content.summary}</span><button class="button subtle tag-options-toggle" type="button" data-action="toggle-tag-options" aria-controls="availableGameTags" aria-expanded="${content.expanded}" hidden>${content.expanded ? "收起" : "顯示更多"}</button></div><div class="${content.availableClass}" id="availableGameTags" data-available-tags>${content.availableMarkup}</div></section>`;
 }
 
 function displayedEntries(entries) {
-  return state.active === "games"
-    ? entries.map((entry) => ({ ...entry, coverUrl: state.gameCovers.get(entry.appid) }))
-    : entries;
+  return state.active === "games" ? entries.map((entry) => ({ ...entry, coverUrl: state.gameCovers.get(entry.appid) })) : entries;
+}
+
+function gameTagLimit() {
+  return state.gameTagCompact ? 3 : 6;
 }
 
 function entriesMarkup(entries) {
   const visibleEntries = displayedEntries(entries);
   return visibleEntries.length
-    ? visibleEntries.map((entry) => renderItemTemplate(entry, state.active)).join("")
+    ? visibleEntries.map((entry) => renderItemTemplate(entry, state.active, state.active === "games" ? {
+      selectedTags: state.filters.games.tags,
+      expanded: state.expandedGameTags.has(String(entry.appid ?? entry.id)),
+      tagLimit: gameTagLimit(),
+    } : undefined)).join("")
     : `<div class="empty">目前沒有符合條件的作品。<br>可調整搜尋文字或篩選條件。</div>`;
 }
 
-function refreshResults({ hydrateCovers = true } = {}) {
+function gameLoadControlMarkup(visibleCount, totalCount) {
+  if (visibleCount >= totalCount) return "";
+  return `<div class="game-load-sentinel" data-game-load-sentinel aria-live="polite"><span data-game-load-progress>已顯示 ${visibleCount}／${totalCount} 筆</span><button class="button subtle" type="button" data-action="load-more-games" hidden>顯示更多遊戲</button></div>`;
+}
+
+function gameListMarkup(entries) {
+  const visibleEntries = entries.slice(0, state.visibleGameCount);
+  return `${entriesMarkup(visibleEntries)}${gameLoadControlMarkup(visibleEntries.length, entries.length)}`;
+}
+
+function stopGameAutoLoad() {
+  state.gameLoadObserver?.disconnect();
+  state.gameLoadObserver = null;
+}
+
+function setupGameAutoLoad() {
+  stopGameAutoLoad();
+  if (state.active !== "games") return;
+  const sentinel = app.querySelector("[data-game-load-sentinel]");
+  if (!sentinel) return;
+  const moreButton = sentinel.querySelector('[data-action="load-more-games"]');
+  if (typeof window.IntersectionObserver !== "function") {
+    if (moreButton) moreButton.hidden = false;
+    return;
+  }
+  state.gameLoadObserver = new IntersectionObserver((entries) => {
+    if (entries.some((entry) => entry.isIntersecting)) void appendNextGameBatch();
+  }, { rootMargin: "360px 0px" });
+  state.gameLoadObserver.observe(sentinel);
+}
+
+function appendNextGameBatch() {
+  if (state.active !== "games" || state.gameLoadInFlight) return;
+  const entries = filteredEntries();
+  const previousCount = Math.min(state.visibleGameCount, entries.length);
+  if (previousCount >= entries.length) return;
+  const nextCount = Math.min(previousCount + GAME_BATCH_SIZE, entries.length);
+  const nextEntries = entries.slice(previousCount, nextCount);
+  const list = app.querySelector(".list");
+  const sentinel = list?.querySelector("[data-game-load-sentinel]");
+  if (!list || !sentinel) return;
+  state.gameLoadInFlight = true;
+  state.visibleGameCount = nextCount;
+  sentinel.insertAdjacentHTML("beforebegin", entriesMarkup(nextEntries));
+  if (nextCount >= entries.length) {
+    sentinel.remove();
+    stopGameAutoLoad();
+  } else {
+    const progress = sentinel.querySelector("[data-game-load-progress]");
+    if (progress) progress.textContent = `已顯示 ${nextCount}／${entries.length} 筆`;
+  }
+  state.gameLoadInFlight = false;
+  void hydrateGameCovers(nextEntries);
+}
+
+function refreshResults({ hydrateCovers = true, resetGames = true } = {}) {
   const entries = filteredEntries();
   const count = app.querySelector("[data-result-count]");
   const openFiltered = app.querySelector('[data-action="open-filtered"]');
   const list = app.querySelector(".list");
   if (!count || !openFiltered || !list) return;
-
   count.textContent = `${entries.length} 筆結果`;
   openFiltered.disabled = entries.length === 0;
-  openFiltered.textContent = state.active === "games" ? "開啟本月全部" : `搜尋目前結果 ${entries.length}`;
+  openFiltered.textContent = state.active === "games" ? "開啟目前結果" : `搜尋目前結果 ${entries.length}`;
+  if (state.active === "games") {
+    if (resetGames) state.visibleGameCount = GAME_BATCH_SIZE;
+    list.innerHTML = gameListMarkup(entries);
+    setupGameAutoLoad();
+    if (hydrateCovers) void hydrateGameCovers(entries.slice(0, state.visibleGameCount));
+    return;
+  }
   list.innerHTML = entriesMarkup(entries);
-  if (hydrateCovers && state.active === "games") void hydrateGameCovers(entries);
+}
+
+function refreshTagPanel() {
+  const filter = state.filters.games;
+  const panel = app.querySelector("#gameTagPanel");
+  const toggle = app.querySelector('[data-action="toggle-tags"]');
+  if (!panel || !toggle) return;
+  panel.hidden = !filter.tagsOpen;
+  toggle.setAttribute("aria-expanded", String(filter.tagsOpen));
+  toggle.textContent = `標籤 ${filter.tags.length}`;
+  const content = gameTagPanelContent();
+  const selectedRoot = panel.querySelector("[data-selected-tags]");
+  const selectedOptions = selectedRoot?.querySelector(".tag-options");
+  if (selectedRoot && selectedOptions) {
+    selectedRoot.hidden = content.selectedHidden;
+    selectedOptions.innerHTML = content.selectedMarkup;
+  }
+  const availableRoot = panel.querySelector("[data-available-tags]");
+  if (availableRoot) {
+    availableRoot.className = content.availableClass;
+    availableRoot.innerHTML = content.availableMarkup;
+  }
+  const summary = panel.querySelector("[data-tag-summary]");
+  if (summary) summary.textContent = content.summary;
+  const more = panel.querySelector('[data-action="toggle-tag-options"]');
+  if (more) {
+    more.setAttribute("aria-expanded", String(content.expanded));
+    more.textContent = content.expanded ? "收起" : "顯示更多";
+  }
+  syncTagOptionsOverflow();
+}
+
+function syncTagOptionsOverflow() {
+  const panel = app.querySelector("#gameTagPanel");
+  const optionsRoot = panel?.querySelector("[data-available-tags]");
+  const more = panel?.querySelector('[data-action="toggle-tag-options"]');
+  if (!panel || panel.hidden || !optionsRoot || !more) return;
+  const filter = state.filters.games;
+  if (filter.tagQuery.trim()) {
+    more.hidden = true;
+    return;
+  }
+  if (filter.tagOptionsExpanded) {
+    more.hidden = false;
+    return;
+  }
+  more.hidden = optionsRoot.scrollHeight <= optionsRoot.clientHeight + 1;
+}
+
+function syncGameControls() {
+  const filter = state.filters.games;
+  for (const key of ["query", "year", "month", "min", "tagQuery"]) {
+    const control = app.querySelector(`[data-filter="${key}"]`);
+    if (control) control.value = filter[key];
+  }
+}
+
+function refreshGameBrowser(options) {
+  refreshResults(options);
+  refreshTagPanel();
 }
 
 function render() {
@@ -138,13 +334,18 @@ function render() {
     return;
   }
   const data = library();
-  if (state.active === "games" && !state.filters.games.period) state.filters.games.period = newestPeriod(data);
   const entries = filteredEntries();
-  const openLabel = state.active === "games" ? "開啟本月全部" : `搜尋目前結果 ${entries.length}`;
-  const allGames = state.active === "games" ? `<button class="button subtle" data-action="open-all-games">開啟全部 Steam</button>` : "";
-  const currentPeriod = state.active === "games" ? data.sections.find((section) => section.key === state.filters.games.period)?.label : "全部年代";
-  app.innerHTML = `<div class="layout">${rail(data)}<section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1><div class="section-status"><strong>${escapeHtml(currentPeriod)}</strong><span data-result-count>${entries.length} 筆結果</span><span>${escapeHtml(mediaCopy[state.active].intro)}</span></div>${toolbar(data)}<div class="bulkbar"><span>${data.exists ? `${data.entries.length} 筆資料 · 已依分數排序` : `找不到 ${data.filename}`}</span><div class="bulk-actions"><button class="button primary" data-action="open-filtered" ${entries.length ? "" : "disabled"}>${openLabel}</button>${allGames}</div></div><div class="list">${entriesMarkup(entries)}</div></section></div>`;
-  if (state.active === "games") void hydrateGameCovers(entries);
+  const isGames = state.active === "games";
+  if (isGames) syncGameTagViewport();
+  const openLabel = isGames ? "開啟目前結果" : `搜尋目前結果 ${entries.length}`;
+  const warning = isGames && data.tagWarning ? `<p class="tag-sidecar-warning" role="status">${escapeHtml(data.tagWarning)}。目前仍可使用報告內的遊戲類型。</p>` : "";
+  stopGameAutoLoad();
+  app.innerHTML = `<div class="layout${isGames ? " games-layout" : ""}">${rail()}<section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1><div class="section-status"><strong>${isGames ? "全部月份" : "全部年代"}</strong><span data-result-count>${entries.length} 筆結果</span><span>${escapeHtml(mediaCopy[state.active].intro)}</span></div>${warning}${toolbar(data)}${isGames ? gameTagPanel() : ""}<div class="bulkbar"><span>${data.exists ? `${data.entries.length} 筆資料 · 已依分數排序` : `找不到 ${data.filename}`}</span><div class="bulk-actions"><button class="button primary" data-action="open-filtered" ${entries.length ? "" : "disabled"}>${openLabel}</button></div></div><div class="list">${isGames ? gameListMarkup(entries) : entriesMarkup(entries)}</div></section></div>`;
+  if (isGames) {
+    syncTagOptionsOverflow();
+    setupGameAutoLoad();
+    void hydrateGameCovers(entries.slice(0, state.visibleGameCount));
+  }
 }
 
 function ask({ eyebrow = "請確認", title, message, confirm = "確認", danger = false }) {
@@ -168,16 +369,15 @@ function showToast(message, undo = false) {
 }
 
 async function load() {
-  try {
-    state.payload = await window.catchList.load();
-    render();
-  } catch (error) {
-    showToast(error.message);
-  }
+  try { state.payload = await window.catchList.load(); render(); } catch (error) { showToast(error.message); }
 }
 
 async function openBatch(urls, label) {
   if (!urls.length) return;
+  if (urls.length > MAX_EXTERNAL_BATCH_SIZE) {
+    showToast(`一次最多開啟 ${MAX_EXTERNAL_BATCH_SIZE} 個連結，請先縮小篩選結果。`);
+    return;
+  }
   const confirmed = await ask({ title: `將開啟 ${urls.length} 個分頁`, message: `${label}。瀏覽器可能會詢問是否允許一次開啟多個分頁。`, confirm: "開啟分頁" });
   if (confirmed) await window.catchList.openUrls(urls);
 }
@@ -186,24 +386,45 @@ document.addEventListener("click", async (event) => {
   const cover = event.target.closest("[data-cover]");
   if (cover) { showCover(cover.dataset.cover, cover.dataset.coverTitle); return; }
   const media = event.target.closest("[data-media]")?.dataset.media;
-  if (media) { state.active = media; render(); return; }
-  const period = event.target.closest("[data-period]")?.dataset.period;
-  if (period) { state.filters.games.period = period; render(); return; }
+  if (media) {
+    state.active = media;
+    if (media === "games") state.visibleGameCount = GAME_BATCH_SIZE;
+    render();
+    return;
+  }
+  const tag = event.target.closest("[data-game-tag]")?.dataset.gameTag;
+  if (tag && state.active === "games") {
+    const tags = state.filters.games.tags;
+    state.filters.games.tags = tags.includes(tag) ? tags.filter((value) => value !== tag) : [...tags, tag];
+    refreshGameBrowser();
+    return;
+  }
+  const expandKey = event.target.closest("[data-expand-tags]")?.dataset.expandTags;
+  if (expandKey) {
+    const key = String(expandKey);
+    if (state.expandedGameTags.has(key)) state.expandedGameTags.delete(key); else state.expandedGameTags.add(key);
+    refreshResults({ hydrateCovers: false, resetGames: false });
+    return;
+  }
   const action = event.target.closest("[data-action]")?.dataset.action;
   try {
     if (action === "home") window.scrollTo({ top: 0 });
-    if (action === "choose-folder") { state.payload = await window.catchList.chooseDirectory(); state.filters.games.period = null; render(); }
+    if (action === "choose-folder") { state.payload = await window.catchList.chooseDirectory(); state.expandedGameTags.clear(); state.visibleGameCount = GAME_BATCH_SIZE; render(); }
+    if (action === "toggle-tags") { state.filters.games.tagsOpen = !state.filters.games.tagsOpen; refreshTagPanel(); }
+    if (action === "close-tag-panel") { state.filters.games.tagsOpen = false; refreshTagPanel(); }
+    if (action === "toggle-tag-options") { state.filters.games.tagOptionsExpanded = !state.filters.games.tagOptionsExpanded; refreshTagPanel(); }
     if (action === "clear-filters") {
-      state.filters.games.query = "";
-      state.filters.games.genre = "all";
-      render();
+      state.filters.games = { query: "", year: "all", month: "all", min: "0", tags: [], tagsOpen: state.filters.games.tagsOpen, tagQuery: "", tagOptionsExpanded: false };
+      state.expandedGameTags.clear();
+      syncGameControls();
+      refreshGameBrowser();
       app.querySelector('[data-filter="query"]')?.focus();
     }
     if (action === "open-filtered") {
       const entries = filteredEntries();
-      await openBatch(entries.map((entry) => state.active === "games" ? entry.url : entry.searchUrl), state.active === "games" ? "開啟目前月份的 Steam 商店頁面" : "使用 Google 搜尋目前篩選結果");
+      await openBatch(entries.map((entry) => state.active === "games" ? entry.url : entry.searchUrl), state.active === "games" ? "開啟目前篩選結果的 Steam 商店頁面" : "使用 Google 搜尋目前篩選結果");
     }
-    if (action === "open-all-games") await openBatch(library("games").entries.map((entry) => entry.url), "開啟清單內全部 Steam 商店頁面");
+    if (action === "load-more-games") appendNextGameBatch();
     if (action === "undo") { const result = await window.catchList.undoDelete(); state.payload = result; toast.classList.remove("show"); render(); showToast(`已復原「${result.restored.title}」`); }
     const openUrl = event.target.closest("[data-open]")?.dataset.open;
     if (openUrl) await window.catchList.openUrls([openUrl]);
@@ -217,15 +438,30 @@ document.addEventListener("click", async (event) => {
 });
 
 document.addEventListener("input", (event) => {
-  if (!event.target.matches('input[data-filter="query"]')) return;
-  state.filters[state.active].query = event.target.value;
-  refreshResults();
+  if (event.target.matches('input[data-filter="query"]')) {
+    state.filters[state.active].query = event.target.value;
+    refreshResults();
+    return;
+  }
+  if (state.active === "games" && event.target.matches('input[data-filter="tagQuery"]')) {
+    state.filters.games.tagQuery = event.target.value;
+    refreshTagPanel();
+  }
 });
 
 document.addEventListener("change", (event) => {
   if (!event.target.matches("select[data-filter]")) return;
   state.filters[state.active][event.target.dataset.filter] = event.target.value;
-  render();
+  if (state.active === "games") refreshGameBrowser(); else render();
+});
+
+window.addEventListener("resize", () => {
+  if (state.active !== "games" || state.gameResizeFrame) return;
+  state.gameResizeFrame = window.requestAnimationFrame(() => {
+    state.gameResizeFrame = null;
+    if (syncGameTagViewport()) refreshResults({ hydrateCovers: false, resetGames: false });
+    syncTagOptionsOverflow();
+  });
 });
 
 load();

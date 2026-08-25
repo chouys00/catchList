@@ -19,6 +19,7 @@ const REPORTS: [(&str, &str); 3] = [
 ];
 const SETTINGS_FILE: &str = "settings.json";
 const BACKUP_DIR: &str = ".catchlist-backups";
+const GAME_TAGS_FILENAME: &str = "遊戲標籤.json";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -31,10 +32,19 @@ struct Report {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+struct SidecarFile {
+    filename: String,
+    exists: bool,
+    content: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 struct Snapshot {
     data_dir: Option<String>,
     can_undo: bool,
     reports: Vec<Report>,
+    game_tags: SidecarFile,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -92,6 +102,35 @@ fn has_report_files(directory: &Path) -> bool {
             .map(|m| m.is_file() && !m.file_type().is_symlink())
             .unwrap_or(false)
     })
+}
+
+fn optional_sidecar(directory: &Path) -> SidecarFile {
+    let missing = || SidecarFile {
+        filename: GAME_TAGS_FILENAME.to_string(),
+        exists: false,
+        content: None,
+    };
+    let Ok(base) = safe_directory(directory) else {
+        return missing();
+    };
+    let candidate = base.join(GAME_TAGS_FILENAME);
+    let Ok(metadata) = fs::symlink_metadata(&candidate) else {
+        return missing();
+    };
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return missing();
+    }
+    let Ok(canonical) = fs::canonicalize(&candidate) else {
+        return missing();
+    };
+    if canonical.parent() != Some(base.as_path()) {
+        return missing();
+    }
+    SidecarFile {
+        filename: GAME_TAGS_FILENAME.to_string(),
+        exists: true,
+        content: fs::read_to_string(canonical).ok(),
+    }
 }
 
 fn settings_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -218,6 +257,14 @@ fn snapshot(state: &AppState) -> Result<Snapshot, String> {
                 .collect()
         })
         .unwrap_or_default();
+    let game_tags = data_dir
+        .as_deref()
+        .map(optional_sidecar)
+        .unwrap_or_else(|| SidecarFile {
+            filename: GAME_TAGS_FILENAME.to_string(),
+            exists: false,
+            content: None,
+        });
     Ok(Snapshot {
         data_dir: data_dir.map(|p| p.display().to_string()),
         can_undo: state
@@ -226,6 +273,7 @@ fn snapshot(state: &AppState) -> Result<Snapshot, String> {
             .map_err(|_| "程式狀態無法讀取")?
             .is_some(),
         reports,
+        game_tags,
     })
 }
 
@@ -437,5 +485,48 @@ mod tests {
         atomic_write(&target, b"removed entry", true).unwrap();
         atomic_write(&target, &fs::read(&backup).unwrap(), true).unwrap();
         assert_eq!(fs::read_to_string(target).unwrap(), "original");
+    }
+
+    #[test]
+    fn snapshot_includes_optional_game_tags_without_blocking_reports() {
+        let temp = report_dir();
+        let sidecar = r#"{"version":1,"locale":"tchinese","games":{"123456":{"tags":["策略"],"fetchedAt":"2026-08-24T00:00:00.000Z"}}}"#;
+        fs::write(temp.path().join("遊戲標籤.json"), sidecar).unwrap();
+        let state = AppState {
+            data_dir: Mutex::new(Some(fs::canonicalize(temp.path()).unwrap())),
+            last_delete: Mutex::new(None),
+        };
+
+        let result = snapshot(&state).unwrap();
+
+        assert!(result.game_tags.exists);
+        assert_eq!(result.game_tags.filename, "遊戲標籤.json");
+        assert_eq!(result.game_tags.content.as_deref(), Some(sidecar));
+        assert_eq!(
+            result.reports.iter().filter(|report| report.exists).count(),
+            1
+        );
+        let serialized = serde_json::to_value(&result).unwrap();
+        assert_eq!(serialized["gameTags"]["exists"], true);
+        assert_eq!(serialized["gameTags"]["content"], sidecar);
+    }
+
+    #[test]
+    fn snapshot_uses_missing_sidecar_shape_when_game_tags_do_not_exist() {
+        let temp = report_dir();
+        let state = AppState {
+            data_dir: Mutex::new(Some(fs::canonicalize(temp.path()).unwrap())),
+            last_delete: Mutex::new(None),
+        };
+
+        let result = snapshot(&state).unwrap();
+
+        assert!(!result.game_tags.exists);
+        assert_eq!(result.game_tags.filename, "遊戲標籤.json");
+        assert_eq!(result.game_tags.content, None);
+        assert_eq!(
+            result.reports.iter().filter(|report| report.exists).count(),
+            1
+        );
     }
 }

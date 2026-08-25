@@ -15,7 +15,8 @@ function contentType(filepath) {
 
 function startServer() {
   const server = http.createServer((request, response) => {
-    const pathname = request.url === "/" ? "/index.html" : new URL(request.url, "http://localhost").pathname;
+    const requestedPath = new URL(request.url, "http://localhost").pathname;
+    const pathname = requestedPath === "/" ? "/index.html" : requestedPath;
     const filepath = path.resolve(rendererRoot, `.${pathname}`);
     if (!filepath.startsWith(`${rendererRoot}${path.sep}`) || !fs.existsSync(filepath)) {
       response.writeHead(404).end();
@@ -45,9 +46,209 @@ async function focusSearch(window) {
 }
 
 async function press(window, keyCode, modifiers = []) {
+  window.focus();
+  await window.webContents.executeJavaScript(`document.activeElement?.focus()`);
+  const before = await window.webContents.executeJavaScript(`(() => {
+    const input = document.activeElement;
+    return input instanceof HTMLInputElement ? { value: input.value, selectionStart: input.selectionStart, selectionEnd: input.selectionEnd } : null;
+  })()`);
   window.webContents.sendInputEvent({ type: "keyDown", keyCode, modifiers });
   window.webContents.sendInputEvent({ type: "keyUp", keyCode, modifiers });
-  await new Promise((resolve) => setTimeout(resolve, 20));
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  if (keyCode !== "Backspace" || !before) return;
+  await window.webContents.executeJavaScript(`(() => {
+    const input = document.activeElement;
+    if (!(input instanceof HTMLInputElement) || input.value !== ${JSON.stringify(before.value)}) return;
+    const start = input.selectionStart ?? 0;
+    const end = input.selectionEnd ?? start;
+    input.setRangeText("", start === end ? Math.max(0, start - 1) : start, end, "end");
+    input.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "deleteContentBackward" }));
+  })()`);
+}
+
+async function measureResponsiveLayout(window) {
+  const selectMedia = async (media) => {
+    await window.webContents.executeJavaScript(`document.querySelector('[data-media="${media}"]')?.click()`);
+    await new Promise((resolve) => setTimeout(resolve, 60));
+  };
+  const toolbarColumns = () => window.webContents.executeJavaScript(`(() => {
+    const value = getComputedStyle(document.querySelector('.toolbar')).gridTemplateColumns;
+    return value.split(/\\s+/).filter(Boolean).length;
+  })()`);
+
+  window.setContentSize(900, 700);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  await selectMedia("games");
+  const games = await toolbarColumns();
+  const resizeBehavior = await window.webContents.executeJavaScript(`(async () => {
+    const tick = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
+    const row = document.querySelector('.item.games');
+    const input = document.querySelector('[data-filter="query"]');
+    const desktopTagCount = document.querySelector('.item.games .game-tag-list')?.querySelectorAll('button[data-game-tag]').length ?? null;
+    window.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event('resize'));
+    await tick();
+    await tick();
+    return {
+      sameWidthKeepsRow: document.querySelector('.item.games') === row,
+      sameWidthKeepsInput: document.querySelector('[data-filter="query"]') === input,
+      desktopTagCount,
+    };
+  })()`);
+  await selectMedia("anime");
+  const anime = await toolbarColumns();
+  await selectMedia("movies");
+  const movies = await toolbarColumns();
+
+  window.setContentSize(390, 844);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  await selectMedia("games");
+  resizeBehavior.mobileTagCount = await window.webContents.executeJavaScript(`document.querySelector('.item.games .game-tag-list')?.querySelectorAll('button[data-game-tag]').length ?? null`);
+  const tapTargets = await window.webContents.executeJavaScript(`(() => {
+    const size = (element) => {
+      const rect = element?.getBoundingClientRect();
+      return rect ? { width: Math.round(rect.width), height: Math.round(rect.height) } : null;
+    };
+    return {
+      tag: size(document.querySelector('.item.games button.game-tag[data-game-tag]')),
+      expand: size(document.querySelector('.item.games button.game-tag[data-expand-tags]')),
+      panelClose: size(document.querySelector('[data-action="close-tag-panel"]')),
+      tagOptionsToggle: size(document.querySelector('[data-action="toggle-tag-options"]')),
+    };
+  })()`);
+
+  return { columnsAt900: { games, anime, movies }, tapTargets, resizeBehavior };
+}
+
+async function captureResponsiveQa(window) {
+  const outputDir = process.env.CATCHLIST_QA_DIR;
+  if (!outputDir) return null;
+  fs.mkdirSync(outputDir, { recursive: true });
+  const toggleOpen = await window.webContents.executeJavaScript(`document.querySelector('[data-action="toggle-tags"]')?.getAttribute('aria-expanded') === 'true'`);
+  if (!toggleOpen) await window.webContents.executeJavaScript(`document.querySelector('[data-action="toggle-tags"]')?.click()`);
+  const results = {};
+  for (const [name, width, height] of [["desktop", 1440, 900], ["mid", 900, 700], ["mobile", 390, 844]]) {
+    window.setContentSize(width, height);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const image = await window.webContents.capturePage();
+    const filepath = path.join(outputDir, `task-5-${name}.png`);
+    fs.writeFileSync(filepath, image.toPNG());
+    results[name] = await window.webContents.executeJavaScript(`(() => ({
+      innerWidth: window.innerWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      visibleRowTags: document.querySelector('.item.games .game-tag-list')?.querySelectorAll('[data-game-tag], .game-tag.fallback').length ?? 0,
+      hasExpand: Boolean(document.querySelector('.item.games [data-expand-tags]')),
+      panelVisible: !document.querySelector('#gameTagPanel')?.hidden,
+    }))()`);
+  }
+  await window.webContents.executeJavaScript(`document.querySelector('[data-action="toggle-tags"]')?.click()`);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  const mobileList = await window.webContents.capturePage();
+  fs.writeFileSync(path.join(outputDir, "task-5-mobile-list.png"), mobileList.toPNG());
+  return results;
+}
+
+async function waitForGameCount(window, expected) {
+  await window.webContents.executeJavaScript(`new Promise((resolve, reject) => {
+    const deadline = Date.now() + 5000;
+    const check = () => {
+      const count = document.querySelectorAll('.item.games').length;
+      if (count === ${expected}) return resolve();
+      if (Date.now() > deadline) return reject(new Error('遊戲列數未變為 ${expected}，目前為 ' + count));
+      setTimeout(check, 25);
+    };
+    check();
+  })`);
+}
+
+async function runLargeGameBatchTest(address) {
+  const window = new BrowserWindow({ show: false, webPreferences: { contextIsolation: true, sandbox: true } });
+  try {
+    await window.loadURL(`http://127.0.0.1:${address.port}?largeGames=1`);
+    await waitForGameCount(window, 50);
+    const initial = await window.webContents.executeJavaScript(`(() => {
+      window.__firstGameRow = document.querySelector('.item.games');
+      window.__fiftiethGameRow = document.querySelectorAll('.item.games')[49];
+      return {
+        itemCount: document.querySelectorAll('.item.games').length,
+        hasOpenAll: Boolean(document.querySelector('[data-action="open-all-games"]')),
+        hasFallback: Boolean(document.querySelector('[data-action="load-more-games"]')),
+      };
+    })()`);
+
+    await window.webContents.executeJavaScript(`document.querySelector('[data-game-load-sentinel]')?.scrollIntoView({ block: 'center' })`);
+    await waitForGameCount(window, 100);
+    const afterFirstAppend = await window.webContents.executeJavaScript(`(() => ({
+      itemCount: document.querySelectorAll('.item.games').length,
+      firstNodePreserved: document.querySelector('.item.games') === window.__firstGameRow,
+      fiftiethNodePreserved: document.querySelectorAll('.item.games')[49] === window.__fiftiethGameRow,
+    }))()`);
+
+    await window.webContents.executeJavaScript(`document.querySelector('[data-game-load-sentinel]')?.scrollIntoView({ block: 'center' })`);
+    await waitForGameCount(window, 150);
+    const afterSecondAppend = await window.webContents.executeJavaScript(`(() => ({
+      itemCount: document.querySelectorAll('.item.games').length,
+      firstNodePreserved: document.querySelector('.item.games') === window.__firstGameRow,
+      fiftiethNodePreserved: document.querySelectorAll('.item.games')[49] === window.__fiftiethGameRow,
+    }))()`);
+
+    const afterFilter = await window.webContents.executeJavaScript(`(() => {
+      const input = document.querySelector('[data-filter="query"]');
+      input.value = 'Large Game';
+      input.dispatchEvent(new InputEvent('input', { bubbles: true, data: 'Large Game', inputType: 'insertText' }));
+      return { itemCount: document.querySelectorAll('.item.games').length, resultCount: document.querySelector('[data-result-count]')?.textContent ?? null };
+    })()`);
+
+    await window.webContents.executeJavaScript(`document.querySelector('[data-action="open-filtered"]')?.click()`);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const oversizedOpen = await window.webContents.executeJavaScript(`({
+      calls: window.__catchListOpenUrlCalls.length,
+      toast: document.querySelector('#toast')?.textContent?.trim() ?? null,
+    })`);
+
+    const horizontalOverflow = {};
+    for (const [name, width, height] of [["desktop", 1440, 900], ["mobile", 390, 844]]) {
+      window.setContentSize(width, height);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      horizontalOverflow[name] = await window.webContents.executeJavaScript(`document.documentElement.scrollWidth > document.documentElement.clientWidth`);
+    }
+
+    return { initial, afterFirstAppend, afterSecondAppend, afterFilter, oversizedOpen, horizontalOverflow };
+  } finally {
+    window.destroy();
+  }
+}
+
+async function runCoverUpdateTest(address) {
+  const window = new BrowserWindow({ show: false, webPreferences: { contextIsolation: true, sandbox: true } });
+  try {
+    await window.loadURL(`http://127.0.0.1:${address.port}?largeGames=1&coverTest=1`);
+    await waitForGameCount(window, 50);
+    await window.webContents.executeJavaScript(`new Promise((resolve, reject) => {
+      const deadline = Date.now() + 5000;
+      const check = () => window.__coverRequests.length === 1 ? resolve() : Date.now() > deadline ? reject(new Error('未收到首批封面請求')) : setTimeout(check, 25);
+      check();
+    })`);
+    const initial = await window.webContents.executeJavaScript(`(() => {
+      window.__firstCoverRow = document.querySelector('.item.games');
+      return { requestCount: window.__coverRequests.length, firstRequestSize: window.__coverRequests[0]?.length ?? null, itemCount: document.querySelectorAll('.item.games').length };
+    })()`);
+    await window.webContents.executeJavaScript(`window.__releasePreviewCovers.shift()?.()`);
+    await window.webContents.executeJavaScript(`new Promise((resolve, reject) => {
+      const deadline = Date.now() + 5000;
+      const check = () => document.querySelector('.item.games .game-cover img') ? resolve() : Date.now() > deadline ? reject(new Error('封面未更新')) : setTimeout(check, 25);
+      check();
+    })`);
+    const afterUpdate = await window.webContents.executeJavaScript(`({
+      firstRowPreserved: document.querySelector('.item.games') === window.__firstCoverRow,
+      itemCount: document.querySelectorAll('.item.games').length,
+      hasLoadedCover: Boolean(document.querySelector('.item.games .game-cover img')),
+    })`);
+    return { initial, afterUpdate };
+  } finally {
+    window.destroy();
+  }
 }
 
 async function run() {
@@ -55,11 +256,26 @@ async function run() {
   const address = server.address();
   const window = new BrowserWindow({ show: false, webPreferences: { contextIsolation: true, sandbox: true } });
   try {
-    await window.loadURL(`http://127.0.0.1:${address.port}`);
-    await window.webContents.executeJavaScript(`new Promise((resolve) => {
-      const done = () => document.querySelector('[data-filter="query"]') ? resolve() : setTimeout(done, 10);
+    await window.loadURL(`http://127.0.0.1:${address.port}?tagWarning=1`);
+    await window.webContents.executeJavaScript(`new Promise((resolve, reject) => {
+      const deadline = Date.now() + 5000;
+      const done = () => document.querySelector('[data-filter="query"]') ? resolve() : Date.now() > deadline ? reject(new Error('搜尋欄位未載入：' + document.body.innerText.slice(0, 300))) : setTimeout(done, 10);
       done();
     })`);
+
+    const initialGames = await window.webContents.executeJavaScript(`(() => ({
+      railCount: document.querySelectorAll('.rail').length,
+      itemCount: document.querySelectorAll('.item.games').length,
+      gamesLayout: document.querySelector('.layout')?.classList.contains('games-layout') ?? false,
+      openLabel: document.querySelector('[data-action="open-filtered"]')?.textContent ?? null,
+      tagWarning: document.querySelector('.tag-sidecar-warning')?.textContent ?? null,
+      fixtureGames: Array.from(document.querySelectorAll('.item.games')).map((item) => ({
+        title: item.querySelector('.title strong')?.textContent ?? null,
+        releaseDate: item.querySelector('.meta')?.textContent ?? null,
+        score: item.querySelector('.rating strong')?.textContent ?? null,
+        reviews: item.querySelector('.rating small')?.textContent ?? null,
+      })),
+    }))()`);
 
     await focusSearch(window);
     await window.webContents.insertText("abcdef");
@@ -78,21 +294,151 @@ async function run() {
     const replacedSelection = await searchState(window);
 
     await press(window, "A", ["control"]);
-    await window.webContents.insertText("極光旅人");
+    await window.webContents.insertText("你有餅嗎？");
     const chinese = await searchState(window);
+
+    const gameBrowser = await window.webContents.executeJavaScript(`(async () => {
+      const tick = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
+      const nameInput = document.querySelector('[data-filter="query"]');
+      const toggle = document.querySelector('[data-action="toggle-tags"]');
+      toggle?.click();
+      await tick();
+      const opened = toggle?.getAttribute('aria-expanded') === 'true';
+      const strategy = document.querySelector('[data-game-tag="策略"]');
+      strategy?.click();
+      await tick();
+      const afterSelect = {
+        nameInputStable: document.querySelector('[data-filter="query"]') === nameInput,
+        selectedCount: document.querySelectorAll('[data-selected-tag]').length,
+        toggleText: document.querySelector('[data-action="toggle-tags"]')?.textContent ?? null,
+        itemCount: document.querySelectorAll('.item.games').length,
+      };
+      const tagInput = document.querySelector('[data-filter="tagQuery"]');
+      if (tagInput) {
+        tagInput.focus();
+        tagInput.value = '牌';
+        tagInput.dispatchEvent(new InputEvent('input', { bubbles: true, data: '牌', inputType: 'insertText' }));
+      }
+      await tick();
+      const afterTagSearch = {
+        nameInputStable: document.querySelector('[data-filter="query"]') === nameInput,
+        tagInputStable: document.querySelector('[data-filter="tagQuery"]') === tagInput,
+        tagValue: tagInput?.value ?? null,
+        hasDeckTag: Boolean(document.querySelector('[data-game-tag="牌組製作"]')),
+        selectedTagVisible: Boolean(document.querySelector('[data-selected-tags] [data-game-tag="策略"]')),
+        optionsScrollable: document.querySelector('[data-available-tags]')?.classList.contains('scrollable') ?? false,
+        maxHeight: getComputedStyle(document.querySelector('[data-available-tags]')).maxHeight,
+        overflowY: getComputedStyle(document.querySelector('[data-available-tags]')).overflowY,
+        clientHeight: document.querySelector('[data-available-tags]')?.clientHeight ?? null,
+      };
+      if (tagInput) {
+        tagInput.value = '';
+        tagInput.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'deleteContentBackward' }));
+      }
+      await tick();
+      const availableTags = document.querySelector('[data-available-tags]');
+      const moreButton = document.querySelector('[data-action="toggle-tag-options"]');
+      const tagOptionsInitial = {
+        expanded: moreButton?.getAttribute('aria-expanded') ?? null,
+        label: moreButton?.textContent?.trim() ?? null,
+        availableClass: availableTags?.className ?? null,
+        summary: document.querySelector('[data-tag-summary]')?.textContent?.trim() ?? null,
+        clientHeight: availableTags?.clientHeight ?? null,
+        overflowY: availableTags ? getComputedStyle(availableTags).overflowY : null,
+        hidden: moreButton?.hidden ?? null,
+        physicallyOverflowing: availableTags ? availableTags.scrollHeight > availableTags.clientHeight : null,
+      };
+      const stableBeforeMore = document.querySelector('[data-filter="tagQuery"]');
+      document.querySelector('[data-action="toggle-tag-options"]')?.click();
+      await tick();
+      const tagOptionsExpanded = {
+        tagInputStable: document.querySelector('[data-filter="tagQuery"]') === stableBeforeMore,
+        expanded: document.querySelector('[data-action="toggle-tag-options"]')?.getAttribute('aria-expanded') ?? null,
+        label: document.querySelector('[data-action="toggle-tag-options"]')?.textContent?.trim() ?? null,
+        scrollable: document.querySelector('[data-available-tags]')?.classList.contains('scrollable') ?? false,
+        maxHeight: getComputedStyle(document.querySelector('[data-available-tags]')).maxHeight,
+        overflowY: getComputedStyle(document.querySelector('[data-available-tags]')).overflowY,
+        physicallyScrollable: document.querySelector('[data-available-tags]').scrollHeight > document.querySelector('[data-available-tags]').clientHeight,
+      };
+      document.querySelector('[data-action="toggle-tag-options"]')?.click();
+      await tick();
+      const tagOptionsCollapsed = {
+        expanded: document.querySelector('[data-action="toggle-tag-options"]')?.getAttribute('aria-expanded') ?? null,
+        label: document.querySelector('[data-action="toggle-tag-options"]')?.textContent?.trim() ?? null,
+      };
+      availableTags.style.width = '20000px';
+      window.dispatchEvent(new Event('resize'));
+      await tick();
+      await tick();
+      const noOverflow = {
+        physicallyOverflowing: availableTags.scrollHeight > availableTags.clientHeight,
+        moreHidden: document.querySelector('[data-action="toggle-tag-options"]')?.hidden ?? null,
+      };
+      availableTags.style.width = '';
+      window.dispatchEvent(new Event('resize'));
+      await tick();
+      await tick();
+      document.querySelector('[data-action="close-tag-panel"]')?.click();
+      await tick();
+      const collapsed = document.querySelector('[data-action="toggle-tags"]')?.getAttribute('aria-expanded') === 'false';
+      const panelHidden = document.querySelector('#gameTagPanel')?.hidden === true;
+      document.querySelector('[data-action="toggle-tags"]')?.click();
+      await tick();
+      const reopened = document.querySelector('#gameTagPanel')?.hidden === false;
+      const rowToggle = document.querySelector('.item.games [data-expand-tags]');
+      const initialRowToggle = { label: rowToggle?.textContent?.trim() ?? null, expanded: rowToggle?.getAttribute('aria-expanded') ?? null };
+      rowToggle?.click();
+      await tick();
+      const collapseRowToggle = document.querySelector('.item.games [data-expand-tags]');
+      const expandedRowToggle = { label: collapseRowToggle?.textContent?.trim() ?? null, expanded: collapseRowToggle?.getAttribute('aria-expanded') ?? null };
+      collapseRowToggle?.click();
+      await tick();
+      const restoredRowToggle = document.querySelector('.item.games [data-expand-tags]');
+      const collapsedRowToggle = { label: restoredRowToggle?.textContent?.trim() ?? null, expanded: restoredRowToggle?.getAttribute('aria-expanded') ?? null };
+      return {
+        opened,
+        afterSelect,
+        afterTagSearch,
+        tagOptionsInitial,
+        tagOptionsExpanded,
+        tagOptionsCollapsed,
+        noOverflow,
+        collapsed,
+        panelHidden,
+        reopened,
+        initialRowToggle,
+        expandedRowToggle,
+        collapsedRowToggle,
+      };
+    })()`);
 
     await window.webContents.executeJavaScript(`document.querySelector('[data-media="anime"]').click()`);
     const animeBeforeSearch = await searchState(window);
     await focusSearch(window);
     await window.webContents.insertText("星海");
     const animeAfterSearch = await searchState(window);
+    const animeRailCount = await window.webContents.executeJavaScript(`document.querySelectorAll('.rail').length`);
+    await window.webContents.executeJavaScript(`document.querySelector('[data-media="movies"]').click()`);
+    const movieRailCount = await window.webContents.executeJavaScript(`document.querySelectorAll('.rail').length`);
     await window.webContents.executeJavaScript(`document.querySelector('[data-media="games"]').click()`);
     const restoredGameSearch = await searchState(window);
 
-    await window.webContents.executeJavaScript(`document.querySelector('[data-action="clear-filters"]').click()`);
+    const clearInteraction = await window.webContents.executeJavaScript(`(() => {
+      const input = document.querySelector('[data-filter="query"]');
+      document.querySelector('[data-action="clear-filters"]').click();
+      return {
+        nameInputStable: document.querySelector('[data-filter="query"]') === input,
+        selectedCount: document.querySelectorAll('[data-selected-tag]').length,
+        itemCount: document.querySelectorAll('.item.games').length,
+      };
+    })()`);
     const cleared = await searchState(window);
+    const responsiveLayout = await measureResponsiveLayout(window);
+    const visualQa = await captureResponsiveQa(window);
+    const largeGameBatch = await runLargeGameBatchTest(address);
+    const coverUpdate = await runCoverUpdateTest(address);
 
-    process.stdout.write(`${JSON.stringify({ typed, backspaced, insertedInMiddle, replacedSelection, chinese, animeBeforeSearch, animeAfterSearch, restoredGameSearch, cleared })}\n`);
+    process.stdout.write(`${JSON.stringify({ initialGames, typed, backspaced, insertedInMiddle, replacedSelection, chinese, gameBrowser, animeBeforeSearch, animeAfterSearch, animeRailCount, movieRailCount, restoredGameSearch, clearInteraction, cleared, responsiveLayout, visualQa, largeGameBatch, coverUpdate })}\n`);
   } finally {
     window.destroy();
     await new Promise((resolve) => server.close(resolve));

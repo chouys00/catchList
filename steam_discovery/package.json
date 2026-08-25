@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node main.js",
     "update": "node main.js",
-    "test": "node test.js"
+    "test": "node --test --experimental-test-isolation=none \"test/*.test.js\""
   },
   "dependencies": {
     "@catchlist/core": "^1.0.0",
