@@ -4,13 +4,16 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { deleteEntry, hasReportFiles, loadAllLibraries, undoDelete } from "./library.js";
+import { GameCoverCache, GameCoverService } from "./game-cover-cache.js";
 import { resolveSteamCover } from "./steam-covers.js";
 
 const sourceDir = path.dirname(fileURLToPath(import.meta.url));
+const isolatedUserDataDir = process.env.CATCHLIST_USER_DATA_DIR?.trim();
+if (isolatedUserDataDir) app.setPath("userData", path.resolve(isolatedUserDataDir));
 let mainWindow;
 let dataDir;
 let lastDelete;
-const gameCoverCache = new Map();
+let gameCoverService;
 
 function settingsPath() {
   return path.join(app.getPath("userData"), "settings.json");
@@ -52,15 +55,11 @@ function snapshot() {
 }
 
 async function resolveGameCovers(appids) {
-  const uniqueAppids = [...new Set(appids)].map(String).filter((appid) => /^\d+$/.test(appid));
-  const covers = {};
-  for (let index = 0; index < uniqueAppids.length; index += 4) {
-    await Promise.all(uniqueAppids.slice(index, index + 4).map(async (appid) => {
-      if (!gameCoverCache.has(appid)) gameCoverCache.set(appid, await resolveSteamCover(appid));
-      covers[appid] = gameCoverCache.get(appid);
-    }));
+  if (!gameCoverService) {
+    const cache = new GameCoverCache(path.join(app.getPath("userData"), "steam-cover-cache.json"));
+    gameCoverService = new GameCoverService({ cache, resolveCover: resolveSteamCover });
   }
-  return covers;
+  return gameCoverService.resolve(appids);
 }
 
 function validExternalUrl(raw) {

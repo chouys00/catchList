@@ -7,6 +7,7 @@
   "main": "src/main.js",
   "scripts": {
     "dev": "electron .",
+    "manual:large-games": "node test-support/launch-large-game-manual.mjs",
     "test": "node --test --experimental-test-isolation=none",
     "build:portable": "electron-builder --win portable --x64"
   },

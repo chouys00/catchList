@@ -34,6 +34,7 @@ const game = {
   score: 92,
   reviews: 18452,
   genres: ["動作", "冒險"],
+  tags: ["策略", "牌組製作", "輕度 Rogue", "單人", "甲板構築"],
   appid: "123456",
   coverUrl: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/123456/hash/header_tchinese.jpg?t=1",
   url: "https://example.com/game"
@@ -61,7 +62,79 @@ test("遊戲列把好評率與評論數組合為同一欄", () => {
   assert.match(markup, /<img src="https:\/\/shared\.akamai\.steamstatic\.com\/store_item_assets\/steam\/apps\/123456\/hash\/header_tchinese\.jpg\?t=1" alt="遊戲封面：測試遊戲">/);
   assert.match(markup, /<span class="rating"><strong>92%<\/strong><small>\(18,452\)<\/small><\/span>/);
   assert.ok(markup.indexOf("2026-02-18") < markup.indexOf("92%"));
-  assert.ok(markup.indexOf("92%") < markup.indexOf("動作、冒險"));
+  assert.ok(markup.indexOf("92%") < markup.indexOf("策略"));
+});
+
+test("遊戲列把已選標籤排到前面並提供展開按鈕", () => {
+  const markup = renderItemTemplate(game, "games", {
+    selectedTags: ["牌組製作"],
+    expanded: false,
+    tagLimit: 3,
+  });
+
+  assert.ok(markup.indexOf('data-selected-tag="牌組製作"') < markup.indexOf('data-game-tag="策略"'));
+  assert.match(markup, /data-game-tag="牌組製作"[\s\S]*牌組製作<\/button>/);
+  assert.match(markup, /data-expand-tags="123456" aria-expanded="false" aria-label="顯示測試遊戲的其餘 2 個標籤">＋2<\/button>/);
+  assert.equal(markup.includes("尚未補齊社群標籤"), false);
+});
+
+test("遊戲列展開全部標籤後在同一位置提供收起按鈕", () => {
+  const markup = renderItemTemplate(game, "games", {
+    selectedTags: [],
+    expanded: true,
+    tagLimit: 3,
+  });
+
+  assert.match(markup, /data-expand-tags="123456" aria-expanded="true" aria-label="收起測試遊戲的社群標籤">收起<\/button>/);
+  assert.match(markup, /甲板構築/);
+  assert.equal(markup.includes("＋2"), false);
+});
+
+test("沒有社群標籤時改顯示 genres 與補齊提示", () => {
+  const markup = renderItemTemplate({
+    ...game,
+    appid: "fallback-app",
+    tags: [],
+    genres: ["模擬", "休閒"],
+  }, "games", {
+    selectedTags: [],
+    expanded: false,
+    tagLimit: 3,
+  });
+
+  assert.match(markup, /尚未補齊社群標籤/);
+  assert.match(markup, /模擬/);
+  assert.match(markup, /休閒/);
+  assert.equal(markup.includes('data-game-tag="模擬"'), false);
+});
+
+test("fallback genres 超過顯示上限時仍提供展開按鈕", () => {
+  const collapsed = renderItemTemplate({
+    ...game,
+    appid: "fallback-many",
+    tags: [],
+    genres: ["模擬", "休閒", "策略", "建造", "管理"],
+  }, "games", {
+    selectedTags: [],
+    expanded: false,
+    tagLimit: 3,
+  });
+  const expanded = renderItemTemplate({
+    ...game,
+    appid: "fallback-many",
+    tags: [],
+    genres: ["模擬", "休閒", "策略", "建造", "管理"],
+  }, "games", {
+    selectedTags: [],
+    expanded: true,
+    tagLimit: 3,
+  });
+
+  assert.match(collapsed, /data-expand-tags="fallback-many" aria-expanded="false" aria-label="顯示測試遊戲的其餘 2 個類型">＋2<\/button>/);
+  assert.equal(collapsed.includes("建造"), false);
+  assert.match(expanded, /建造/);
+  assert.match(expanded, /管理/);
+  assert.match(expanded, /data-expand-tags="fallback-many" aria-expanded="true" aria-label="收起測試遊戲的遊戲類型">收起<\/button>/);
 });
 
 test("renderer 以 module 載入含 import 的 app.js", () => {

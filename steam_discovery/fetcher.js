@@ -5,10 +5,14 @@
 
 import path from "node:path";
 import { getWithRetry, loadJson, saveJson } from "@catchlist/core";
+import { parseCommunityTags } from "./community-tags.js";
 import { CONFIG, EXCLUDED_COMPETITIVE_TAGS, EXCLUDED_SOFTWARE_GENRES } from "./config.js";
 
 const DETAILS_CACHE_FILE = path.resolve(".appdetails_cache.json");
 const detailsCache = loadJson(DETAILS_CACHE_FILE, {});
+const STEAM_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+};
 
 /**
  * 爬取 Steam 搜尋結果頁面,回傳候選遊戲清單
@@ -34,9 +38,7 @@ export async function fetchSearchPage(start = 0) {
 
     const response = await getWithRetry(url, {
       params,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-      },
+      headers: STEAM_HEADERS,
       timeout: 15000
     }, { label: `search start=${start}` });
 
@@ -167,6 +169,28 @@ export async function fetchAppDetails(appid) {
   } catch (error) {
     console.error(`  [Fetcher] AppDetails (${appid}) 獲取失敗: ${error.message}`);
     return null; // 網路失敗不寫入快取,下次重試
+  }
+}
+
+export async function fetchCommunityTags(appid, {
+  requester = getWithRetry,
+  logger = console
+} = {}) {
+  try {
+    const response = await requester(`https://store.steampowered.com/app/${appid}`, {
+      params: {
+        cc: "tw",
+        l: "tchinese"
+      },
+      headers: STEAM_HEADERS,
+      timeout: 15000
+    }, { label: `community tags ${appid}` });
+
+    const tags = parseCommunityTags(response.data);
+    return tags.length > 0 ? tags : null;
+  } catch (error) {
+    logger.error(`  [Fetcher] 社群標籤 (${appid}) 取得失敗：${error.message}`);
+    return null;
   }
 }
 
