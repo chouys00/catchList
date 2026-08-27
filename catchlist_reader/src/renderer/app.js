@@ -29,6 +29,9 @@ const state = {
   gameTagEntries: null,
   gameTagCompact: window.matchMedia?.("(max-width: 560px)").matches ?? false,
   gameResizeFrame: null,
+  filterDockCollapsed: false,
+  filterDockLastScrollY: window.scrollY,
+  filterDockScrollFrame: null,
 };
 
 const app = document.querySelector("#app");
@@ -141,6 +144,45 @@ function syncGameTagViewport() {
   const changed = state.gameTagCompact !== compact;
   state.gameTagCompact = compact;
   return changed;
+}
+
+function filterDock() {
+  return app.querySelector("[data-filter-dock]");
+}
+
+function setFilterDockCollapsed(collapsed) {
+  state.filterDockCollapsed = collapsed;
+  filterDock()?.classList.toggle("is-collapsed", collapsed);
+}
+
+function filterDockMustStayOpen() {
+  return state.active === "games" && state.filters.games.tagsOpen;
+}
+
+function syncFilterDockOnScroll() {
+  state.filterDockScrollFrame = null;
+  const dock = filterDock();
+  if (!dock) return;
+
+  const currentScrollY = Math.max(0, window.scrollY);
+  const previousScrollY = state.filterDockLastScrollY;
+  state.filterDockLastScrollY = currentScrollY;
+  const topbarBottom = document.querySelector(".topbar")?.getBoundingClientRect().bottom ?? 0;
+  const dockIsPinned = dock.getBoundingClientRect().top <= topbarBottom + 1;
+
+  if (!dockIsPinned || currentScrollY <= 0 || filterDockMustStayOpen()) {
+    setFilterDockCollapsed(false);
+    return;
+  }
+
+  const delta = currentScrollY - previousScrollY;
+  if (Math.abs(delta) < 8) return;
+  setFilterDockCollapsed(delta > 0);
+}
+
+function scheduleFilterDockSync() {
+  if (state.filterDockScrollFrame) return;
+  state.filterDockScrollFrame = window.requestAnimationFrame(syncFilterDockOnScroll);
 }
 
 function gameTagPanelContent() {
@@ -335,7 +377,8 @@ function render() {
   const openLabel = isGames ? "開啟目前結果" : `搜尋目前結果 ${entries.length}`;
   const warning = isGames && data.tagWarning ? `<p class="tag-sidecar-warning" role="status">${escapeHtml(data.tagWarning)}。目前仍可使用報告內的遊戲類型。</p>` : "";
   stopGameAutoLoad();
-  app.innerHTML = `<div class="layout"><section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1><div class="section-status"><div class="section-summary"><strong>${isGames ? "全部月份" : "全部年代"}</strong><span data-result-count>${entries.length} 筆結果</span></div><div class="section-actions"><button class="button primary" data-action="open-filtered" ${entries.length ? "" : "disabled"}>${openLabel}</button></div></div>${warning}${toolbar(data)}${isGames ? gameTagPanel() : ""}<div class="list">${isGames ? gameListMarkup(entries) : entriesMarkup(entries)}</div></section></div>`;
+  app.innerHTML = `<div class="layout"><section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1><div class="filter-dock${state.filterDockCollapsed ? " is-collapsed" : ""}" data-filter-dock><div class="section-status"><div class="section-summary"><strong>${isGames ? "全部月份" : "全部年代"}</strong><span data-result-count>${entries.length} 筆結果</span></div><div class="section-actions"><button class="button primary" data-action="open-filtered" ${entries.length ? "" : "disabled"}>${openLabel}</button></div></div>${warning}${toolbar(data)}${isGames ? gameTagPanel() : ""}</div><div class="list">${isGames ? gameListMarkup(entries) : entriesMarkup(entries)}</div></section></div>`;
+  state.filterDockLastScrollY = window.scrollY;
   if (isGames) {
     syncTagOptionsOverflow();
     setupGameAutoLoad();
@@ -384,6 +427,7 @@ document.addEventListener("click", async (event) => {
   if (media) {
     state.active = media;
     if (media === "games") state.visibleGameCount = GAME_BATCH_SIZE;
+    setFilterDockCollapsed(false);
     render();
     return;
   }
@@ -405,7 +449,7 @@ document.addEventListener("click", async (event) => {
   try {
     if (action === "home") window.scrollTo({ top: 0 });
     if (action === "choose-folder") { state.payload = await window.catchList.chooseDirectory(); state.expandedGameTags.clear(); state.visibleGameCount = GAME_BATCH_SIZE; render(); }
-    if (action === "toggle-tags") { state.filters.games.tagsOpen = !state.filters.games.tagsOpen; refreshTagPanel(); }
+    if (action === "toggle-tags") { state.filters.games.tagsOpen = !state.filters.games.tagsOpen; setFilterDockCollapsed(false); refreshTagPanel(); }
     if (action === "close-tag-panel") { state.filters.games.tagsOpen = false; refreshTagPanel(); }
     if (action === "toggle-tag-options") { state.filters.games.tagOptionsExpanded = !state.filters.games.tagOptionsExpanded; refreshTagPanel(); }
     if (action === "clear-filters") {
@@ -457,6 +501,12 @@ window.addEventListener("resize", () => {
     if (syncGameTagViewport()) refreshResults({ hydrateCovers: false, resetGames: false });
     syncTagOptionsOverflow();
   });
+});
+
+window.addEventListener("scroll", scheduleFilterDockSync, { passive: true });
+
+document.addEventListener("focusin", (event) => {
+  if (event.target.closest?.("[data-filter-dock]")) setFilterDockCollapsed(false);
 });
 
 load();

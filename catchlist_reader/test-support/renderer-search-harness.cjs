@@ -121,6 +121,40 @@ async function measureResponsiveLayout(window) {
   return { columnsAt900: { games, anime, movies }, tapTargets, resizeBehavior };
 }
 
+async function measureFilterDock(window) {
+  window.setContentSize(1440, 700);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  await window.webContents.executeJavaScript(`document.querySelector('[data-media="games"]')?.click(); if (document.querySelector('[data-action="toggle-tags"]')?.getAttribute('aria-expanded') === 'true') document.querySelector('[data-action="toggle-tags"]')?.click(); window.scrollTo(0, 0); window.dispatchEvent(new Event('scroll'))`);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  return window.webContents.executeJavaScript(`(async () => {
+    const tick = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const dock = document.querySelector('[data-filter-dock]');
+    const topbar = document.querySelector('.topbar');
+    const snapshot = () => ({
+      collapsed: dock.classList.contains('is-collapsed'),
+      dockTop: Math.round(dock.getBoundingClientRect().top),
+      dockBottom: Math.round(dock.getBoundingClientRect().bottom),
+      topbarBottom: Math.round(topbar.getBoundingClientRect().bottom),
+    });
+    const initial = snapshot();
+    window.scrollTo(0, Math.min(500, document.documentElement.scrollHeight));
+    window.dispatchEvent(new Event('scroll'));
+    await tick();
+    const afterDown = snapshot();
+    window.scrollBy(0, -32);
+    window.dispatchEvent(new Event('scroll'));
+    await tick();
+    const afterUp = snapshot();
+    window.scrollBy(0, 32);
+    window.dispatchEvent(new Event('scroll'));
+    await tick();
+    document.querySelector('[data-filter="query"]')?.focus();
+    await tick();
+    const afterFocus = snapshot();
+    return { initial, afterDown, afterUp, afterFocus };
+  })()`);
+}
+
 async function captureResponsiveQa(window) {
   const outputDir = process.env.CATCHLIST_QA_DIR;
   if (!outputDir) return null;
@@ -434,11 +468,12 @@ async function run() {
     })()`);
     const cleared = await searchState(window);
     const responsiveLayout = await measureResponsiveLayout(window);
+    const filterDock = await measureFilterDock(window);
     const visualQa = await captureResponsiveQa(window);
     const largeGameBatch = await runLargeGameBatchTest(address);
     const coverUpdate = await runCoverUpdateTest(address);
 
-    process.stdout.write(`${JSON.stringify({ initialGames, typed, backspaced, insertedInMiddle, replacedSelection, chinese, gameBrowser, animeBeforeSearch, animeAfterSearch, animeRailCount, movieRailCount, restoredGameSearch, clearInteraction, cleared, responsiveLayout, visualQa, largeGameBatch, coverUpdate })}\n`);
+    process.stdout.write(`${JSON.stringify({ initialGames, typed, backspaced, insertedInMiddle, replacedSelection, chinese, gameBrowser, animeBeforeSearch, animeAfterSearch, animeRailCount, movieRailCount, restoredGameSearch, clearInteraction, cleared, responsiveLayout, filterDock, visualQa, largeGameBatch, coverUpdate })}\n`);
   } finally {
     window.destroy();
     await new Promise((resolve) => server.close(resolve));

@@ -138,6 +138,12 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
   assert.ok(result.responsiveLayout.tapTargets.panelClose.height >= 44);
   assert.ok(result.responsiveLayout.tapTargets.tagOptionsToggle.width >= 44);
   assert.ok(result.responsiveLayout.tapTargets.tagOptionsToggle.height >= 44);
+  assert.equal(result.filterDock.initial.collapsed, false);
+  assert.equal(result.filterDock.afterDown.collapsed, true);
+  assert.ok(result.filterDock.afterDown.dockBottom <= result.filterDock.afterDown.topbarBottom);
+  assert.equal(result.filterDock.afterUp.collapsed, false);
+  assert.ok(result.filterDock.afterUp.dockTop >= result.filterDock.afterUp.topbarBottom - 1);
+  assert.equal(result.filterDock.afterFocus.collapsed, false);
   assert.deepEqual(result.largeGameBatch.initial, { itemCount: 50, hasOpenAll: false, hasFallback: true });
   assert.deepEqual(result.largeGameBatch.afterFirstAppend, { itemCount: 100, firstNodePreserved: true, fiftiethNodePreserved: true });
   assert.deepEqual(result.largeGameBatch.afterSecondAppend, { itemCount: 150, firstNodePreserved: true, fiftiethNodePreserved: true });
