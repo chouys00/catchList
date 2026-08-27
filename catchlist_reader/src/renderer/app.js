@@ -5,9 +5,9 @@ const GAME_BATCH_SIZE = 50;
 const MAX_EXTERNAL_BATCH_SIZE = 50;
 
 const mediaCopy = {
-  games: { title: "遊戲探索", intro: "跨月份檢視值得玩的作品，組合名稱、日期、好評率與社群標籤縮小範圍。", search: "搜尋遊戲名稱…" },
-  anime: { title: "動畫探索", intro: "跨季度搜尋高評分動畫，從年份、季度與評分縮小範圍。", search: "搜尋動畫名稱…" },
-  movies: { title: "電影探索", intro: "跨月份尋找值得看的電影，以豆瓣估算分數由高到低排列。", search: "搜尋電影名稱…" },
+  games: { title: "遊戲探索", search: "搜尋遊戲名稱…" },
+  anime: { title: "動畫探索", search: "搜尋動畫名稱…" },
+  movies: { title: "電影探索", search: "搜尋電影名稱…" },
 };
 
 const state = {
@@ -100,11 +100,6 @@ function showCover(url, title) {
   coverImage.alt = `遊戲封面：${title}`;
   coverTitle.textContent = title;
   coverDialog.showModal();
-}
-
-function rail() {
-  if (state.active === "games") return "";
-  return `<aside class="rail"><p class="eyebrow">跨期探索</p><p class="rail-note">預設顯示所有年代，依評分由高到低排列。</p></aside>`;
 }
 
 function scoreOptions(selected, game = false) {
@@ -340,7 +335,7 @@ function render() {
   const openLabel = isGames ? "開啟目前結果" : `搜尋目前結果 ${entries.length}`;
   const warning = isGames && data.tagWarning ? `<p class="tag-sidecar-warning" role="status">${escapeHtml(data.tagWarning)}。目前仍可使用報告內的遊戲類型。</p>` : "";
   stopGameAutoLoad();
-  app.innerHTML = `<div class="layout${isGames ? " games-layout" : ""}">${rail()}<section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1><div class="section-status"><strong>${isGames ? "全部月份" : "全部年代"}</strong><span data-result-count>${entries.length} 筆結果</span><span>${escapeHtml(mediaCopy[state.active].intro)}</span></div>${warning}${toolbar(data)}${isGames ? gameTagPanel() : ""}<div class="bulkbar"><span>${data.exists ? `${data.entries.length} 筆資料 · 已依分數排序` : `找不到 ${data.filename}`}</span><div class="bulk-actions"><button class="button primary" data-action="open-filtered" ${entries.length ? "" : "disabled"}>${openLabel}</button></div></div><div class="list">${isGames ? gameListMarkup(entries) : entriesMarkup(entries)}</div></section></div>`;
+  app.innerHTML = `<div class="layout"><section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1><div class="section-status"><div class="section-summary"><strong>${isGames ? "全部月份" : "全部年代"}</strong><span data-result-count>${entries.length} 筆結果</span></div><div class="section-actions"><button class="button primary" data-action="open-filtered" ${entries.length ? "" : "disabled"}>${openLabel}</button></div></div>${warning}${toolbar(data)}${isGames ? gameTagPanel() : ""}<div class="list">${isGames ? gameListMarkup(entries) : entriesMarkup(entries)}</div></section></div>`;
   if (isGames) {
     syncTagOptionsOverflow();
     setupGameAutoLoad();

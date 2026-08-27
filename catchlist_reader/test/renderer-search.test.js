@@ -35,7 +35,7 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
   assert.deepEqual(result.initialGames, {
     railCount: 0,
     itemCount: 7,
-    gamesLayout: true,
+    gamesLayout: false,
     openLabel: "開啟目前結果",
     tagWarning: "測試用標籤資料警告。目前仍可使用報告內的遊戲類型。",
     fixtureGames: [
@@ -117,8 +117,8 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
   assert.equal(result.animeBeforeSearch.value, "");
   assert.equal(result.animeAfterSearch.value, "星海");
   assert.equal(result.animeAfterSearch.resultCount, "1 筆結果");
-  assert.equal(result.animeRailCount, 1);
-  assert.equal(result.movieRailCount, 1);
+  assert.equal(result.animeRailCount, 0);
+  assert.equal(result.movieRailCount, 0);
   assert.equal(result.restoredGameSearch.value, "你有餅嗎？");
   assert.deepEqual(result.cleared, {
     value: "", focused: true, selectionStart: 0, selectionEnd: 0, resultCount: "7 筆結果",
