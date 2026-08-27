@@ -61,7 +61,11 @@ button { color: inherit; }
 .button.danger { color: var(--danger); }
 .button.compact { min-height: 34px; padding: 0 11px; font-size: 12px; }
 .button:disabled { opacity: .4; cursor: not-allowed; }
-.tag-toggle[aria-expanded="true"] { border-color: var(--lime); color: var(--lime); background: #1c2119; }
+.tag-toggle[aria-expanded="true"], .quality-toggle[aria-expanded="true"] { border-color: var(--lime); color: var(--lime); background: #1c2119; }
+.quality-toggle span { display: inline-flex; align-items: center; justify-content: center; min-width: 1.4em; margin-left: 4px; color: inherit; font-variant-numeric: tabular-nums; }
+.quality-panel { display: grid; grid-template-columns: repeat(2, minmax(180px, 1fr)); gap: 8px; margin-top: 8px; padding: 10px; border: 1px solid var(--line); background: #141719; }
+.quality-panel[hidden] { display: none; }
+.quality-field { display: grid; gap: 5px; color: var(--muted); font-size: 11px; }
 
 .tag-sidecar-warning { margin: 10px 0 0; padding: 9px 12px; border-left: 3px solid #d6a84b; background: #211d14; color: #d9c79f; font-size: 12px; line-height: 1.5; }
 .tag-panel { margin: -2px 0 14px; padding: 14px; border: 1px solid var(--line); border-radius: 0; background: #141719; }
@@ -165,6 +169,8 @@ button.game-cover:hover { border-color: var(--lime); }
   .toolbar, .toolbar.games { grid-template-columns: 1fr; }
   .toolbar .search-control { grid-column: auto; }
   .toolbar.games .field, .toolbar.games .button { min-height: 44px; }
+  .quality-panel { grid-template-columns: 1fr; }
+  .quality-panel .field { min-height: 44px; }
   .tag-panel { margin-inline: -14px; padding: 14px; border-left: 0; border-right: 0; }
   .tag-panel-heading { align-items: stretch; flex-direction: column; gap: 10px; }
   .tag-panel-title { display: grid !important; gap: 3px !important; }

@@ -37,6 +37,7 @@ function normalizeList(values) {
 export function filterAndSortGames(entries, filters = {}) {
   const query = normalizedQuery(filters.query);
   const min = Number(filters.min || 0);
+  const minReviews = Number(filters.reviews || 0);
   const selectedTags = normalizeList(filters.tags);
 
   return entries
@@ -45,6 +46,7 @@ export function filterAndSortGames(entries, filters = {}) {
       if (filters.year && filters.year !== "all" && entry.year !== Number(filters.year)) return false;
       if (filters.month && filters.month !== "all" && entry.month !== Number(filters.month)) return false;
       if (entry.score < min) return false;
+      if (Number(entry.reviews ?? 0) < minReviews) return false;
       const tags = normalizeList(entry.tags);
       return selectedTags.every((tag) => tags.includes(tag));
     })
