@@ -46,12 +46,11 @@ button { color: inherit; }
 .filter-dock { position: sticky; top: var(--topbar-height); z-index: 8; margin: -12px -12px 0; padding: 12px; background: color-mix(in srgb, var(--surface) 96%, transparent); border-bottom: 1px solid var(--line); box-shadow: 0 10px 24px #0000; backdrop-filter: blur(16px); transition: transform 180ms ease, box-shadow 180ms ease; will-change: transform; }
 .filter-dock.is-collapsed { transform: translateY(calc(-100% - 1px)); box-shadow: none; }
 .filter-dock:not(.is-collapsed) { box-shadow: 0 10px 24px #0005; }
-.section-status { min-height: 38px; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; }
-.section-summary, .section-actions { display: flex; align-items: center; gap: 12px; }
-.section-status strong { color: var(--ink); font-family: var(--serif); font-size: 20px; font-weight: 500; }
-
-.toolbar { display: grid; grid-template-columns: minmax(180px, 1.5fr) repeat(2, minmax(130px, .7fr)) auto; gap: 8px; margin: 14px 0; }
+.toolbar { display: grid; grid-template-columns: minmax(180px, 1.5fr) repeat(2, minmax(130px, .7fr)) auto; gap: 8px; margin: 0; }
 .toolbar.games { grid-template-columns: minmax(220px, 1.8fr) repeat(3, minmax(112px, .62fr)) minmax(96px, auto) auto; }
+.search-control { position: relative; min-width: 0; }
+.search-control .field { padding-right: 78px; }
+.result-count { position: absolute; top: 1px; right: 1px; bottom: 1px; display: flex; align-items: center; justify-content: end; min-width: 68px; padding: 0 11px; border-left: 1px solid var(--line); background: var(--surface-3); color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; pointer-events: none; }
 .field { width: 100%; min-height: 38px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); color: var(--ink); padding: 0 12px; outline: none; }
 .field:focus { border-color: var(--lime); box-shadow: 0 0 0 2px color-mix(in srgb, var(--lime) 18%, transparent); }
 .button { min-height: 38px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); padding: 0 14px; cursor: pointer; }
@@ -143,7 +142,7 @@ button.game-cover:hover { border-color: var(--lime); }
   .content { padding-top: 18px; }
   .toolbar { grid-template-columns: 1fr 1fr; }
   .toolbar.games { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .toolbar .search { grid-column: 1 / -1; }
+  .toolbar .search-control { grid-column: 1 / -1; }
   .item, .item.anime, .item.movies, .item.games { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; }
   .item > .meta, .item > .score, .item > .rating { grid-column: auto; }
   .item .actions { grid-column: 1 / -1; justify-content: start; }
@@ -163,9 +162,8 @@ button.game-cover:hover { border-color: var(--lime); }
   .workspace, .layout { min-height: calc(100vh - var(--topbar-height)); }
   .content { padding: 14px 14px 56px; }
   .filter-dock { max-height: calc(100vh - var(--topbar-height)); overflow-y: auto; margin-inline: -14px; padding: 14px; }
-  .section-status span:last-child { display: none; }
   .toolbar, .toolbar.games { grid-template-columns: 1fr; }
-  .toolbar .search { grid-column: auto; }
+  .toolbar .search-control { grid-column: auto; }
   .toolbar.games .field, .toolbar.games .button { min-height: 44px; }
   .tag-panel { margin-inline: -14px; padding: 14px; border-left: 0; border-right: 0; }
   .tag-panel-heading { align-items: stretch; flex-direction: column; gap: 10px; }

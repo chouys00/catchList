@@ -2,7 +2,6 @@ import { collectTagOptionsFromIndex, createTagIndex, filterAndSortGames } from "
 import { renderItemTemplate } from "./item-template.js";
 
 const GAME_BATCH_SIZE = 50;
-const MAX_EXTERNAL_BATCH_SIZE = 50;
 
 const mediaCopy = {
   games: { title: "遊戲探索", search: "搜尋遊戲名稱…" },
@@ -111,9 +110,9 @@ function scoreOptions(selected, game = false) {
   return `<option value="0">${label}</option>${values.map((score) => `<option value="${score}" ${Number(selected) === score ? "selected" : ""}>最低 ${game ? `${score}%` : score.toFixed(1)}</option>`).join("")}`;
 }
 
-function toolbar(data) {
+function toolbar(data, resultCount) {
   const filter = state.filters[state.active];
-  const search = `<input class="field search" data-filter="query" value="${escapeHtml(filter.query)}" placeholder="${mediaCopy[state.active].search}" aria-label="搜尋名稱">`;
+  const search = `<label class="search-control"><span class="sr-only">搜尋名稱</span><input class="field search" data-filter="query" value="${escapeHtml(filter.query)}" placeholder="${mediaCopy[state.active].search}" aria-label="搜尋名稱"><output class="result-count" data-result-count aria-live="polite">${resultCount} 筆</output></label>`;
   if (state.active === "games") {
     const years = [...new Set(data.entries.map((entry) => entry.year))].filter(Number.isFinite).sort((a, b) => b - a);
     const months = [...new Set(data.entries.map((entry) => entry.month))].filter(Number.isFinite).sort((a, b) => a - b);
@@ -287,12 +286,9 @@ function appendNextGameBatch() {
 function refreshResults({ hydrateCovers = true, resetGames = true } = {}) {
   const entries = filteredEntries();
   const count = app.querySelector("[data-result-count]");
-  const openFiltered = app.querySelector('[data-action="open-filtered"]');
   const list = app.querySelector(".list");
-  if (!count || !openFiltered || !list) return;
-  count.textContent = `${entries.length} 筆結果`;
-  openFiltered.disabled = entries.length === 0;
-  openFiltered.textContent = state.active === "games" ? "開啟目前結果" : `搜尋目前結果 ${entries.length}`;
+  if (!count || !list) return;
+  count.textContent = `${entries.length} 筆`;
   if (state.active === "games") {
     if (resetGames) state.visibleGameCount = GAME_BATCH_SIZE;
     list.innerHTML = gameListMarkup(entries);
@@ -374,10 +370,9 @@ function render() {
   const entries = filteredEntries();
   const isGames = state.active === "games";
   if (isGames) syncGameTagViewport();
-  const openLabel = isGames ? "開啟目前結果" : `搜尋目前結果 ${entries.length}`;
   const warning = isGames && data.tagWarning ? `<p class="tag-sidecar-warning" role="status">${escapeHtml(data.tagWarning)}。目前仍可使用報告內的遊戲類型。</p>` : "";
   stopGameAutoLoad();
-  app.innerHTML = `<div class="layout"><section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1><div class="filter-dock${state.filterDockCollapsed ? " is-collapsed" : ""}" data-filter-dock><div class="section-status"><div class="section-summary"><strong>${isGames ? "全部月份" : "全部年代"}</strong><span data-result-count>${entries.length} 筆結果</span></div><div class="section-actions"><button class="button primary" data-action="open-filtered" ${entries.length ? "" : "disabled"}>${openLabel}</button></div></div>${warning}${toolbar(data)}${isGames ? gameTagPanel() : ""}</div><div class="list">${isGames ? gameListMarkup(entries) : entriesMarkup(entries)}</div></section></div>`;
+  app.innerHTML = `<div class="layout"><section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1><div class="filter-dock${state.filterDockCollapsed ? " is-collapsed" : ""}" data-filter-dock>${warning}${toolbar(data, entries.length)}${isGames ? gameTagPanel() : ""}</div><div class="list">${isGames ? gameListMarkup(entries) : entriesMarkup(entries)}</div></section></div>`;
   state.filterDockLastScrollY = window.scrollY;
   if (isGames) {
     syncTagOptionsOverflow();
@@ -408,16 +403,6 @@ function showToast(message, undo = false) {
 
 async function load() {
   try { state.payload = await window.catchList.load(); render(); } catch (error) { showToast(error.message); }
-}
-
-async function openBatch(urls, label) {
-  if (!urls.length) return;
-  if (urls.length > MAX_EXTERNAL_BATCH_SIZE) {
-    showToast(`一次最多開啟 ${MAX_EXTERNAL_BATCH_SIZE} 個連結，請先縮小篩選結果。`);
-    return;
-  }
-  const confirmed = await ask({ title: `將開啟 ${urls.length} 個分頁`, message: `${label}。瀏覽器可能會詢問是否允許一次開啟多個分頁。`, confirm: "開啟分頁" });
-  if (confirmed) await window.catchList.openUrls(urls);
 }
 
 document.addEventListener("click", async (event) => {
@@ -458,10 +443,6 @@ document.addEventListener("click", async (event) => {
       syncGameControls();
       refreshGameBrowser();
       app.querySelector('[data-filter="query"]')?.focus();
-    }
-    if (action === "open-filtered") {
-      const entries = filteredEntries();
-      await openBatch(entries.map((entry) => state.active === "games" ? entry.url : entry.searchUrl), state.active === "games" ? "開啟目前篩選結果的 Steam 商店頁面" : "使用 Google 搜尋目前篩選結果");
     }
     if (action === "load-more-games") appendNextGameBatch();
     if (action === "undo") { const result = await window.catchList.undoDelete(); state.payload = result; toast.classList.remove("show"); render(); showToast(`已復原「${result.restored.title}」`); }

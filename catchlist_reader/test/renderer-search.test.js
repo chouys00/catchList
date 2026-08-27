@@ -36,7 +36,8 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
     railCount: 0,
     itemCount: 7,
     gamesLayout: false,
-    openLabel: "開啟目前結果",
+    hasBatchOpenButton: false,
+    resultCount: "7 筆",
     tagWarning: "測試用標籤資料警告。目前仍可使用報告內的遊戲類型。",
     fixtureGames: [
       { title: "HER TREES : PUZZLE DREAM", releaseDate: "2026-02-10", score: "97%", reviews: "(1,768)" },
@@ -50,19 +51,19 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
   });
 
   assert.deepEqual(result.typed, {
-    value: "abcdef", focused: true, selectionStart: 6, selectionEnd: 6, resultCount: "0 筆結果",
+    value: "abcdef", focused: true, selectionStart: 6, selectionEnd: 6, resultCount: "0 筆",
   });
   assert.deepEqual(result.backspaced, {
-    value: "abcd", focused: true, selectionStart: 4, selectionEnd: 4, resultCount: "0 筆結果",
+    value: "abcd", focused: true, selectionStart: 4, selectionEnd: 4, resultCount: "0 筆",
   });
   assert.deepEqual(result.insertedInMiddle, {
-    value: "abXcd", focused: true, selectionStart: 3, selectionEnd: 3, resultCount: "0 筆結果",
+    value: "abXcd", focused: true, selectionStart: 3, selectionEnd: 3, resultCount: "0 筆",
   });
   assert.deepEqual(result.replacedSelection, {
-    value: "aZd", focused: true, selectionStart: 2, selectionEnd: 2, resultCount: "0 筆結果",
+    value: "aZd", focused: true, selectionStart: 2, selectionEnd: 2, resultCount: "0 筆",
   });
   assert.deepEqual(result.chinese, {
-    value: "你有餅嗎？", focused: true, selectionStart: 5, selectionEnd: 5, resultCount: "1 筆結果",
+    value: "你有餅嗎？", focused: true, selectionStart: 5, selectionEnd: 5, resultCount: "1 筆",
   });
   assert.equal(result.gameBrowser.opened, true);
   assert.deepEqual(result.gameBrowser.afterSelect, {
@@ -116,12 +117,12 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
   });
   assert.equal(result.animeBeforeSearch.value, "");
   assert.equal(result.animeAfterSearch.value, "星海");
-  assert.equal(result.animeAfterSearch.resultCount, "1 筆結果");
+  assert.equal(result.animeAfterSearch.resultCount, "1 筆");
   assert.equal(result.animeRailCount, 0);
   assert.equal(result.movieRailCount, 0);
   assert.equal(result.restoredGameSearch.value, "你有餅嗎？");
   assert.deepEqual(result.cleared, {
-    value: "", focused: true, selectionStart: 0, selectionEnd: 0, resultCount: "7 筆結果",
+    value: "", focused: true, selectionStart: 0, selectionEnd: 0, resultCount: "7 筆",
   });
   assert.deepEqual(result.responsiveLayout.columnsAt900, { games: 3, anime: 2, movies: 2 });
   assert.deepEqual(result.responsiveLayout.resizeBehavior, {
@@ -147,9 +148,7 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
   assert.deepEqual(result.largeGameBatch.initial, { itemCount: 50, hasOpenAll: false, hasFallback: true });
   assert.deepEqual(result.largeGameBatch.afterFirstAppend, { itemCount: 100, firstNodePreserved: true, fiftiethNodePreserved: true });
   assert.deepEqual(result.largeGameBatch.afterSecondAppend, { itemCount: 150, firstNodePreserved: true, fiftiethNodePreserved: true });
-  assert.deepEqual(result.largeGameBatch.afterFilter, { itemCount: 50, resultCount: "1000 筆結果" });
-  assert.equal(result.largeGameBatch.oversizedOpen.calls, 0);
-  assert.match(result.largeGameBatch.oversizedOpen.toast, /一次最多開啟 50 個連結/);
+  assert.deepEqual(result.largeGameBatch.afterFilter, { itemCount: 50, resultCount: "1000 筆" });
   assert.deepEqual(result.largeGameBatch.horizontalOverflow, { desktop: false, mobile: false });
   assert.deepEqual(result.coverUpdate.initial, { requestCount: 1, firstRequestSize: 50, itemCount: 50 });
   assert.deepEqual(result.coverUpdate.afterUpdate, { firstRowPreserved: true, itemCount: 50, hasLoadedCover: true });

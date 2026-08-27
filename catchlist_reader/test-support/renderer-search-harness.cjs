@@ -36,7 +36,7 @@ async function searchState(window) {
       focused: document.activeElement === input,
       selectionStart: input?.selectionStart ?? null,
       selectionEnd: input?.selectionEnd ?? null,
-      resultCount: document.querySelector('.section-status span')?.textContent ?? null,
+      resultCount: document.querySelector('[data-result-count]')?.textContent ?? null,
     };
   })()`);
 }
@@ -234,13 +234,6 @@ async function runLargeGameBatchTest(address) {
       return { itemCount: document.querySelectorAll('.item.games').length, resultCount: document.querySelector('[data-result-count]')?.textContent ?? null };
     })()`);
 
-    await window.webContents.executeJavaScript(`document.querySelector('[data-action="open-filtered"]')?.click()`);
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    const oversizedOpen = await window.webContents.executeJavaScript(`({
-      calls: window.__catchListOpenUrlCalls.length,
-      toast: document.querySelector('#toast')?.textContent?.trim() ?? null,
-    })`);
-
     const horizontalOverflow = {};
     for (const [name, width, height] of [["desktop", 1440, 900], ["mobile", 390, 844]]) {
       window.setContentSize(width, height);
@@ -248,7 +241,7 @@ async function runLargeGameBatchTest(address) {
       horizontalOverflow[name] = await window.webContents.executeJavaScript(`document.documentElement.scrollWidth > document.documentElement.clientWidth`);
     }
 
-    return { initial, afterFirstAppend, afterSecondAppend, afterFilter, oversizedOpen, horizontalOverflow };
+    return { initial, afterFirstAppend, afterSecondAppend, afterFilter, horizontalOverflow };
   } finally {
     window.destroy();
   }
@@ -301,7 +294,8 @@ async function run() {
       railCount: document.querySelectorAll('.rail').length,
       itemCount: document.querySelectorAll('.item.games').length,
       gamesLayout: document.querySelector('.layout')?.classList.contains('games-layout') ?? false,
-      openLabel: document.querySelector('[data-action="open-filtered"]')?.textContent ?? null,
+      hasBatchOpenButton: Boolean(document.querySelector('[data-action="open-filtered"]')),
+      resultCount: document.querySelector('[data-result-count]')?.textContent ?? null,
       tagWarning: document.querySelector('.tag-sidecar-warning')?.textContent ?? null,
       fixtureGames: Array.from(document.querySelectorAll('.item.games')).map((item) => ({
         title: item.querySelector('.title strong')?.textContent ?? null,
