@@ -2,6 +2,8 @@
 
 CatchList 的 Windows 桌面閱讀器，直接讀取同資料夾內的 `動畫.md`、`電影.md` 與 `遊戲.md`。
 
+目前版本為 `1.0.3`。每次調整閱讀器的介面或功能時，都必須將 `catchlist_reader/package.json`、`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml` 與兩套介面標題列的版本號同步遞增；`npm run reader:test` 會檢查這些設定是否一致。
+
 ## 開發
 
 ```powershell
