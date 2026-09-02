@@ -86,13 +86,18 @@ function registerIpc() {
   ipcMain.handle("library:delete-entry", (_event, media, entryId) => {
     if (!dataDir) throw new Error("尚未選擇資料夾");
     lastDelete = deleteEntry(dataDir, media, entryId);
-    return snapshot();
+    return {
+      media: lastDelete.media,
+      entryId: lastDelete.entryId,
+      title: lastDelete.title,
+      canUndo: true,
+    };
   });
   ipcMain.handle("library:undo-delete", () => {
     if (!lastDelete) throw new Error("沒有可復原的刪除操作");
     const restored = undoDelete(lastDelete);
     lastDelete = null;
-    return { ...snapshot(), restored };
+    return { ...restored, canUndo: false };
   });
   ipcMain.handle("library:resolve-game-covers", (_event, appids) => {
     if (!Array.isArray(appids)) throw new Error("遊戲封面請求格式不正確");

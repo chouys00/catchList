@@ -1,5 +1,7 @@
 import { collectTagOptionsFromIndex, createTagIndex, filterAndSortGames } from "./game-browser.js";
 import { renderItemTemplate } from "./item-template.js";
+import { applyDeleteResult, applyUndoResult } from "./library-state.js";
+import { createRadarRatingController, loadPrototypeRatings, prototypeRatingKey } from "./radar-rating.js";
 
 const GAME_BATCH_SIZE = 50;
 
@@ -7,15 +9,17 @@ const mediaCopy = {
   games: { title: "遊戲探索", search: "搜尋遊戲名稱…" },
   anime: { title: "動畫探索", search: "搜尋動畫名稱…" },
   movies: { title: "電影探索", search: "搜尋電影名稱…" },
+  liveAction: { title: "真人劇年度清單", search: "搜尋真人劇名稱…" },
 };
 
 const state = {
-  active: "games",
+  active: "anime",
   payload: null,
   filters: {
     games: { query: "", year: "all", month: "all", min: "0", reviews: "0", qualityOpen: false, tags: [], tagsOpen: false, tagQuery: "", tagOptionsExpanded: false },
     anime: { query: "", year: "all", season: "all", min: "0" },
     movies: { query: "", year: "all", category: "all", min: "0" },
+    liveAction: { query: "", year: "all", region: "all" },
   },
   expandedGameTags: new Set(),
   gameCovers: new Map(),
@@ -31,6 +35,9 @@ const state = {
   filterDockCollapsed: false,
   filterDockLastScrollY: window.scrollY,
   filterDockScrollFrame: null,
+  prototypeRatings: loadPrototypeRatings(),
+  lastDeletedEntry: null,
+  libraryMutationPending: false,
 };
 
 const app = document.querySelector("#app");
@@ -39,7 +46,17 @@ const dialog = document.querySelector("#confirmDialog");
 const coverDialog = document.querySelector("#coverDialog");
 const coverImage = document.querySelector("#coverImage");
 const coverTitle = document.querySelector("#coverTitle");
+const ratingDialog = document.querySelector("#ratingDialog");
 const toast = document.querySelector("#toast");
+
+const ratingController = createRadarRatingController({
+  dialog: ratingDialog,
+  ratings: state.prototypeRatings,
+  onChange: ({ type, rating }) => {
+    render();
+    showToast(type === "save" ? `已暫存五角評分 ${rating.overall.toFixed(1)}／5` : "已取消暫存評分");
+  },
+});
 
 function library(media = state.active) {
   return state.payload?.libraries?.find((item) => item.media === media) ?? { entries: [], sections: [], exists: false };
@@ -63,6 +80,8 @@ function filteredEntries() {
     if (filter.year !== "all" && entry.year !== Number(filter.year)) return false;
     if (state.active === "anime" && filter.season !== "all" && entry.season !== filter.season) return false;
     if (state.active === "movies" && filter.category !== "all" && entry.category !== filter.category) return false;
+    if (state.active === "liveAction" && filter.region !== "all" && entry.region !== filter.region) return false;
+    if (state.active === "liveAction") return true;
     return entry.score >= Number(filter.min || 0);
   }).sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, "zh-Hant"));
 }
@@ -130,8 +149,11 @@ function toolbar(data, resultCount) {
   const years = [...new Set(data.entries.map((entry) => entry.year))].sort((a, b) => b - a);
   const third = state.active === "anime"
     ? `<select class="field" data-filter="season" aria-label="季度">${options(["春", "夏", "秋", "冬"], filter.season, "所有季度")}</select>`
-    : `<select class="field" data-filter="category" aria-label="影片類別">${options([...new Set(data.entries.map((entry) => entry.category))].sort((a, b) => a.localeCompare(b, "zh-Hant")), filter.category, "所有類別")}</select>`;
-  return `<div class="toolbar">${search}<select class="field" data-filter="year" aria-label="年份">${options(years, filter.year, "所有年份")}</select>${third}<select class="field" data-filter="min" aria-label="最低評分">${scoreOptions(filter.min)}</select></div>`;
+    : state.active === "movies"
+      ? `<select class="field" data-filter="category" aria-label="影片類別">${options([...new Set(data.entries.map((entry) => entry.category))].sort((a, b) => a.localeCompare(b, "zh-Hant")), filter.category, "所有類別")}</select>`
+      : `<select class="field" data-filter="region" aria-label="地區">${options([...new Set(data.entries.map((entry) => entry.region))].sort((a, b) => a.localeCompare(b, "zh-Hant")), filter.region, "所有地區")}</select>`;
+  const score = state.active === "liveAction" ? "" : `<select class="field" data-filter="min" aria-label="最低評分">${scoreOptions(filter.min)}</select>`;
+  return `<div class="toolbar">${search}<select class="field" data-filter="year" aria-label="年份">${options(years, filter.year, "所有年份")}</select>${third}${score}</div>`;
 }
 
 function tagOptionMarkup({ tag, count, selected }) {
@@ -224,7 +246,11 @@ function gameQualityPanel() {
 }
 
 function displayedEntries(entries) {
-  return state.active === "games" ? entries.map((entry) => ({ ...entry, coverUrl: state.gameCovers.get(entry.appid) })) : entries;
+  return entries.map((entry) => ({
+    ...entry,
+    ...(state.active === "games" ? { coverUrl: state.gameCovers.get(entry.appid) } : {}),
+    personalRating: state.prototypeRatings.get(prototypeRatingKey(state.active, entry.id))?.overall ?? null,
+  }));
 }
 
 function gameTagLimit() {
@@ -469,14 +495,61 @@ document.addEventListener("click", async (event) => {
       app.querySelector('[data-filter="query"]')?.focus();
     }
     if (action === "load-more-games") appendNextGameBatch();
-    if (action === "undo") { const result = await window.catchList.undoDelete(); state.payload = result; toast.classList.remove("show"); render(); showToast(`已復原「${result.restored.title}」`); }
+    if (action === "undo") {
+      if (state.libraryMutationPending) return;
+      state.libraryMutationPending = true;
+      const undoButton = event.target.closest('[data-action="undo"]');
+      if (undoButton) undoButton.disabled = true;
+      try {
+        const result = await window.catchList.undoDelete();
+        try {
+          state.payload = applyUndoResult(state.payload, result, state.lastDeletedEntry);
+        } catch {
+          state.payload = await window.catchList.load();
+        }
+        state.lastDeletedEntry = null;
+        toast.classList.remove("show");
+        render();
+        showToast(`已復原「${result.title}」`);
+      } finally {
+        state.libraryMutationPending = false;
+        if (undoButton?.isConnected) undoButton.disabled = false;
+      }
+    }
+    const ratingId = event.target.closest("[data-rate]")?.dataset.rate;
+    if (ratingId) {
+      const entry = library().entries.find((item) => item.id === ratingId);
+      if (entry) ratingController.open({ key: prototypeRatingKey(state.active, entry.id), title: entry.title });
+      return;
+    }
     const openUrl = event.target.closest("[data-open]")?.dataset.open;
     if (openUrl) await window.catchList.openUrls([openUrl]);
     const entryId = event.target.closest("[data-delete]")?.dataset.delete;
     if (entryId) {
+      if (state.libraryMutationPending) return;
       const entry = library().entries.find((item) => item.id === entryId);
       const confirmed = await ask({ eyebrow: "刪除作品", title: `刪除「${entry.title}」？`, message: "這筆資料會從 Markdown 真正刪除。系統會先備份，刪除後可立即復原。", confirm: "刪除", danger: true });
-      if (confirmed) { state.payload = await window.catchList.deleteEntry(state.active, entryId); render(); showToast(`已刪除「${entry.title}」`, true); }
+      if (confirmed) {
+        state.libraryMutationPending = true;
+        const deleteButton = event.target.closest("[data-delete]");
+        if (deleteButton) { deleteButton.disabled = true; deleteButton.textContent = "刪除中…"; }
+        try {
+          const result = await window.catchList.deleteEntry(state.active, entryId);
+          try {
+            const applied = applyDeleteResult(state.payload, result);
+            state.payload = applied.payload;
+            state.lastDeletedEntry = applied.removed;
+          } catch {
+            state.payload = await window.catchList.load();
+            state.lastDeletedEntry = null;
+          }
+          render();
+          showToast(`已刪除「${entry.title}」`, true);
+        } finally {
+          state.libraryMutationPending = false;
+          if (deleteButton?.isConnected) { deleteButton.disabled = false; deleteButton.textContent = "刪除"; }
+        }
+      }
     }
   } catch (error) { showToast(error.message); }
 });
@@ -511,7 +584,13 @@ window.addEventListener("resize", () => {
 window.addEventListener("scroll", scheduleFilterDockSync, { passive: true });
 
 document.addEventListener("focusin", (event) => {
-  if (event.target.closest?.("[data-filter-dock]")) setFilterDockCollapsed(false);
+  if (!event.target.closest?.("[data-filter-dock]")) return;
+  if (state.filterDockScrollFrame) {
+    window.cancelAnimationFrame(state.filterDockScrollFrame);
+    state.filterDockScrollFrame = null;
+  }
+  state.filterDockLastScrollY = Math.max(0, window.scrollY);
+  setFilterDockCollapsed(false);
 });
 
 load();

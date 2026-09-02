@@ -6,6 +6,7 @@ export const MEDIA_CONFIG = {
   games: { label: "遊戲", filename: "遊戲.md", unit: "款" },
   anime: { label: "動畫", filename: "動畫.md", unit: "部" },
   movies: { label: "電影", filename: "電影.md", unit: "部" },
+  liveAction: { label: "真人劇", filename: "真人劇年度.md", unit: "部" },
 };
 const GAME_TAGS_FILENAME = "遊戲標籤.json";
 
@@ -133,6 +134,34 @@ function parseMovies(lines) {
   return entries;
 }
 
+function parseLiveAction(lines) {
+  const entries = [];
+  const occurrences = new Map();
+  let section = null;
+  let region = null;
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const heading = line.match(/^(\d{4})\s+全年度(?:\s+\([^)]*\))?\s*$/);
+    if (heading) { section = { key: `${heading[1]}-00`, label: `${heading[1]} 全年度`, year: Number(heading[1]) }; region = null; continue; }
+    const regionHeading = line.match(/^##\s+(.+?)\s*$/);
+    if (section && regionHeading) { region = clean(regionHeading[1]); continue; }
+    if (!section || !region || !line.startsWith("- ")) continue;
+    const match = line.match(/^- (?:\[(.+?)\]\((https:\/\/www\.imdb\.com\/title\/[^)]+)\)|(.+?))：(IMDb：資料不足|(?:IMDb：)?([\d.]+)／10（([\d,]+)\s*票）)\s*$/);
+    if (!match) continue;
+    const title = clean(match[1] ?? match[3]);
+    const occurrenceKey = `${section.key}\0${line}`;
+    const occurrence = occurrences.get(occurrenceKey) ?? 0;
+    occurrences.set(occurrenceKey, occurrence + 1);
+    entries.push(finalizeEntry("liveAction", section, line, occurrence, { start: index, end: index + 1 }, {
+      title, region, imdbUrl: match[2] ?? null,
+      imdbScore: match[5] == null ? null : Number(match[5]),
+      imdbVotes: match[6] == null ? null : Number(match[6].replace(/,/g, "")),
+      searchUrl: `https://www.google.com/search?q=${encodeURIComponent(`${title} 真人劇`)}`,
+    }));
+  }
+  return entries;
+}
+
 function parseGames(lines) {
   const entries = [];
   const occurrences = new Map();
@@ -185,7 +214,8 @@ export function parseReport(media, content) {
   const eol = content.includes("\r\n") ? "\r\n" : "\n";
   const lines = content.split(/\r?\n/);
   const entries = media === "games" ? parseGames(lines)
-    : media === "anime" ? parseAnime(lines) : parseMovies(lines);
+    : media === "anime" ? parseAnime(lines)
+      : media === "movies" ? parseMovies(lines) : parseLiveAction(lines);
   const sections = [...new Map(entries.map((entry) => [entry.sectionKey, {
     key: entry.sectionKey,
     label: entry.periodLabel,
@@ -362,7 +392,7 @@ export function undoDelete(operation) {
   if (!fs.existsSync(operation.backupPath)) throw new Error("刪除備份已不存在");
   const content = fs.readFileSync(operation.backupPath, "utf8");
   atomicWrite(operation.filepath, content);
-  return { media: operation.media, title: operation.title };
+  return { media: operation.media, entryId: operation.entryId, title: operation.title };
 }
 
 export function hasReportFiles(directory) {

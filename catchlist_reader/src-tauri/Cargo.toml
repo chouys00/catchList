@@ -1,6 +1,6 @@
 [package]
 name = "catchlist-reader"
-version = "1.0.3"
+version = "1.0.8"
 description = "CatchList Markdown desktop reader"
 edition = "2021"
 

@@ -10,6 +10,7 @@ import { deleteEntry, loadLibrary, parseReport, undoDelete } from "../src/librar
 const anime = `2025  春  >7.70    (更新時間: 2025-07-01)\n\n- 測試動畫  **8.20**  (12 · TV)\n- 測試動畫  **8.20**  (12 · TV)\n------------------------------\n`;
 const movies = `2025  9月  >7.00    (更新時間: 2026-07-01  最低投票門檻: 30,000 票)\n\n- 測試電影  **8.15**  \`(IMDb: 8.3 | 一般外國片 (-0.15) | 144k票)\`\n------------------------------\n`;
 const games = `2025  9月  (更新時間: 2026-03-01)\n\n- **測試遊戲** (Test Game) [🎮]\n  2025-09-02 | 97% (12,345) | 動作, 獨立製作\n  https://store.steampowered.com/app/123456\n\n------------------------------\n`;
+const liveAction = `# 真人劇年度必看\n\n2022  全年度  (整理時間: 2026-08-19)\n\n## 韓國\n- [我的出走日記](https://www.imdb.com/title/tt15146130/)：8.2／10（7,526 票）\n- 資料不足作品：IMDb：資料不足\n\n## 歐美\n- [絕命律師](https://www.imdb.com/title/tt3032476/)：IMDb：9.0／10（855,945 票）\n\n------------------------------\n`;
 const steamTagsFixtureDir = fileURLToPath(new URL("../test-data/steam-tags-2026-02/", import.meta.url));
 
 test("解析三種報告與外部連結", () => {
@@ -30,6 +31,18 @@ test("解析三種報告與外部連結", () => {
   assert.deepEqual(game.genres, ["動作", "獨立製作"]);
 });
 
+test("解析真人劇年度報告，保留地區與 IMDb 資訊", () => {
+  const entries = parseReport("liveAction", liveAction).entries;
+  assert.equal(entries.length, 3);
+  assert.equal(entries[0].title, "我的出走日記");
+  assert.equal(entries[0].year, 2022);
+  assert.equal(entries[0].region, "韓國");
+  assert.equal(entries[0].imdbScore, 8.2);
+  assert.equal(entries[0].imdbVotes, 7526);
+  assert.equal(entries[1].imdbScore, null);
+  assert.equal(entries[2].region, "歐美");
+});
+
 test("刪除指定重複作品、保留標題並可完整復原", () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "catchlist-reader-"));
   const filepath = path.join(directory, "動畫.md");
@@ -42,8 +55,9 @@ test("刪除指定重複作品、保留標題並可完整復原", () => {
   assert.equal((afterDelete.match(/測試動畫/g) ?? []).length, 1);
   assert.equal(fs.existsSync(operation.backupPath), true);
 
-  undoDelete(operation);
+  const restored = undoDelete(operation);
   assert.equal(fs.readFileSync(filepath, "utf8"), anime);
+  assert.deepEqual(restored, { media: "anime", entryId: entries[1].id, title: "測試動畫" });
 });
 
 test("依 AppID 合併完整社群標籤", () => {

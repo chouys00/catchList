@@ -456,7 +456,7 @@ dependencies = [
 
 [[package]]
 name = "catchlist-reader"
-version = "1.0.3"
+version = "1.0.8"
 dependencies = [
  "open",
  "rfd",

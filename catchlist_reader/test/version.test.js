@@ -20,3 +20,9 @@ test("檢視器的封裝設定與兩套介面都顯示相同版本", () => {
   assert.match(read("src/renderer/index.html"), new RegExp(`v${packageVersion}`));
   assert.match(read("src/tauri-shell/index.html"), new RegExp(`v${packageVersion}`));
 });
+
+test("可攜版 EXE 使用固定檔名，讓捷徑可跨版本沿用", () => {
+  const packageJson = JSON.parse(read("package.json"));
+
+  assert.equal(packageJson.build.win.artifactName, "CatchListReader.${ext}");
+});

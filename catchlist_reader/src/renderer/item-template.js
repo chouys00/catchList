@@ -5,7 +5,10 @@ function escapeHtml(value) {
 }
 
 function actions(entry, label, url) {
-  return `<div class="actions"><button class="button compact primary" data-open="${escapeHtml(url)}">${label}</button><button class="button compact danger" data-delete="${entry.id}">刪除</button></div>`;
+  const personal = Number.isFinite(entry.personalRating)
+    ? `<button class="button compact personal-rating" data-rate="${entry.id}" aria-label="修改${escapeHtml(entry.title)}的五角評分"><span>我的</span> ${entry.personalRating.toFixed(1)}／5</button>`
+    : `<button class="button compact rate" data-rate="${entry.id}" aria-label="為${escapeHtml(entry.title)}評分">評分</button>`;
+  return `<div class="actions"><button class="button compact primary" data-open="${escapeHtml(url)}">${label}</button>${personal}<button class="button compact danger" data-delete="${entry.id}">刪除</button></div>`;
 }
 
 function renderGameTags(entry, view = {}) {
@@ -47,6 +50,11 @@ export function renderItemTemplate(entry, media, view) {
 
   if (media === "movies") {
     return `<article class="item movies"><span class="score">${entry.score.toFixed(2)}</span><div class="title"><strong>${escapeHtml(entry.title)}</strong></div><span class="meta">${escapeHtml(entry.periodLabel)}</span><span class="meta">IMDb ${entry.imdbScore.toFixed(1)} · ${escapeHtml(entry.votesLabel)}</span><span class="meta">${escapeHtml(entry.category)}</span>${actions(entry, "Google 搜尋", entry.searchUrl)}</article>`;
+  }
+
+  if (media === "liveAction") {
+    const imdb = entry.imdbScore == null ? "IMDb 資料不足" : `IMDb ${entry.imdbScore.toFixed(1)} · ${entry.imdbVotes.toLocaleString()} 票`;
+    return `<article class="item live-action"><div class="title"><strong>${escapeHtml(entry.title)}</strong></div><span class="meta">${escapeHtml(entry.periodLabel)}</span><span class="meta">${escapeHtml(entry.region)}</span><span class="meta">${imdb}</span>${actions(entry, entry.imdbUrl ? "IMDb" : "Google 搜尋", entry.imdbUrl ?? entry.searchUrl)}</article>`;
   }
 
   const appid = escapeHtml(entry.appid);

@@ -29,8 +29,10 @@ function runHarness() {
   });
 }
 
-test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後維持正常互動", { timeout: 30_000 }, async () => {
+test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後維持正常互動", { timeout: 60_000 }, async () => {
   const result = await runHarness();
+
+  assert.deepEqual(result.initialAnime, { activeMedia: "anime", firstTab: "anime" });
 
   assert.deepEqual(result.initialGames, {
     railCount: 0,
@@ -152,4 +154,11 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
   assert.deepEqual(result.largeGameBatch.horizontalOverflow, { desktop: false, mobile: false });
   assert.deepEqual(result.coverUpdate.initial, { requestCount: 1, firstRequestSize: 50, itemCount: 50 });
   assert.deepEqual(result.coverUpdate.afterUpdate, { firstRowPreserved: true, itemCount: 50, hasLoadedCover: true });
+  assert.equal(result.deleteMutation.beforeCount, 9);
+  assert.deepEqual(result.deleteMutation.pending, { disabled: true, label: "刪除中…", calls: 1 });
+  assert.equal(result.deleteMutation.callsAfterRepeat, 1);
+  assert.equal(result.deleteMutation.afterDeleteCount, 8);
+  assert.equal(result.deleteMutation.afterUndoCount, 9);
+  assert.equal(result.deleteMutation.restored, true);
+  assert.ok(result.deleteMutation.refreshMs < 500, `局部刷新耗時 ${result.deleteMutation.refreshMs} ms`);
 });
