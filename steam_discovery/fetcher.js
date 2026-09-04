@@ -10,6 +10,7 @@ import { CONFIG, EXCLUDED_COMPETITIVE_TAGS, EXCLUDED_SOFTWARE_GENRES } from "./c
 
 const DETAILS_CACHE_FILE = path.resolve(".appdetails_cache.json");
 const detailsCache = loadJson(DETAILS_CACHE_FILE, {});
+const DETAILS_CACHE_VERSION = 2;
 const STEAM_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 };
@@ -19,7 +20,11 @@ const STEAM_HEADERS = {
  * @param {number} start - 起始索引 (分頁用,每頁 50)
  * @returns {Promise<{games: Array, success: boolean}>}
  */
-export async function fetchSearchPage(start = 0) {
+export async function fetchSearchPage(start = 0, {
+  requester = getWithRetry,
+  config = CONFIG,
+  logger = console
+} = {}) {
   const url = "https://store.steampowered.com/search/results/";
   try {
     const params = {
@@ -32,11 +37,11 @@ export async function fetchSearchPage(start = 0) {
     };
 
     // 💡 啟用語言過濾 (加速關鍵)
-    if (CONFIG.SUPPORTED_LANG) {
-      params.supportedlang = CONFIG.SUPPORTED_LANG;
+    if (config.SUPPORTED_LANG) {
+      params.supportedlang = config.SUPPORTED_LANG;
     }
 
-    const response = await getWithRetry(url, {
+    const response = await requester(url, {
       params,
       headers: STEAM_HEADERS,
       timeout: 15000
@@ -131,12 +136,12 @@ export async function fetchSearchPage(start = 0) {
 
     // 防呆:HTML 有內容卻解析不出任何遊戲列,多半是 Steam 改版導致 regex 失效
     if (games.length === 0 && typeof html === "string" && html.length > 20000) {
-      console.warn(`  [Fetcher] ⚠️ start=${start} 回應長度 ${html.length} 但解析出 0 筆,Steam 頁面結構可能已改版!`);
+      logger.warn(`  [Fetcher] ⚠️ start=${start} 回應長度 ${html.length} 但解析出 0 筆,Steam 頁面結構可能已改版!`);
     }
 
     return { games, success: true };
   } catch (error) {
-    console.error(`  [Fetcher] 搜尋分頁抓取失敗 (start: ${start}): ${error.message}`);
+    logger.error(`  [Fetcher] 搜尋分頁抓取失敗 (start: ${start}): ${error.message}`);
     return { games: [], success: false };
   }
 }
@@ -147,8 +152,10 @@ export async function fetchSearchPage(start = 0) {
  * @returns {Promise<object|null>}
  */
 export async function fetchAppDetails(appid) {
-  if (appid in detailsCache) {
-    return detailsCache[appid];
+  const cached = detailsCache[appid];
+  if (cached?._cacheVersion === DETAILS_CACHE_VERSION) {
+    const { _cacheVersion, ...details } = cached;
+    return details;
   }
 
   const url = "https://store.steampowered.com/api/appdetails";
@@ -163,8 +170,13 @@ export async function fetchAppDetails(appid) {
     }, { label: `appdetails ${appid}` });
 
     const result = parseAppDetails(appid, response.data);
-    detailsCache[appid] = result;
-    saveJson(DETAILS_CACHE_FILE, detailsCache);
+    if (result) {
+      detailsCache[appid] = {
+        _cacheVersion: DETAILS_CACHE_VERSION,
+        ...result
+      };
+      saveJson(DETAILS_CACHE_FILE, detailsCache);
+    }
     return result;
   } catch (error) {
     console.error(`  [Fetcher] AppDetails (${appid}) 獲取失敗: ${error.message}`);
@@ -194,7 +206,7 @@ export async function fetchCommunityTags(appid, {
   }
 }
 
-function parseAppDetails(appid, data_) {
+export function parseAppDetails(appid, data_, config = CONFIG) {
   const root = data_[appid];
   if (!root || !root.success) return null;
 
@@ -202,6 +214,9 @@ function parseAppDetails(appid, data_) {
 
   // 1. 確保是遊戲類型
   if (data.type !== "game") return null;
+
+  // 排除免費遊戲
+  if (config.EXCLUDE_FREE_TO_PLAY && data.is_free) return null;
 
   // 2. 檢查是否為 Early Access
   const isEarlyAccess = data.categories?.some(c => c.id === 70) ||
@@ -230,14 +245,14 @@ function parseAppDetails(appid, data_) {
   if (genreIds.includes("29")) return null;
 
   // 排除軟體類
-  if (CONFIG.EXCLUDE_SOFTWARE) {
+  if (config.EXCLUDE_SOFTWARE) {
     const isSoftware = genres.some(g => EXCLUDED_SOFTWARE_GENRES.includes(g.description));
     if (isSoftware) return null;
   }
 
   // 5. VR 支援/專用判斷
   const isVROnly = data.categories?.some(c => c.id === 54) || false;
-  if (CONFIG.EXCLUDE_VR_ONLY && isVROnly) return null;
+  if (config.EXCLUDE_VR_ONLY && isVROnly) return null;
 
   // 6. 18+ 內容標記
   const isAdult = genres.some(g => ["Nudity", "Sexual Content"].includes(g.description)) ||
@@ -256,6 +271,7 @@ function parseAppDetails(appid, data_) {
   // 8. 語言支持
   const supportedLangs = data.supported_languages || "";
   const supportTChinese = supportedLangs.includes("Traditional Chinese") || supportedLangs.includes("繁體中文");
+  const supportSChinese = supportedLangs.includes("Simplified Chinese") || supportedLangs.includes("簡體中文");
 
   return {
     chineseName: data.name,
@@ -263,6 +279,8 @@ function parseAppDetails(appid, data_) {
     genres: genreNames,
     priceText,
     supportTChinese,
+    supportSChinese,
+    supportsChinese: supportTChinese || supportSChinese,
     isVROnly,
     isAdult,
     supportsController,

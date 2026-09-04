@@ -1,0 +1,73 @@
+schema_version: 3
+plan_revision: 2
+profile: audited
+stage_sequence:
+  - Y2026
+  - Y2025
+  - Y2024
+  - Y2023
+  - Y2022
+  - Y2021
+  - Y2020
+  - Y2019
+  - Y2018
+  - Y2017
+  - Y2016
+  - Y2015
+active_stage: Y2025
+stage_status: accepted
+gate_result: PASS
+next_stage: Y2024
+handoff_mode: start-next-stage
+checkpoint_policy: record-only
+blocking_acceptance_open: false
+execution:
+  mode: sequential
+  active_parallel_group: null
+  max_workers: 1
+model_policy:
+  annual_task_model: gpt-5.6-luna
+  annual_task_reasoning_effort: low
+  fixed_by_user: true
+  unavailable_action: stop_and_request_user_direction
+task_creation_contract:
+  tool: mcp__codex_app__create_thread
+  target:
+    type: project
+    projectId: b6066e75-7984-4d3b-91da-170208ca6144
+    environment:
+      type: local
+  model: gpt-5.6-luna
+  thinking: low
+  required_rule: projectId_must_be_nested_under_target
+data_scope:
+  local_output_directory: D:/練習/CatchList/steam_discovery/preview
+  local_report: D:/練習/CatchList/steam_discovery/preview/遊戲.md
+  local_tags: D:/練習/CatchList/steam_discovery/preview/遊戲標籤.json
+  local_links: D:/練習/CatchList/steam_discovery/preview/open_links.html
+  protected_cloud_report: G:/我的雲端硬碟/CatchList/遊戲.md
+  protected_cloud_report_baseline_sha256: BD288833CCDDF647414789CA10366317C37B5D11E92D187A064C546B151D0217
+  first_year: 2015
+  last_year: 2026
+  settled_through: 2026-03
+annual_progress:
+  Y2026: accepted
+  Y2025: accepted
+  Y2024: planned
+  Y2023: planned
+  Y2022: planned
+  Y2021: planned
+  Y2020: planned
+  Y2019: planned
+  Y2018: planned
+  Y2017: planned
+  Y2016: planned
+  Y2015: planned
+documents:
+  project_spec: docs/steam-game-data-refresh/PROJECT_SPEC.md
+  roadmap: docs/steam-game-data-refresh/PROJECT_ROADMAP.md
+  decisions: docs/steam-game-data-refresh/DECISIONS.md
+  development_status: docs/steam-game-data-refresh/DEVELOPMENT_STATUS.md
+  development_log: docs/steam-game-data-refresh/DEVELOPMENT_LOG.md
+  acceptance: docs/steam-game-data-refresh/ACCEPTANCE.md
+  next_task_handoff: docs/steam-game-data-refresh/NEXT_TASK_HANDOFF.md

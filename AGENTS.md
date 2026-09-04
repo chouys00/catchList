@@ -42,3 +42,9 @@ npm run update:all
 
 - 真人劇追蹤器的月度版本已完成 A1～A5；現行採年度 AI 編輯清單，規格與決策集中在 `docs/live-action-tracker/`。
 - `docs/live-action-tracker/STAGE_STATE.yaml` 是真人劇追蹤器的控制狀態來源；實作或修訂前先讀取該資料夾內的規劃文件。
+
+## 遊戲全語系資料重抓計畫
+
+- 規格、Roadmap、狀態、決策與交接文件集中在 `docs/steam-game-data-refresh/`；執行前先讀取該資料夾全部文件。
+- `docs/steam-game-data-refresh/STAGE_STATE.yaml` 是控制狀態來源。用 `staged-task-runner` 一年建立一個 task，同一 task 內逐月串行執行；年度 PASS 後才建立下一年 task。
+- 固定使用 `gpt-5.6-luna`、`low` 思考程度。完整資料只寫 `steam_discovery/preview/`，不得修改檢視器或雲端 `遊戲.md`；搬移或覆蓋雲端資料仍須使用者另行明確授權。

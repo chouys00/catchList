@@ -217,6 +217,8 @@ function parseOptions(argv = process.argv) {
   program
     .option("-y, --year <year>", "指定要抓取的年份")
     .option("-m, --month <month>", "指定要抓取的月份")
+    .option("-o, --output <filepath>", "寫入指定的本機報告檔")
+    .option("--sample-limit <count>", "單月取樣時最多寫入幾款合格遊戲")
     .option("--backfill-tags", "只回補既有報告的社群標籤")
     .parse(argv);
 
@@ -246,14 +248,36 @@ export async function runSteamDiscovery({
   logger.log(
     `  評價門檻:好評率 ≥ ${config.MIN_POSITIVE_PCT}% 且評論數 > ${config.MIN_TOTAL_REVIEWS_EXCLUSIVE}`
   );
-  logger.log(`  過濾排除:MMO/多人競技、搶先體驗 (EA)、軟體`);
+  logger.log(`  過濾排除:${config.EXCLUDE_FREE_TO_PLAY ? "免費遊戲、" : ""}MMO/多人競技、搶先體驗 (EA)、軟體`);
   if (config.SUPPORTED_LANG) {
     logger.log(`  語言過濾:僅限支援「繁體中文」的遊戲 (極速撈取模式)`);
+  } else {
+    logger.log(`  語言過濾:無（搜尋全語系遊戲）`);
   }
   logger.log("=".repeat(60));
 
   let missingList = [];
-  const filepath = path.resolve(config.OUTPUT_FILE);
+  const filepath = path.resolve(options.output || config.OUTPUT_FILE);
+  const sampleLimit = options.sampleLimit == null
+    ? null
+    : Number.parseInt(options.sampleLimit, 10);
+
+  if (sampleLimit != null && (!Number.isInteger(sampleLimit) || sampleLimit <= 0)) {
+    logger.error("\n❌ --sample-limit 必須是大於 0 的整數。");
+    processRef.exitCode = 1;
+    return;
+  }
+
+  if (sampleLimit != null && (!options.year || !options.month)) {
+    logger.error("\n❌ --sample-limit 必須與 --year、--month 一起使用。");
+    processRef.exitCode = 1;
+    return;
+  }
+
+  logger.log(`  輸出檔案:${filepath}`);
+  if (sampleLimit != null) {
+    logger.log(`  取樣上限:最多 ${sampleLimit} 款合格遊戲`);
+  }
 
   if (options.backfillTags) {
     if (!fsImpl.existsSync(filepath)) {
@@ -402,6 +426,11 @@ export async function runSteamDiscovery({
         positivePct,
         ...details
       });
+
+      if (sampleLimit != null && qualifiedGames.length >= sampleLimit) {
+        logger.log(`   [取樣完成] 已取得 ${qualifiedGames.length} 款合格遊戲。`);
+        break;
+      }
     }
 
     try {

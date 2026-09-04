@@ -49,9 +49,16 @@ function formatSection(year, month, games, updatedAt, linksFilepath) {
     const reviews = g.totalReviews.toLocaleString();
     const release = g.releaseDate; // YYYY-MM-DD
     const genres = g.genres.map((genre) => sanitizeDisplayText(genre, { maxLength: 80 })).join(", ");
+    const chineseSupport = g.supportTChinese && g.supportSChinese
+      ? "繁體中文、簡體中文"
+      : g.supportTChinese
+        ? "繁體中文"
+        : g.supportSChinese
+          ? "簡體中文"
+          : "不支援中文";
 
-    // 建立徽章標籤 (已排除 VR;只保留手把支援 🎮 與 18+ 標籤)
-    const badges = [];
+    // 將資料欄位放在既有標題行，維持檢視器的三行解析格式。
+    const badges = [`AppID: ${g.appid}`, `中文支援: ${chineseSupport}`];
     if (g.supportsController) badges.push("🎮");
     if (g.isAdult) badges.push("18+");
 
