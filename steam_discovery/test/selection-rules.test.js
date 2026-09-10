@@ -55,7 +55,7 @@ test("免費遊戲不會通過詳細資料篩選", () => {
   assert.equal(result, null);
 });
 
-test("分別辨識繁體中文與簡體中文支援", () => {
+test("繁體中文或簡體中文任一成立都視為支援中文", () => {
   const traditional = parseAppDetails(
     "123456",
     appDetails({ supportedLanguages: "English, Traditional Chinese" }),
@@ -66,18 +66,22 @@ test("分別辨識繁體中文與簡體中文支援", () => {
     appDetails({ supportedLanguages: "English, Simplified Chinese" }),
     CONFIG
   );
+  const englishOnly = parseAppDetails(
+    "123456",
+    appDetails({ supportedLanguages: "English" }),
+    CONFIG
+  );
 
-  assert.deepEqual(
-    [traditional.supportTChinese, traditional.supportSChinese, traditional.supportsChinese],
-    [true, false, true]
-  );
-  assert.deepEqual(
-    [simplified.supportTChinese, simplified.supportSChinese, simplified.supportsChinese],
-    [false, true, true]
-  );
+  assert.equal(traditional.supportsChinese, true);
+  assert.equal(simplified.supportsChinese, true);
+  assert.equal(englishOnly.supportsChinese, false);
+  assert.equal(Object.hasOwn(traditional, "supportTChinese"), false);
+  assert.equal(Object.hasOwn(traditional, "supportSChinese"), false);
+  assert.equal(Object.hasOwn(simplified, "supportTChinese"), false);
+  assert.equal(Object.hasOwn(simplified, "supportSChinese"), false);
 });
 
-test("報告寫入 AppID 與繁簡中文支援狀態", () => {
+test("報告只寫入統一的中文支援狀態", () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "steam-selection-rules-"));
   const reportFile = path.join(tempDir, "遊戲.md");
   const game = {
@@ -89,8 +93,7 @@ test("報告寫入 AppID 與繁簡中文支援狀態", () => {
     totalReviews: 800,
     positivePct: 90,
     genres: ["Indie"],
-    supportTChinese: true,
-    supportSChinese: true,
+    supportsChinese: true,
     supportsController: false,
     isAdult: false
   };
@@ -98,7 +101,8 @@ test("報告寫入 AppID 與繁簡中文支援狀態", () => {
   updateReport([{ year: 2026, month: 1, games: [game] }], reportFile);
 
   const report = fs.readFileSync(reportFile, "utf8");
-  assert.match(report, /\[AppID: 123456 \| 中文支援: 繁體中文、簡體中文\]/);
+  assert.match(report, /\[AppID: 123456 \| 中文支援: 支援中文\]/);
+  assert.doesNotMatch(report, /繁體中文|簡體中文/);
 
   const parsed = parseReport("games", report).entries;
   assert.equal(parsed.length, 1);
@@ -156,8 +160,7 @@ test("本機取樣使用指定輸出檔並在達到上限後停止", async () =>
       return {
         chineseName: "測試遊戲",
         genres: ["Indie"],
-        supportTChinese: false,
-        supportSChinese: false,
+        supportsChinese: false,
         supportsController: false,
         isAdult: false
       };

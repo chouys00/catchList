@@ -270,17 +270,19 @@ export function parseAppDetails(appid, data_, config = CONFIG) {
 
   // 8. 語言支持
   const supportedLangs = data.supported_languages || "";
-  const supportTChinese = supportedLangs.includes("Traditional Chinese") || supportedLangs.includes("繁體中文");
-  const supportSChinese = supportedLangs.includes("Simplified Chinese") || supportedLangs.includes("簡體中文");
+  const supportsChinese = [
+    "Traditional Chinese",
+    "繁體中文",
+    "Simplified Chinese",
+    "簡體中文"
+  ].some((language) => supportedLangs.includes(language));
 
   return {
     chineseName: data.name,
     shortDescription: data.short_description ? data.short_description.replace(/<[^>]*>/g, "").trim() : "",
     genres: genreNames,
     priceText,
-    supportTChinese,
-    supportSChinese,
-    supportsChinese: supportTChinese || supportSChinese,
+    supportsChinese,
     isVROnly,
     isAdult,
     supportsController,

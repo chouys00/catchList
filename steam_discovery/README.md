@@ -57,7 +57,7 @@ node main.js --year 2026 --month 3 --sample-limit 3 --output preview/遊戲.md
 5. **排除實用工具軟體**：
    - 排除 Wallpaper Engine 等非遊戲軟體。
 6. **語言、成人內容與免費遊戲**：
-   - 搜尋全語系遊戲，不限支援繁體中文的作品。報告會標示是否支援繁體中文或簡體中文。
+   - 搜尋全語系遊戲。繁體中文或簡體中文任一成立，就統一標示為「支援中文」，不分開記錄語系。
    - 保留 18+ 成人遊戲，並以 `[18+]` 標記。
    - 排除免費遊戲。
 
@@ -68,7 +68,7 @@ node main.js --year 2026 --month 3 --sample-limit 3 --output preview/遊戲.md
 ```markdown
 2026  1月  (更新時間: 2026-07-02)
 
-- **森林之子** (Sons Of The Forest) [AppID: 1326470 | 中文支援: 繁體中文、簡體中文 | 🎮]
+- **森林之子** (Sons Of The Forest) [AppID: 1326470 | 中文支援: 支援中文 | 🎮]
   2026-01-22 | 99% (115,632) | 動作, 冒險, 獨立製作, 模擬
   https://store.steampowered.com/app/1326470
 
