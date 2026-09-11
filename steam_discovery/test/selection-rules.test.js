@@ -6,9 +6,10 @@ import test from "node:test";
 
 import { CONFIG } from "../config.js";
 import { fetchSearchPage, parseAppDetails } from "../fetcher.js";
-import { runSteamDiscovery } from "../main.js";
+import { locateMonthBinarySearch, runSteamDiscovery } from "../main.js";
 import { updateReport } from "../writer.js";
 import { parseReport } from "../../catchlist_reader/src/library.js";
+import { getRetryDelayMs } from "../../packages/core/http.js";
 
 function appDetails({
   isFree = false,
@@ -37,17 +38,116 @@ test("預設搜尋全語系並排除免費遊戲", () => {
 
 test("全語系搜尋不傳 supportedlang 參數", async () => {
   let receivedOptions;
+  let receivedRetryOptions;
 
   const result = await fetchSearchPage(0, {
     config: { ...CONFIG, SUPPORTED_LANG: "" },
-    requester: async (_url, options) => {
+    requester: async (_url, options, retryOptions) => {
       receivedOptions = options;
+      receivedRetryOptions = retryOptions;
       return { data: "" };
     }
   });
 
   assert.equal(result.success, true);
   assert.equal(Object.hasOwn(receivedOptions.params, "supportedlang"), false);
+  assert.equal(receivedRetryOptions.retries, 2);
+  assert.equal(receivedRetryOptions.rateLimitBaseDelay, 60000);
+});
+
+test("429 優先遵守 Retry-After 並保留最低冷卻時間", () => {
+  assert.equal(getRetryDelayMs({
+    status: 429,
+    attempt: 0,
+    baseDelay: 1500,
+    rateLimitBaseDelay: 60000,
+    retryAfter: "120"
+  }), 120000);
+
+  assert.equal(getRetryDelayMs({
+    status: 429,
+    attempt: 0,
+    baseDelay: 1500,
+    rateLimitBaseDelay: 60000
+  }), 60000);
+});
+
+test("搜尋失敗時停止月份更新且不寫入空區段", async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "steam-search-failure-"));
+  const reportFile = path.join(tempDir, "遊戲.md");
+  const waits = [];
+  let writes = 0;
+
+  await assert.rejects(
+    runSteamDiscovery({
+      argv: ["node", "main.js", "--year", "2024", "--month", "12", "--output", reportFile],
+      config: CONFIG,
+      logger: { log: () => {}, error: () => {} },
+      processRef: { exitCode: 0 },
+      waitFn: async (ms) => {
+        waits.push(ms);
+      },
+      fetchSearchPageFn: async () => ({ games: [], success: false }),
+      updateReportFn: () => {
+        writes += 1;
+      }
+    }),
+    /停止本月更新，未寫入空月份/
+  );
+
+  assert.deepEqual(waits, [CONFIG.SEARCH_REQUEST_DELAY_MS]);
+  assert.equal(writes, 0);
+});
+
+test("定位會擴大搜尋範圍後鎖定舊年份", async () => {
+  const calls = [];
+  const scanStart = await locateMonthBinarySearch(2022, 12, {
+    config: {
+      ...CONFIG,
+      SEARCH_REQUEST_DELAY_MS: 0,
+      SEARCH_MAX_START: 100000,
+      SEARCH_MAX_LOCATE_ATTEMPTS: 20
+    },
+    logger: { log: () => {} },
+    waitFn: async () => {},
+    fetchSearchPageFn: async (start) => {
+      calls.push(start);
+      const releaseDateStr = start < 50000
+        ? "Jan 1, 2025"
+        : start < 75000
+          ? "Jan 1, 2023"
+          : start === 75000
+            ? "Dec 1, 2022"
+            : "Jan 1, 2021";
+      return { games: [{ releaseDateStr }], success: true };
+    }
+  });
+
+  assert.equal(scanStart, 74850);
+  assert.deepEqual(calls.slice(0, 4), [25000, 50000, 100000, 75000]);
+});
+
+test("定位達安全索引上限時明確失敗，不退回線性掃描", async () => {
+  const calls = [];
+
+  await assert.rejects(
+    locateMonthBinarySearch(2022, 12, {
+      config: {
+        ...CONFIG,
+        SEARCH_REQUEST_DELAY_MS: 0,
+        SEARCH_MAX_START: 50000
+      },
+      logger: { log: () => {} },
+      waitFn: async () => {},
+      fetchSearchPageFn: async (start) => {
+        calls.push(start);
+        return { games: [{ releaseDateStr: "Jan 1, 2023" }], success: true };
+      }
+    }),
+    /安全索引上限 50000/
+  );
+
+  assert.deepEqual(calls, [25000, 50000]);
 });
 
 test("免費遊戲不會通過詳細資料篩選", () => {

@@ -1,66 +1,20 @@
 # 下一個 task 交接
 
-## 交接模式
+## 交接狀態
 
-`start-next-stage`
+本計畫已由 `steam-data-initialization` 取代，沒有下一個年度 task。不得再建立 Y2022～Y2015 的 `staged-task-runner` 工作。
 
-## 整體目標
+## 收尾結果
 
-依現有 Steam 抓取器重新建立 2015-01 至 2026-03 的本機遊戲資料。只寫入 `steam_discovery/preview/`，不修改檢視器，也不寫入或覆蓋雲端 `遊戲.md`。每年一個 task，年度內逐月串行；年度 PASS 才可建立下一年。
+- Y2026～Y2023：保留既有 PASS 與驗收紀錄。
+- Y2022：曾因舊年份定位問題停在 CONCERNS，修正定位程式後仍未寫入任何月份。
+- Y2022～Y2015：未由本年度計畫完成，改由完整初始化流程涵蓋。
+- 現行雲端 `遊戲.md`：3,111 個唯一 AppID。
+- 現行雲端 SHA-256：`D4EBC532D6A04337FA8D9D49179CA1AAF1BE5728157898D65653329B765727CC`。
+- 原始備份：`steam_discovery/.local-backups/passed-3111-raw-20260910/`，共 3,111 筆。
+- 舊 `steam_discovery/preview/` 中間成果已刪除並停止追蹤。
+- Steam 套件測試：63 通過、0 失敗。
 
-## 目前階段與狀態
+## 後續維護
 
-- 計畫修訂：2
-- 前一階段：Y2025，`accepted / PASS`
-- 目標階段：Y2024，`planned`
-- 後續階段：Y2023 → Y2015
-- 固定模型：`gpt-5.6-luna`
-- 固定思考程度：`low`
-
-## 建立 task 的必要結構
-
-建立 task 時，`projectId` **必須**放在 `target` 內：
-
-```js
-{
-  model: "gpt-5.6-luna",
-  thinking: "low",
-  target: {
-    type: "project",
-    projectId: "b6066e75-7984-4d3b-91da-170208ca6144",
-    environment: { type: "local" }
-  }
-}
-```
-
-禁止將 `projectId` 放在最外層；那會造成 `create_thread received invalid arguments`。建立成功後先確認 task ID 與實際路徑為 `D:/練習/CatchList`，才可開始 Y2024。
-
-## 本 task 目標
-
-1. 讀取 `AGENTS.md` 與 `docs/steam-game-data-refresh/` 全部文件，核對 `STAGE_STATE.yaml`。
-2. 執行 `npm test --workspace steam_discovery`。
-3. 在同一 task 內依序抓取 2024-12 至 2024-01；一次只執行一個月：
-
-   `npm run update --workspace steam_discovery -- --year 2025 --month MM --output "D:/練習/CatchList/steam_discovery/preview/遊戲.md"`
-
-4. 年度月份完成後執行 `--backfill-tags`。社群標籤抓不到可留空並記錄，不阻擋年度。
-5. 驗證月份、AppID、門檻、中文欄位、成功取得的標籤、檢視器可讀與雲端雜湊未變；PASS 後才交接 Y2023。
-
-## 測試與驗證證據
-
-- Y2025：2025-12 至 01 已完成；累積 584 筆 AppID、無重複。
-- 累積標籤：581/584；3280350、2680010、3061810 留空並記錄，非阻擋。
-- Steam 測試：22/22 通過。
-- 檢視器測試：52 通過、1 略過、0 失敗。
-- 雲端 SHA-256 基準：`BD288833CCDDF647414789CA10366317C37B5D11E92D187A064C546B151D0217`。
-
-## 已知問題與風險
-
-- Steam 限流或網路失敗：留在同月重試並記錄，不跳月。
-- 需要改程式、模型不可用、雲端雜湊改變或完整性無法確認：判定 CONCERNS／FAIL，不建立下一年度 task。
-- 不開子代理、不並行；`max_workers: 1`。
-
-## 工作區與 Git 狀態
-
-- 在修改前重新核對實際路徑、HEAD 與 `git status --short`。
-- 既有未提交修改屬使用者；不得清理、commit、push 或覆寫。
+每月新增資料仍使用 `npm run update:games`。本次保留的搜尋限流、舊月份定位及失敗停止寫入修正，屬於正常每月更新流程，不代表重啟本年度重抓計畫。

@@ -45,7 +45,11 @@ export async function fetchSearchPage(start = 0, {
       params,
       headers: STEAM_HEADERS,
       timeout: 15000
-    }, { label: `search start=${start}` });
+    }, {
+      label: `search start=${start}`,
+      retries: config.SEARCH_MAX_RETRIES,
+      rateLimitBaseDelay: config.SEARCH_RATE_LIMIT_DELAY_MS
+    });
 
     const html = response.data;
     const games = [];

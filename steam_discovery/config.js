@@ -14,7 +14,15 @@ export const CONFIG = {
   MIN_POSITIVE_PCT: 85,
   MIN_TOTAL_REVIEWS_EXCLUSIVE: 500,
 
-  // 搜尋語言：空字串代表搜尋全語系遊戲。
+  // Steam 商店搜尋不是公開 Web API，沒有官方固定配額；保守節流以降低 429 風險。
+  SEARCH_REQUEST_DELAY_MS: 10000,
+  SEARCH_RATE_LIMIT_DELAY_MS: 60000,
+  SEARCH_MAX_RETRIES: 2,
+  // 舊年份資料可能超出初始索引範圍；定位時可逐步擴大，但不得無限掃描。
+  SEARCH_MAX_START: 200000,
+  SEARCH_MAX_LOCATE_ATTEMPTS: 20,
+
+  // 搜尋語言：固定留空以搜尋全語系，避免漏掉只支援繁體或簡體中文的遊戲。
   SUPPORTED_LANG: "",
 
   // 過濾開關

@@ -1,6 +1,9 @@
 schema_version: 3
-plan_revision: 2
+plan_revision: 4
 profile: audited
+plan_lifecycle: superseded
+superseded_by: steam-data-initialization
+auto_resume: false
 stage_sequence:
   - Y2026
   - Y2025
@@ -14,11 +17,11 @@ stage_sequence:
   - Y2017
   - Y2016
   - Y2015
-active_stage: Y2025
-stage_status: accepted
-gate_result: PASS
-next_stage: Y2024
-handoff_mode: start-next-stage
+active_stage: Y2022
+stage_status: needs_replan
+gate_result: CONCERNS
+next_stage: null
+handoff_mode: continue-current-work
 checkpoint_policy: record-only
 blocking_acceptance_open: false
 execution:
@@ -26,8 +29,8 @@ execution:
   active_parallel_group: null
   max_workers: 1
 model_policy:
-  annual_task_model: gpt-5.6-luna
-  annual_task_reasoning_effort: low
+  annual_task_model: gpt-5.6-terra
+  annual_task_reasoning_effort: medium
   fixed_by_user: true
   unavailable_action: stop_and_request_user_direction
 task_creation_contract:
@@ -37,8 +40,8 @@ task_creation_contract:
     projectId: b6066e75-7984-4d3b-91da-170208ca6144
     environment:
       type: local
-  model: gpt-5.6-luna
-  thinking: low
+  model: gpt-5.6-terra
+  thinking: medium
   required_rule: projectId_must_be_nested_under_target
 data_scope:
   local_output_directory: D:/練習/CatchList/steam_discovery/preview
@@ -46,16 +49,18 @@ data_scope:
   local_tags: D:/練習/CatchList/steam_discovery/preview/遊戲標籤.json
   local_links: D:/練習/CatchList/steam_discovery/preview/open_links.html
   protected_cloud_report: G:/我的雲端硬碟/CatchList/遊戲.md
-  protected_cloud_report_baseline_sha256: BD288833CCDDF647414789CA10366317C37B5D11E92D187A064C546B151D0217
+  protected_cloud_report_baseline_sha256: D4EBC532D6A04337FA8D9D49179CA1AAF1BE5728157898D65653329B765727CC
+  historical_cloud_report_baseline_sha256: BD288833CCDDF647414789CA10366317C37B5D11E92D187A064C546B151D0217
+  local_output_retained: false
   first_year: 2015
   last_year: 2026
   settled_through: 2026-03
 annual_progress:
   Y2026: accepted
   Y2025: accepted
-  Y2024: planned
-  Y2023: planned
-  Y2022: planned
+  Y2024: accepted
+  Y2023: accepted
+  Y2022: needs_replan
   Y2021: planned
   Y2020: planned
   Y2019: planned
@@ -63,6 +68,15 @@ annual_progress:
   Y2017: planned
   Y2016: planned
   Y2015: planned
+superseded_stages:
+  - Y2022
+  - Y2021
+  - Y2020
+  - Y2019
+  - Y2018
+  - Y2017
+  - Y2016
+  - Y2015
 documents:
   project_spec: docs/steam-game-data-refresh/PROJECT_SPEC.md
   roadmap: docs/steam-game-data-refresh/PROJECT_ROADMAP.md
