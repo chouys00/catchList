@@ -1,0 +1,23 @@
+{
+  "verificationOnly": true,
+  "capturedAt": "2026-09-08",
+  "source": "https://store.steampowered.com/appreviews/{appid}?json=1&language=all&purchase_type=all&filter=all&day_range=9223372036854775807&num_per_page=0",
+  "samples": [
+    {
+      "appid": 620,
+      "query_summary": {
+        "total_positive": 460362,
+        "total_negative": 6050,
+        "total_reviews": 466412
+      }
+    },
+    {
+      "appid": 546560,
+      "query_summary": {
+        "total_positive": 103347,
+        "total_negative": 1830,
+        "total_reviews": 105177
+      }
+    }
+  ]
+}

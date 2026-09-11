@@ -1,0 +1,14 @@
+# 每月更新流程僅需讓既定 npm script 寫入 Google Drive 同步資料夾。
+# 其他指令仍維持 workspace-write 沙箱限制。
+prefix_rule(
+    pattern = ["npm", "run", "update:all"],
+    decision = "allow",
+    justification = "允許 CatchList 固定的每月清單更新流程寫入 Google Drive 同步資料夾。",
+    match = [
+        "npm run update:all",
+    ],
+    not_match = [
+        "npm run update:anime",
+        "npm install",
+    ],
+)

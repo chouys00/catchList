@@ -15,3 +15,5 @@ catchlist_reader/.cache/
 anime-cache.json
 live_action_tracker/.cache/
 live_action_tracker/.env
+steam_discovery/preview/
+steam_discovery/.local-backups/

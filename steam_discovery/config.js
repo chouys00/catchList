@@ -14,14 +14,19 @@ export const CONFIG = {
   MIN_POSITIVE_PCT: 85,
   MIN_TOTAL_REVIEWS_EXCLUSIVE: 500,
 
-  // 💡 語言過濾優化 (加速關鍵！)：
-  // 設為 "tchinese" 代表只搜尋有支援「繁體中文」的遊戲，這會過濾掉 90% 的外國無中文獨立小品。
-  // 這會讓搜尋數量從上萬筆降到一千多筆，定位與撈取速度提升 10 倍，且能完全避免 429 頻繁請求錯誤。
-  // 若想尋找全語言（包含純英文）遊戲，請改為空字串 ""。
-  SUPPORTED_LANG: "tchinese", 
+  // Steam 商店搜尋不是公開 Web API，沒有官方固定配額；保守節流以降低 429 風險。
+  SEARCH_REQUEST_DELAY_MS: 10000,
+  SEARCH_RATE_LIMIT_DELAY_MS: 60000,
+  SEARCH_MAX_RETRIES: 2,
+  // 舊年份資料可能超出初始索引範圍；定位時可逐步擴大，但不得無限掃描。
+  SEARCH_MAX_START: 200000,
+  SEARCH_MAX_LOCATE_ATTEMPTS: 20,
+
+  // 搜尋語言：固定留空以搜尋全語系，避免漏掉只支援繁體或簡體中文的遊戲。
+  SUPPORTED_LANG: "",
 
   // 過濾開關
-  EXCLUDE_FREE_TO_PLAY: false,     // 是否排除免費遊戲
+  EXCLUDE_FREE_TO_PLAY: true,      // 是否排除免費遊戲
   EXCLUDE_VR_ONLY: true,           // 是否排除 VR 專用遊戲
   EXCLUDE_ADULT_CONTENT: false,    // 是否排除 18+ 成人/性內容遊戲 (預設不排除，色色很健康！)
   EXCLUDE_SOFTWARE: true,          // 是否排除非遊戲實用軟體 (例如桌布軟體、開發工具)

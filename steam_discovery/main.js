@@ -59,7 +59,7 @@ function parseSteamSearchDate(dateStr) {
 /**
  * 使用二分搜尋法,快速定位目標年月份的搜尋頁 start 索引
  */
-async function locateMonthBinarySearch(year, month, {
+export async function locateMonthBinarySearch(year, month, {
   config,
   waitFn,
   fetchSearchPageFn,
@@ -68,24 +68,76 @@ async function locateMonthBinarySearch(year, month, {
   const targetKey = monthKey(year, month);
   const targetDate = dayjs(`${targetKey}-15`);
 
-  // 💡 如果啟用了語言過濾,因為總遊戲量大幅下降 90%,二分的上限高點可以從 25000 降到 3000!
+  const maxStart = config.SEARCH_MAX_START ?? 200000;
+  const maxAttempts = config.SEARCH_MAX_LOCATE_ATTEMPTS ?? 20;
   let low = 0;
   let high = config.SUPPORTED_LANG ? 3000 : 25000;
   let bestStart = -1;
   let attempts = 0;
-  const maxAttempts = 12;
+  let lastNewerStart = -1;
 
   logger.log(`   [定位] 開始二分搜尋 ${year} 年 ${month} 月 (${targetKey}) 的起始點...`);
 
-  while (low <= high && attempts < maxAttempts) {
+  // Steam 的結果數量持續增加，固定 25,000 的索引上限已無法覆蓋舊年份。
+  // 先以倍增方式找到目標月份兩側的索引，再進行二分搜尋，避免退回到無上限線性掃描。
+  while (true) {
+    await waitFn(config.SEARCH_REQUEST_DELAY_MS);
+    const { games, success } = await fetchSearchPageFn(high);
+    attempts++;
+
+    if (!success) {
+      throw new Error(`Steam 搜尋定位失敗（start=${high}），停止本月更新，未寫入空月份。`);
+    }
+
+    if (games.length === 0) {
+      break;
+    }
+
+    let highDate = null;
+    for (const game of games) {
+      highDate = parseSteamSearchDate(game.releaseDateStr);
+      if (highDate) break;
+    }
+
+    if (!highDate) {
+      throw new Error(`Steam 搜尋定位回應缺少可解析日期（start=${high}），停止本月更新，未寫入空月份。`);
+    }
+
+    const highKey = monthKey(highDate.year(), highDate.month() + 1);
+    logger.log(`      [範圍] 嘗試 start=${high}: 遊戲日期為 ${highDate.format("YYYY-MM")} (目標: ${targetKey})`);
+
+    if (highKey === targetKey) {
+      bestStart = high;
+      break;
+    }
+
+    if (!highDate.isAfter(targetDate, "month")) {
+      low = lastNewerStart === -1 ? 0 : lastNewerStart + 50;
+      break;
+    }
+
+    lastNewerStart = high;
+    if (high >= maxStart) {
+      throw new Error(`Steam 搜尋無法在安全索引上限 ${maxStart} 內定位 ${targetKey}，停止本月更新，未寫入空月份。`);
+    }
+
+    low = high + 50;
+    high = Math.min(maxStart, high * 2);
+  }
+
+  while (bestStart === -1 && low <= high && attempts < maxAttempts) {
     let mid = Math.floor((low + high) / 2);
     mid = Math.floor(mid / 50) * 50;
 
-    await waitFn(1500);
+    await waitFn(config.SEARCH_REQUEST_DELAY_MS);
     const { games, success } = await fetchSearchPageFn(mid);
     attempts++;
 
-    if (!success || games.length === 0) {
+    if (!success) {
+      throw new Error(`Steam 搜尋定位失敗（start=${mid}），停止本月更新，未寫入空月份。`);
+    }
+
+    if (games.length === 0) {
       high = mid - 50;
       continue;
     }
@@ -97,8 +149,7 @@ async function locateMonthBinarySearch(year, month, {
     }
 
     if (!midDate) {
-      low = mid + 50;
-      continue;
+      throw new Error(`Steam 搜尋定位回應缺少可解析日期（start=${mid}），停止本月更新，未寫入空月份。`);
     }
 
     const midKey = monthKey(midDate.year(), midDate.month() + 1);
@@ -122,9 +173,7 @@ async function locateMonthBinarySearch(year, month, {
     return scanStart;
   }
 
-  const defaultStart = config.SUPPORTED_LANG ? 1000 : 8000;
-  logger.log(`      [二分] 未能精確找到,將採用預設估算 start=${defaultStart}`);
-  return defaultStart;
+  throw new Error(`Steam 搜尋無法定位 ${targetKey}，停止本月更新，未寫入空月份。`);
 }
 
 /**
@@ -145,9 +194,12 @@ async function collectGamesForMonth(year, month, scanStart, {
   logger.log(`   [掃描] 從 start=${start} 開始線性掃描...`);
 
   while (keepScanning) {
-    await waitFn(1500);
+    await waitFn(config.SEARCH_REQUEST_DELAY_MS);
     const { games, success } = await fetchSearchPageFn(start);
-    if (!success || games.length === 0) break;
+    if (!success) {
+      throw new Error(`Steam 搜尋掃描失敗（start=${start}），停止本月更新，未寫入空月份。`);
+    }
+    if (games.length === 0) break;
 
     let targetMonthCount = 0;
     let olderMonthCount = 0;
@@ -217,6 +269,8 @@ function parseOptions(argv = process.argv) {
   program
     .option("-y, --year <year>", "指定要抓取的年份")
     .option("-m, --month <month>", "指定要抓取的月份")
+    .option("-o, --output <filepath>", "寫入指定的本機報告檔")
+    .option("--sample-limit <count>", "單月取樣時最多寫入幾款合格遊戲")
     .option("--backfill-tags", "只回補既有報告的社群標籤")
     .parse(argv);
 
@@ -246,14 +300,36 @@ export async function runSteamDiscovery({
   logger.log(
     `  評價門檻:好評率 ≥ ${config.MIN_POSITIVE_PCT}% 且評論數 > ${config.MIN_TOTAL_REVIEWS_EXCLUSIVE}`
   );
-  logger.log(`  過濾排除:MMO/多人競技、搶先體驗 (EA)、軟體`);
+  logger.log(`  過濾排除:${config.EXCLUDE_FREE_TO_PLAY ? "免費遊戲、" : ""}MMO/多人競技、搶先體驗 (EA)、軟體`);
   if (config.SUPPORTED_LANG) {
-    logger.log(`  語言過濾:僅限支援「繁體中文」的遊戲 (極速撈取模式)`);
+    logger.log(`  語言過濾:僅限支援「${config.SUPPORTED_LANG}」的遊戲 (極速撈取模式)`);
+  } else {
+    logger.log(`  語言過濾:無（搜尋全語系遊戲）`);
   }
   logger.log("=".repeat(60));
 
   let missingList = [];
-  const filepath = path.resolve(config.OUTPUT_FILE);
+  const filepath = path.resolve(options.output || config.OUTPUT_FILE);
+  const sampleLimit = options.sampleLimit == null
+    ? null
+    : Number.parseInt(options.sampleLimit, 10);
+
+  if (sampleLimit != null && (!Number.isInteger(sampleLimit) || sampleLimit <= 0)) {
+    logger.error("\n❌ --sample-limit 必須是大於 0 的整數。");
+    processRef.exitCode = 1;
+    return;
+  }
+
+  if (sampleLimit != null && (!options.year || !options.month)) {
+    logger.error("\n❌ --sample-limit 必須與 --year、--month 一起使用。");
+    processRef.exitCode = 1;
+    return;
+  }
+
+  logger.log(`  輸出檔案:${filepath}`);
+  if (sampleLimit != null) {
+    logger.log(`  取樣上限:最多 ${sampleLimit} 款合格遊戲`);
+  }
 
   if (options.backfillTags) {
     if (!fsImpl.existsSync(filepath)) {
@@ -402,6 +478,11 @@ export async function runSteamDiscovery({
         positivePct,
         ...details
       });
+
+      if (sampleLimit != null && qualifiedGames.length >= sampleLimit) {
+        logger.log(`   [取樣完成] 已取得 ${qualifiedGames.length} 款合格遊戲。`);
+        break;
+      }
     }
 
     try {
