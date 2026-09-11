@@ -44,6 +44,7 @@ export function filterAndSortGames(entries, filters = {}) {
       if (query && !gameTitle(entry).includes(query)) return false;
       if (filters.year && filters.year !== "all" && entry.year !== Number(filters.year)) return false;
       if (filters.month && filters.month !== "all" && entry.month !== Number(filters.month)) return false;
+      if (filters.chinese && filters.chinese !== "all" && entry.chineseSupport !== filters.chinese) return false;
       if (entry.score < min) return false;
       const tags = normalizeList(entry.tags);
       return selectedTags.every((tag) => tags.includes(tag));

@@ -13,6 +13,7 @@ const entries = [
     releaseDate: "2026-02-18",
     score: 95,
     reviews: 25000,
+    chineseSupport: "supported",
     genres: ["策略", "角色扮演"],
     tags: ["策略", "牌組製作", "輕度 Rogue", "單人"],
   },
@@ -25,6 +26,7 @@ const entries = [
     releaseDate: "2025-11-04",
     score: 95,
     reviews: 18000,
+    chineseSupport: "unsupported",
     genres: ["策略"],
     tags: ["牌組製作", "策略", "回合制"],
   },
@@ -37,6 +39,7 @@ const entries = [
     releaseDate: "2026-02-18",
     score: 95,
     reviews: 60000,
+    chineseSupport: "supported",
     genres: ["策略"],
     tags: ["策略", "回合制"],
   },
@@ -49,6 +52,7 @@ const entries = [
     releaseDate: "2024-07-01",
     score: 88,
     reviews: 12000,
+    chineseSupport: "unknown",
     genres: ["模擬"],
     tags: ["牌組製作", "劇情豐富"],
   },
@@ -61,6 +65,7 @@ const entries = [
     releaseDate: "2023-03-10",
     score: 91,
     reviews: 9000,
+    chineseSupport: "unknown",
     genres: ["動作"],
     tags: [],
   },
@@ -90,6 +95,15 @@ test("名稱、年份、月份與最低好評率可組合篩選", () => {
   assert.deepEqual(result.map(({ appid }) => appid), ["query-only"]);
 });
 
+test("中文支援狀態可和其他條件組合篩選", () => {
+  const supported = filterAndSortGames(entries, { chinese: "supported" });
+  const unsupported = filterAndSortGames(entries, { chinese: "unsupported" });
+  const unknown = filterAndSortGames(entries, { chinese: "unknown" });
+  assert.deepEqual(supported.map(({ appid }) => appid), ["popular", "newer"]);
+  assert.deepEqual(unsupported.map(({ appid }) => appid), ["older"]);
+  assert.deepEqual(unknown.map(({ appid }) => appid), ["query-only", "fallback"]);
+});
+
 test("標籤選項把已選項固定在前並依數量排序", () => {
   const result = collectTagOptions(entries, ["牌組製作", "不存在的標籤"], "制");
 
@@ -112,7 +126,7 @@ test("標籤索引保留原本的計數、搜尋、排序與已選規則", () =>
   );
 });
 
-test("已選標籤優先，沒有 sidecar 時才顯示 genres", () => {
+test("已選社群標籤優先，缺漏時才顯示官方類型", () => {
   const entry = {
     tags: ["策略", "牌組製作", "輕度 Rogue", "單人"],
     genres: ["模擬", "休閒"],

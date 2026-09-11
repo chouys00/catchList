@@ -256,7 +256,7 @@ async function run() {
   const address = server.address();
   const window = new BrowserWindow({ show: false, webPreferences: { contextIsolation: true, sandbox: true } });
   try {
-    await window.loadURL(`http://127.0.0.1:${address.port}?tagWarning=1`);
+    await window.loadURL(`http://127.0.0.1:${address.port}`);
     await window.webContents.executeJavaScript(`new Promise((resolve, reject) => {
       const deadline = Date.now() + 5000;
       const done = () => document.querySelector('[data-filter="query"]') ? resolve() : Date.now() > deadline ? reject(new Error('搜尋欄位未載入：' + document.body.innerText.slice(0, 300))) : setTimeout(done, 10);
@@ -268,7 +268,6 @@ async function run() {
       itemCount: document.querySelectorAll('.item.games').length,
       gamesLayout: document.querySelector('.layout')?.classList.contains('games-layout') ?? false,
       openLabel: document.querySelector('[data-action="open-filtered"]')?.textContent ?? null,
-      tagWarning: document.querySelector('.tag-sidecar-warning')?.textContent ?? null,
       fixtureGames: Array.from(document.querySelectorAll('.item.games')).map((item) => ({
         title: item.querySelector('.title strong')?.textContent ?? null,
         releaseDate: item.querySelector('.meta')?.textContent ?? null,

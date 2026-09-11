@@ -37,7 +37,6 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
     itemCount: 7,
     gamesLayout: false,
     openLabel: "開啟目前結果",
-    tagWarning: "測試用標籤資料警告。目前仍可使用報告內的遊戲類型。",
     fixtureGames: [
       { title: "HER TREES : PUZZLE DREAM", releaseDate: "2026-02-10", score: "97%", reviews: "(1,768)" },
       { title: "你有餅嗎？", releaseDate: "2026-02-08", score: "97%", reviews: "(1,500)" },

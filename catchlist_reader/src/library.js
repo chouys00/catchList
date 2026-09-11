@@ -7,7 +7,7 @@ export const MEDIA_CONFIG = {
   anime: { label: "動畫", filename: "動畫.md", unit: "部" },
   movies: { label: "電影", filename: "電影.md", unit: "部" },
 };
-const GAME_TAGS_FILENAME = "遊戲標籤.json";
+const MISSING_COMMUNITY_TAGS = "尚未補齊社群標籤";
 
 function clean(value) {
   return String(value ?? "").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
@@ -24,6 +24,14 @@ function normalizeTags(tags) {
     if (normalized.length === 20) break;
   }
   return normalized;
+}
+
+function parseChineseSupport(badges) {
+  const value = badges.find((badge) => badge.startsWith("中文支援:"))
+    ?.split(":").slice(1).join(":").trim();
+  if (value === "支援中文") return "supported";
+  if (value === "不支援中文") return "unsupported";
+  return "unknown";
 }
 
 function createId(media, sectionKey, raw, occurrence) {
@@ -133,7 +141,7 @@ function parseMovies(lines) {
   return entries;
 }
 
-function parseGames(lines) {
+function parseGames(lines, { legacyInitialization = false } = {}) {
   const entries = [];
   const occurrences = new Map();
   let section = null;
@@ -153,24 +161,32 @@ function parseGames(lines) {
     if (!section || !line.startsWith("- **")) continue;
     const titleMatch = line.match(/^- \*\*(.+?)\*\* \((.*)\)(?: \[(.*)\])?\s*$/);
     const detailLine = lines[index + 1] ?? "";
-    const urlLine = lines[index + 2] ?? "";
+    const tagLine = (lines[index + 2] ?? "").match(/^\s+社群標籤:\s*(.*)\s*$/);
+    const urlIndex = tagLine ? index + 3 : index + 2;
+    const urlLine = lines[urlIndex] ?? "";
     const detailMatch = detailLine.match(/^\s+(\d{4}-\d{2}-\d{2}) \| (\d+)% \(([\d,]+)\) \| (.+)\s*$/);
     const urlMatch = urlLine.match(/^\s+(https:\/\/store\.steampowered\.com\/app\/(\d+))\s*$/);
     if (!titleMatch || !detailMatch || !urlMatch) continue;
-    const raw = [line, detailLine, urlLine].join("\n");
+    const rawLines = tagLine ? [line, detailLine, lines[index + 2], urlLine] : [line, detailLine, urlLine];
+    const raw = rawLines.join("\n");
     const occurrenceKey = `${section.key}\0${raw}`;
     const occurrence = occurrences.get(occurrenceKey) ?? 0;
     occurrences.set(occurrenceKey, occurrence + 1);
-    let end = index + 3;
+    let end = urlIndex + 1;
     if (lines[end] === "") end += 1;
+    const badges = clean(titleMatch[3]).split("|").map(clean).filter(Boolean);
     entries.push(finalizeEntry("games", section, raw, occurrence, { start: index, end }, {
       title: clean(titleMatch[1]),
       originalTitle: clean(titleMatch[2]),
-      badges: clean(titleMatch[3]).split("|").map(clean).filter(Boolean),
+      badges,
+      chineseSupport: parseChineseSupport(badges),
       releaseDate: detailMatch[1],
       score: Number(detailMatch[2]),
       reviews: Number(detailMatch[3].replace(/,/g, "")),
-      genres: detailMatch[4].split(",").map(clean).filter(Boolean),
+      genres: legacyInitialization && !tagLine ? [] : detailMatch[4].split(",").map(clean).filter(Boolean),
+      tags: tagLine
+        ? (clean(tagLine[1]) === MISSING_COMMUNITY_TAGS ? [] : normalizeTags(tagLine[1].split(",")))
+        : (legacyInitialization ? normalizeTags(detailMatch[4].split(",")) : []),
       month: section.month,
       appid: urlMatch[2],
       url: urlMatch[1],
@@ -184,7 +200,9 @@ export function parseReport(media, content) {
   if (!MEDIA_CONFIG[media]) throw new Error(`不支援的清單類型：${media}`);
   const eol = content.includes("\r\n") ? "\r\n" : "\n";
   const lines = content.split(/\r?\n/);
-  const entries = media === "games" ? parseGames(lines)
+  const entries = media === "games" ? parseGames(lines, {
+    legacyInitialization: /^# Steam 歷史初始化預覽\s*$/m.test(content),
+  })
     : media === "anime" ? parseAnime(lines) : parseMovies(lines);
   const sections = [...new Map(entries.map((entry) => [entry.sectionKey, {
     key: entry.sectionKey,
@@ -203,86 +221,8 @@ export function resolveReportPath(dataDir, media) {
   return target;
 }
 
-export function isCanonicalPathInsideDirectory(directory, filepath) {
-  const base = path.resolve(directory);
-  const target = path.resolve(filepath);
-  const relative = path.relative(base, target);
-  return relative !== ""
-    && relative !== ".."
-    && !relative.startsWith(`..${path.sep}`)
-    && !path.isAbsolute(relative);
-}
-
-function loadGameTags(dataDir) {
-  const base = path.resolve(dataDir);
-  const target = path.resolve(base, GAME_TAGS_FILENAME);
-  if (path.dirname(target) !== base) throw new Error("標籤路徑超出資料資料夾");
-
-  let metadata;
-  try {
-    metadata = fs.lstatSync(target);
-  } catch (error) {
-    if (error?.code === "ENOENT") return { games: {}, warning: null };
-    return { games: {}, warning: `無法讀取遊戲標籤：${error.message}` };
-  }
-
-  try {
-    if (metadata.isSymbolicLink() || !metadata.isFile()) {
-      throw new Error("遊戲標籤檔不可為連結，且必須是一般檔案");
-    }
-    const canonicalBase = fs.realpathSync(base);
-    const canonicalTarget = fs.realpathSync(target);
-    if (!isCanonicalPathInsideDirectory(canonicalBase, canonicalTarget)) {
-      throw new Error("遊戲標籤 canonical 路徑超出所選資料夾");
-    }
-
-    const payload = JSON.parse(fs.readFileSync(canonicalTarget, "utf8"));
-    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-      throw new Error("檔案格式不正確");
-    }
-    if (payload.version !== 1) {
-      throw new Error(`不支援的 sidecar 版本：${payload.version ?? "缺少版本"}`);
-    }
-    if (payload.locale !== "tchinese") {
-      throw new Error(`不支援的 sidecar 語系：${payload.locale ?? "缺少語系"}`);
-    }
-    if (!payload.games || typeof payload.games !== "object" || Array.isArray(payload.games)) {
-      throw new Error("games 欄位格式不正確");
-    }
-
-    const games = {};
-    const warnings = [];
-    for (const [appid, entry] of Object.entries(payload.games)) {
-      if (!/^\d+$/.test(appid)) {
-        warnings.push(`AppID 格式不正確：${appid}`);
-        continue;
-      }
-      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-        warnings.push(`AppID ${appid} 的資料格式不正確`);
-        continue;
-      }
-      if (!Array.isArray(entry.tags) || entry.tags.some((tag) => typeof tag !== "string")) {
-        warnings.push(`AppID ${appid} 的 tags 格式不正確`);
-        continue;
-      }
-      if (typeof entry.fetchedAt !== "string" || !entry.fetchedAt.trim()) {
-        warnings.push(`AppID ${appid} 缺少 fetchedAt`);
-        continue;
-      }
-      games[appid] = { tags: normalizeTags(entry.tags), fetchedAt: entry.fetchedAt };
-    }
-    return {
-      games,
-      warning: warnings.length ? `遊戲標籤部分資料無法讀取：${warnings.join("；")}` : null,
-    };
-  } catch (error) {
-    return { games: {}, warning: `無法讀取遊戲標籤：${error.message}` };
-  }
-}
-
 export function loadLibrary(dataDir, media) {
   const filepath = resolveReportPath(dataDir, media);
-  const tagState = media === "games" ? loadGameTags(dataDir) : { games: {}, warning: null };
   if (!fs.existsSync(filepath)) {
     return {
       ...MEDIA_CONFIG[media],
@@ -291,7 +231,6 @@ export function loadLibrary(dataDir, media) {
       exists: false,
       entries: [],
       sections: [],
-      tagWarning: tagState.warning,
     };
   }
   const content = fs.readFileSync(filepath, "utf8");
@@ -303,12 +242,8 @@ export function loadLibrary(dataDir, media) {
     filepath,
     exists: true,
     updatedAt: stat.mtime.toISOString(),
-    entries: parsed.entries.map(({ lineStart, lineEnd, ...entry }) => {
-      if (media !== "games") return entry;
-      return { ...entry, tags: [...(tagState.games[entry.appid]?.tags ?? [])] };
-    }),
+    entries: parsed.entries.map(({ lineStart, lineEnd, ...entry }) => entry),
     sections: parsed.sections,
-    tagWarning: tagState.warning,
   };
 }
 

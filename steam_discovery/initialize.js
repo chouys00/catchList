@@ -7,12 +7,12 @@ import { createInitializationCache } from "./initialization-cache.js";
 import { selectFirstRound, selectSecondRound } from "./initialization-selection.js";
 import { getStorePageDetails } from "./store-page-fetcher.js";
 import { parseStorePageDetails, STORE_PAGE_PARSER_VERSION } from "./store-page-details.js";
+import { MISSING_COMMUNITY_TAGS } from "./community-tags.js";
 
 const MODULE_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 export const INITIALIZATION_OUTPUT_ROOT = path.join(MODULE_DIRECTORY, "preview", "initialization");
 const OUTPUT_FILES = Object.freeze({
   report: "遊戲.md",
-  tags: "遊戲標籤.json",
   summary: "初始化摘要.json",
   excluded: "排除明細.json",
   missing: "評論缺失.json",
@@ -69,6 +69,7 @@ function outputRecord(first, details, second, fetchedAt) {
     positive: first.positive,
     negative: first.negative,
     communityTags: details.tagRecords?.length ? details.tagRecords : details.communityTags,
+    genres: first.genres,
     supportsChinese: details.supportTChinese === true || details.supportSChinese === true,
     fetchedAt,
     status: second.status,
@@ -91,10 +92,12 @@ function markdown(records) {
     for (const game of games) {
       const displayName = game.name || game.sourceName;
       const originalName = game.sourceName || displayName;
-      const tags = tagNames(game).join(", ") || "未分類";
+      const genres = taxonomyNames(game.genres).join(", ") || "未分類";
+      const tags = tagNames(game).join(", ") || MISSING_COMMUNITY_TAGS;
       const chineseSupport = chineseSupportLabel(game);
       lines.push(`- **${displayName}** (${originalName}) [AppID: ${game.appid} | 中文支援: ${chineseSupport}]`);
-      lines.push(`  ${game.releaseDate} | ${Math.round(game.positivePct)}% (${game.totalReviews.toLocaleString("en-US")}) | ${tags}`);
+      lines.push(`  ${game.releaseDate} | ${Math.round(game.positivePct)}% (${game.totalReviews.toLocaleString("en-US")}) | ${genres}`);
+      lines.push(`  社群標籤: ${tags}`);
       lines.push(`  https://store.steampowered.com/app/${game.appid}`, "");
     }
     lines.push("------------------------------", "");
@@ -121,15 +124,11 @@ function tagNames(record) {
   return values;
 }
 
-function tags(records) {
-  return {
-    version: 1,
-    locale: "tchinese",
-    games: Object.fromEntries(records.sort(compareAppid).map((record) => [record.appid, {
-      tags: tagNames(record),
-      fetchedAt: record.fetchedAt
-    }]))
-  };
+function taxonomyNames(records) {
+  return (records ?? [])
+    .map((record) => typeof record === "string" ? record : record?.name)
+    .map((name) => String(name ?? "").trim())
+    .filter(Boolean);
 }
 
 function dedupeCandidates(rows) {
@@ -217,7 +216,6 @@ export async function runInitialization({
     totals: { loaded: first.candidates.length + first.excluded.length + first.missing.length, firstRoundCandidates: candidates.length, processedCandidates: limited.length, passed: passed.length, excluded: excluded.length, reviewMissing: missing.length, retry: retry.length }
   };
   atomicWrite(path.join(output, OUTPUT_FILES.report), markdown(passed));
-  atomicWrite(path.join(output, OUTPUT_FILES.tags), `${JSON.stringify(tags(passed), null, 2)}\n`);
   atomicWrite(path.join(output, OUTPUT_FILES.summary), `${JSON.stringify(summary, null, 2)}\n`);
   atomicWrite(path.join(output, OUTPUT_FILES.excluded), `${JSON.stringify(excluded, null, 2)}\n`);
   atomicWrite(path.join(output, OUTPUT_FILES.missing), `${JSON.stringify(missing, null, 2)}\n`);

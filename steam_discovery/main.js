@@ -14,32 +14,9 @@ import { pathToFileURL } from "node:url";
 import { Command } from "commander";
 import { delay, getMonthsBetween, monthKey } from "@catchlist/core";
 import { CONFIG } from "./config.js";
-import { backfillCommunityTags } from "./community-tags.js";
+import { backfillCommunityTags, normalizeCommunityTags } from "./community-tags.js";
 import { fetchSearchPage, fetchAppDetails, fetchCommunityTags } from "./fetcher.js";
 import { loadExistingSections, updateReport } from "./writer.js";
-
-const REPORT_APP_URL_REGEX = /https:\/\/store\.steampowered\.com\/app\/(\d+)(?:[/?#\s]|$)/g;
-
-export function resolveTagFile(reportFile) {
-  return path.join(path.dirname(path.resolve(reportFile)), CONFIG.TAG_SIDECAR_FILE);
-}
-
-export function extractReportAppids(content) {
-  const appids = [];
-  const seen = new Set();
-
-  for (const match of String(content ?? "").matchAll(REPORT_APP_URL_REGEX)) {
-    const appid = match[1];
-    if (!appid || seen.has(appid)) {
-      continue;
-    }
-
-    seen.add(appid);
-    appids.push(appid);
-  }
-
-  return appids;
-}
 
 /**
  * 解析 Steam 搜尋頁面的日期字串為 dayjs 物件
@@ -338,11 +315,8 @@ export async function runSteamDiscovery({
       return;
     }
 
-    const reportContent = fsImpl.readFileSync(filepath, "utf8");
-    const appids = extractReportAppids(reportContent);
     const result = await backfillCommunityTagsFn({
-      appids,
-      filepath: resolveTagFile(filepath),
+      filepath,
       fetchTags: fetchCommunityTagsFn,
       wait: waitFn
     });
@@ -485,19 +459,21 @@ export async function runSteamDiscovery({
       }
     }
 
-    try {
-      const tagResult = await backfillCommunityTagsFn({
-        appids: qualifiedGames.map((game) => game.appid),
-        filepath: resolveTagFile(filepath),
-        fetchTags: fetchCommunityTagsFn,
-        wait: waitFn
-      });
-
-      if (tagResult.failed.length > 0) {
-        logger.error(`\n⚠️ 以下 AppID 標籤補抓失敗，但不影響本月清單寫入：${tagResult.failed.join(", ")}`);
+    const failedTags = [];
+    for (let index = 0; index < qualifiedGames.length; index += 1) {
+      const game = qualifiedGames[index];
+      if (index > 0) await waitFn(1500);
+      let tags = null;
+      try {
+        tags = await fetchCommunityTagsFn(game.appid);
+      } catch {
+        tags = null;
       }
-    } catch (error) {
-      logger.error(`\n⚠️ 本月標籤補抓發生例外，但不影響月報寫入：${error.message}`);
+      game.communityTags = normalizeCommunityTags(tags);
+      if (game.communityTags.length === 0) failedTags.push(game.appid);
+    }
+    if (failedTags.length > 0) {
+      logger.error(`\n⚠️ 以下 AppID 社群標籤取得失敗，月報會保留「尚未補齊社群標籤」：${failedTags.join(", ")}`);
     }
 
     // 逐月立即寫入,中途失敗時已完成的月份不會遺失

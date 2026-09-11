@@ -50,7 +50,9 @@ test("固定小樣本能端到端輸出完整且無重複的初始化資料", as
   const report = fs.readFileSync(path.join(output, "遊戲.md"), "utf8");
   assert.equal((report.match(/AppID: 20/g) ?? []).length, 1);
   assert.match(report, /中文支援: 支援中文/);
-  assert.ok(fs.existsSync(path.join(output, "遊戲標籤.json")));
+  assert.match(report, /2020-01-10 \| 90% \(1,000\) \| indie/);
+  assert.match(report, /社群標籤: 獨立製作/);
+  assert.equal(fs.existsSync(path.join(output, "遊戲標籤.json")), false);
   assert.ok(fs.existsSync(path.join(output, "初始化摘要.json")));
   assert.ok(fs.existsSync(path.join(output, "排除明細.json")));
   assert.ok(fs.existsSync(path.join(output, "評論缺失.json")));
@@ -59,7 +61,6 @@ test("固定小樣本能端到端輸出完整且無重複的初始化資料", as
   assert.equal(viewer.entries.length, 1);
   assert.equal(viewer.entries[0].appid, "20");
   assert.deepEqual(viewer.entries[0].tags, ["獨立製作"]);
-  assert.equal(viewer.tagWarning, null);
 });
 
 test("輸出路徑只允許初始化資料夾，拒絕雲端正式報告與既有預覽", () => {
@@ -82,7 +83,7 @@ test("離線重整優先使用原始快取重新解析，不發出商店頁請�
     loadDataset: async function* () { yield row(99); },
     createCache: () => ({
       loadStructured: () => null,
-      loadRaw: () => ({ status: 200, fetchedAt: "2026-09-10T00:00:00.000Z", html: '<div id="appHubAppName">快取測試</div><table><tr><td>繁體中文</td></tr><tr><td>簡體中文</td></tr></table>' }),
+      loadRaw: () => ({ status: 200, fetchedAt: "2026-09-10T00:00:00.000Z", html: '<div id="appHubAppName">快取測試</div><table class="game_language_options"><tr><td>繁體中文</td><td><span>&#10004;</span></td></tr><tr><td>簡體中文</td><td><span>&#10004;</span></td></tr></table>' }),
       saveStructured: () => {}
     }),
     getDetails: async () => { requests += 1; throw new Error("離線模式不應請求"); },

@@ -8,6 +8,7 @@ import path from "node:path";
 import dayjs from "dayjs";
 import { atomicWriteFile, loadSections, writeSectionsFile, monthKey, sanitizeDisplayText } from "@catchlist/core";
 import { CONFIG } from "./config.js";
+import { MISSING_COMMUNITY_TAGS, normalizeCommunityTags } from "./community-tags.js";
 
 /**
  * 解析現有 遊戲.md 的既有區塊
@@ -48,19 +49,25 @@ function formatSection(year, month, games, updatedAt, linksFilepath) {
     const egName = sanitizeDisplayText(g.englishName);
     const reviews = g.totalReviews.toLocaleString();
     const release = g.releaseDate; // YYYY-MM-DD
-    const genres = g.genres.map((genre) => sanitizeDisplayText(genre, { maxLength: 80 })).join(", ");
+    const genres = (Array.isArray(g.genres) ? g.genres : [])
+      .map((genre) => sanitizeDisplayText(genre, { maxLength: 80 }))
+      .filter(Boolean)
+      .join(", ") || "未分類";
+    const communityTags = normalizeCommunityTags(g.communityTags)
+      .map((tag) => sanitizeDisplayText(tag, { maxLength: 80 }));
     const chineseSupport = g.supportsChinese === true ? "支援中文" : "不支援中文";
 
-    // 將資料欄位放在既有標題行，維持檢視器的三行解析格式。
+    // 將資料欄位放在既有標題行，社群標籤另列以避免和官方類型混用。
     const badges = [`AppID: ${g.appid}`, `中文支援: ${chineseSupport}`];
     if (g.supportsController) badges.push("🎮");
     if (g.isAdult) badges.push("18+");
 
     const badgeStr = badges.length > 0 ? ` [${badges.join(" | ")}]` : "";
 
-    // 格式: 三行 (名稱、評價、連結)
+    // 格式: 四行 (名稱、評價與官方類型、社群標籤、連結)
     lines.push(`- **${chName}** (${egName})${badgeStr}`);
     lines.push(`  ${release} | ${g.positivePct}% (${reviews}) | ${genres}`);
+    lines.push(`  社群標籤: ${communityTags.length ? communityTags.join(", ") : MISSING_COMMUNITY_TAGS}`);
     lines.push(`  https://store.steampowered.com/app/${g.appid}`);
     lines.push("");
   }

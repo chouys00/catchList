@@ -265,7 +265,7 @@ test("本機取樣使用指定輸出檔並在達到上限後停止", async () =>
         isAdult: false
       };
     },
-    backfillCommunityTagsFn: async () => ({ fetched: 0, skipped: 0, failed: [] }),
+    fetchCommunityTagsFn: async () => ["獨立製作"],
     updateReportFn: (payload, filepath) => {
       assert.equal(payload[0].games.length, 1);
       receivedReportFile = filepath;

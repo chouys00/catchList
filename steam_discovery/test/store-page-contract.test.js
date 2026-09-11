@@ -15,15 +15,22 @@ test("正常繁中頁可取得名稱、日期、標籤與語言表，但不把�
   assert.equal(result.releaseDate, "2016 年 8 月 13 日");
   assert.deepEqual(result.communityTags, ["開放世界", "太空", "探索"]);
   assert.equal(result.supportTChinese, true);
-  assert.equal(result.supportSChinese, UNKNOWN);
+  assert.equal(result.supportSChinese, false);
   assert.equal(result.globalLifetimeReviews, UNKNOWN);
   assert.match(result.globalLifetimeReason, /目前語言/);
 });
 
 test("契約檢查器可辨識簡體中文語言列", () => {
-  const result = inspectStorePageContract('<div id="appHubAppName">測試</div><table><tr><td>繁體中文</td></tr><tr><td>簡體中文</td></tr></table>');
+  const result = inspectStorePageContract('<div id="appHubAppName">測試</div><table class="game_language_options"><tr><td>繁體中文</td><td><span>&#10004;</span></td></tr><tr><td>簡體中文</td><td><span>&#10004;</span></td></tr></table>');
   assert.equal(result.supportTChinese, true);
   assert.equal(result.supportSChinese, true);
+});
+
+test("契約檢查器忽略 Steam 的不支援繁中列", () => {
+  const html = '<div id="appHubAppName">Flamebreak</div><table class="game_language_options"><tr class="unsupported"><td>繁體中文</td><td colspan="3">不支援</td></tr><tr><td>英文</td><td><span>&#10004;</span></td></tr></table>';
+  const result = inspectStorePageContract(html);
+  assert.equal(result.supportTChinese, false);
+  assert.equal(result.supportSChinese, false);
 });
 
 test("正向的免費、內購、MMO、VR 與搶先體驗訊號可各自辨識", () => {

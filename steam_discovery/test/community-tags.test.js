@@ -6,144 +6,72 @@ import test from "node:test";
 
 import {
   backfillCommunityTags,
-  loadTagStore,
-  parseCommunityTags
+  normalizeCommunityTags,
+  parseCommunityTags,
+  parseReportCommunityTags,
 } from "../community-tags.js";
 
+function report(tagLines = ["  社群標籤: 既有標籤", "  社群標籤: 尚未補齊社群標籤"]) {
+  return `2026  2月  (更新時間: 2026-09-11)\n\n- **遊戲一** (Game One) [AppID: 111]\n  2026-02-01 | 95% (1,000) | 動作, 冒險\n${tagLines[0]}\n  https://store.steampowered.com/app/111\n\n- **遊戲二** (Game Two) [AppID: 222]\n  2026-02-02 | 96% (2,000) | 策略\n${tagLines[1]}\n  https://store.steampowered.com/app/222\n\n------------------------------\n`;
+}
+
 test("解析繁中社群標籤並保留 Steam 排序", () => {
-  const html = '<a class="app_tag"> 類 Rogue 牌組製作 </a><a class="app_tag">烹飪</a><a class="app_tag">烹飪</a>';
-  assert.deepEqual(parseCommunityTags(html), ["類 Rogue 牌組製作", "烹飪"]);
+  const html = '<a class="app_tag"> 視覺小說 </a><a class="app_tag">恐怖</a><a class="app_tag">視覺小說</a>';
+  assert.deepEqual(parseCommunityTags(html), ["視覺小說", "恐怖"]);
 });
 
-test("只補抓缺漏 AppID，單筆失敗不覆寫成功資料", async () => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "steam-community-tags-"));
-  const filepath = path.join(tempDir, "遊戲標籤.json");
-
-  fs.writeFileSync(filepath, JSON.stringify({
-    version: 1,
-    locale: "tchinese",
-    games: {
-      "3205380": {
-        tags: ["既有標籤"],
-        fetchedAt: "2026-08-23T00:00:00.000Z"
-      }
-    }
-  }, null, 2));
-
-  const result = await backfillCommunityTags({
-    appids: ["3205380", "3300800", "bad"],
-    filepath,
-    fetchTags: async (appid) => appid === "3300800" ? null : ["烹飪"],
-    wait: async () => {},
-    now: () => "2026-08-24T00:00:00.000Z"
-  });
-
-  assert.deepEqual(result, { fetched: 0, skipped: 1, failed: ["3300800"] });
-  assert.deepEqual(loadTagStore(filepath).games["3205380"].tags, ["既有標籤"]);
+test("社群標籤會清理空白、去重並限制前 20 筆", () => {
+  const tags = ["  策略   角色扮演  ", "策略 角色扮演", "", ...Array.from({ length: 25 }, (_, index) => `標籤${index + 1}`)];
+  assert.equal(normalizeCommunityTags(tags).length, 20);
+  assert.deepEqual(normalizeCommunityTags(tags).slice(0, 2), ["策略 角色扮演", "標籤1"]);
 });
 
-test("會去除重複與非法 AppID，並在兩次實際請求間等待 1500ms", async () => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "steam-community-tags-"));
-  const filepath = path.join(tempDir, "遊戲標籤.json");
-  const fetchedAppids = [];
-  const waits = [];
-
-  const result = await backfillCommunityTags({
-    appids: ["111", "bad", "111", "222"],
-    filepath,
-    fetchTags: async (appid) => {
-      fetchedAppids.push(appid);
-      return [`標籤-${appid}`];
-    },
-    wait: async (ms) => {
-      waits.push(ms);
-    },
-    now: () => "2026-08-24T00:00:00.000Z"
-  });
-
-  assert.deepEqual(fetchedAppids, ["111", "222"]);
-  assert.deepEqual(waits, [1500]);
-  assert.deepEqual(result, { fetched: 2, skipped: 0, failed: [] });
-  assert.deepEqual(loadTagStore(filepath).games["111"].tags, ["標籤-111"]);
-  assert.deepEqual(loadTagStore(filepath).games["222"].tags, ["標籤-222"]);
-});
-
-test("sidecar 壞格式時退回預設空資料", () => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "steam-community-tags-"));
-  const filepath = path.join(tempDir, "遊戲標籤.json");
-
-  fs.writeFileSync(filepath, "{broken", "utf8");
-
-  assert.deepEqual(loadTagStore(filepath), {
-    version: 1,
-    locale: "tchinese",
-    games: {}
-  });
-});
-
-test("sidecar 語系錯誤時退回繁中空資料", () => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "steam-community-tags-"));
-  const filepath = path.join(tempDir, "遊戲標籤.json");
-
-  fs.writeFileSync(filepath, JSON.stringify({
-    version: 1,
-    locale: "english",
-    games: {
-      111: { tags: ["策略"], fetchedAt: "2026-08-24T00:00:00.000Z" }
-    }
-  }), "utf8");
-
-  assert.deepEqual(loadTagStore(filepath), {
-    version: 1,
-    locale: "tchinese",
-    games: {}
-  });
-});
-
-test("sidecar 略過單筆壞資料與空 fetchedAt 並保留合法紀錄", () => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "steam-community-tags-"));
-  const filepath = path.join(tempDir, "遊戲標籤.json");
-
-  fs.writeFileSync(filepath, JSON.stringify({
-    version: 1,
-    locale: "tchinese",
-    games: {
-      111: { tags: ["策略"], fetchedAt: "2026-08-24T00:00:00.000Z" },
-      222: { tags: "角色扮演", fetchedAt: "2026-08-24T00:00:00.000Z" },
-      333: { tags: ["冒險"], fetchedAt: "   " }
-    }
-  }), "utf8");
-
-  assert.deepEqual(loadTagStore(filepath).games, {
-    111: { tags: ["策略"], fetchedAt: "2026-08-24T00:00:00.000Z" }
-  });
-});
-
-test("sidecar 標籤壓縮空白、去空值去重並限制前 20 筆", () => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "steam-community-tags-"));
-  const filepath = path.join(tempDir, "遊戲標籤.json");
-
-  fs.writeFileSync(filepath, JSON.stringify({
-    version: 1,
-    locale: "tchinese",
-    games: {
-      111: {
-        tags: [
-          "  策略   角色扮演  ", "策略 角色扮演", "", "標籤01", "標籤02",
-          "標籤03", "標籤04", "標籤05", "標籤06", "標籤07",
-          "標籤08", "標籤09", "標籤10", "標籤11", "標籤12",
-          "標籤13", "標籤14", "標籤15", "標籤16", "標籤17",
-          "標籤18", "標籤19", "標籤20", "標籤21"
-        ],
-        fetchedAt: "2026-08-24T00:00:00.000Z"
-      }
-    }
-  }), "utf8");
-
-  assert.deepEqual(loadTagStore(filepath).games["111"].tags, [
-    "策略 角色扮演", "標籤01", "標籤02", "標籤03", "標籤04",
-    "標籤05", "標籤06", "標籤07", "標籤08", "標籤09",
-    "標籤10", "標籤11", "標籤12", "標籤13", "標籤14",
-    "標籤15", "標籤16", "標籤17", "標籤18", "標籤19"
+test("報告解析器直接讀取 Markdown 社群標籤與缺漏狀態", () => {
+  const parsed = parseReportCommunityTags(report());
+  assert.deepEqual(parsed.games.map(({ appid, tags }) => ({ appid, tags })), [
+    { appid: "111", tags: ["既有標籤"] },
+    { appid: "222", tags: [] },
   ]);
+});
+
+test("缺漏文字前後有多餘空白時仍視為待補抓", () => {
+  const content = report(["  社群標籤: 既有標籤", "  社群標籤: 尚未補齊社群標籤   "]);
+  assert.deepEqual(parseReportCommunityTags(content).games[1].tags, []);
+});
+
+test("舊版完整初始化報告把既有分類欄視為社群標籤", () => {
+  const legacy = `# Steam 歷史初始化預覽\n\n2026  2月  (更新時間: 2026-09-10)\n\n- **遊戲一** (Game One)\n  2026-02-01 | 95% (1,000) | 視覺小說, 恐怖\n  https://store.steampowered.com/app/111\n`;
+  assert.deepEqual(parseReportCommunityTags(legacy).games[0].tags, ["視覺小說", "恐怖"]);
+});
+
+test("補抓只處理 Markdown 缺漏項目並在成功後立即寫回報告", async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "steam-report-tags-"));
+  const filepath = path.join(directory, "遊戲.md");
+  fs.writeFileSync(filepath, report(), "utf8");
+  const calls = [];
+  const result = await backfillCommunityTags({
+    filepath,
+    fetchTags: async (appid) => { calls.push(appid); return ["牌組製作", "策略"]; },
+    wait: async () => { throw new Error("只有一筆缺漏時不應等待"); },
+  });
+  assert.deepEqual(calls, ["222"]);
+  assert.deepEqual(result, { fetched: 1, skipped: 1, failed: [] });
+  assert.match(fs.readFileSync(filepath, "utf8"), /社群標籤: 牌組製作, 策略/);
+});
+
+test("補抓失敗會保留明確缺漏文字供下次重試", async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "steam-report-tags-"));
+  const filepath = path.join(directory, "遊戲.md");
+  fs.writeFileSync(filepath, report(["  社群標籤: 尚未補齊社群標籤", "  社群標籤: 尚未補齊社群標籤"]), "utf8");
+  const waits = [];
+  const result = await backfillCommunityTags({
+    filepath,
+    fetchTags: async (appid) => appid === "111" ? ["動作"] : null,
+    wait: async (ms) => waits.push(ms),
+  });
+  assert.deepEqual(result, { fetched: 1, skipped: 0, failed: ["222"] });
+  assert.deepEqual(waits, [1500]);
+  const content = fs.readFileSync(filepath, "utf8");
+  assert.match(content, /社群標籤: 動作/);
+  assert.match(content, /社群標籤: 尚未補齊社群標籤/);
 });

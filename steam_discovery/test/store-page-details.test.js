@@ -13,7 +13,7 @@ test("完整頁面保留正向訊號，未出現的排除訊號判定為否", ()
   assert.equal(normal.title, "No Man's Sky 無人深空");
   assert.deepEqual(normal.communityTags, ["開放世界", "太空", "探索"]);
   assert.equal(normal.supportTChinese, true);
-  assert.equal(normal.supportSChinese, UNKNOWN);
+  assert.equal(normal.supportSChinese, false);
   assert.equal(normal.isFree, false);
   assert.equal(normal.hasInAppPurchases, false);
   assert.equal(normal.hasMMO, false);
@@ -29,9 +29,16 @@ test("完整頁面保留正向訊號，未出現的排除訊號判定為否", ()
 });
 
 test("繁中頁可分別辨識繁體與簡體中文支援", () => {
-  const result = parseStorePageDetails('<div id="appHubAppName">測試</div><table><tr><td>繁體中文</td></tr><tr><td>簡體中文</td></tr></table>', { appid: 5 });
+  const result = parseStorePageDetails('<div id="appHubAppName">測試</div><table class="game_language_options"><tr><td>繁體中文</td><td><span>&#10004;</span></td></tr><tr><td>簡體中文</td><td><span>&#10004;</span></td></tr></table>', { appid: 5 });
   assert.equal(result.supportTChinese, true);
   assert.equal(result.supportSChinese, true);
+});
+
+test("Steam 插入的不支援繁中列不會誤判為支援中文", () => {
+  const html = '<div id="appHubAppName">Flamebreak</div><table class="game_language_options"><tr class="unsupported"><td>繁體中文</td><td colspan="3">不支援</td></tr><tr><td>英文</td><td><span>&#10004;</span></td></tr></table>';
+  const result = parseStorePageDetails(html, { appid: 399640 });
+  assert.equal(result.supportTChinese, false);
+  assert.equal(result.supportSChinese, false);
 });
 
 test("年齡驗證與不完整頁面可直接排除，HTTP 錯誤仍可重試", () => {

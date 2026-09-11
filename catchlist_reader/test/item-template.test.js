@@ -33,6 +33,7 @@ const game = {
   releaseDate: "2026-02-18",
   score: 92,
   reviews: 18452,
+  chineseSupport: "supported",
   genres: ["動作", "冒險"],
   tags: ["策略", "牌組製作", "輕度 Rogue", "單人", "甲板構築"],
   appid: "123456",
@@ -61,8 +62,20 @@ test("遊戲列把好評率與評論數組合為同一欄", () => {
   assert.match(markup, /^<article class="item games"><button class="game-cover" type="button" data-cover=/);
   assert.match(markup, /<img src="https:\/\/shared\.akamai\.steamstatic\.com\/store_item_assets\/steam\/apps\/123456\/hash\/header_tchinese\.jpg\?t=1" alt="遊戲封面：測試遊戲">/);
   assert.match(markup, /<span class="rating"><strong>92%<\/strong><small>\(18,452\)<\/small><\/span>/);
+  assert.match(markup, /class="title game-title-link"[^>]+data-open="https:\/\/example\.com\/game"/);
+  assert.match(markup, /測試遊戲[\s\S]*Test Game/);
+  assert.match(markup, /class="language-status supported"[^>]+aria-label="支援中文"/);
+  assert.equal(markup.includes(">Steam</button>"), false);
+  assert.match(markup, /class="icon-button danger"[^>]+aria-label="刪除 測試遊戲"/);
   assert.ok(markup.indexOf("2026-02-18") < markup.indexOf("92%"));
   assert.ok(markup.indexOf("92%") < markup.indexOf("策略"));
+});
+
+test("中文支援圖示涵蓋不支援與待確認狀態", () => {
+  const unsupported = renderItemTemplate({ ...game, chineseSupport: "unsupported" }, "games");
+  const unknown = renderItemTemplate({ ...game, chineseSupport: "unknown" }, "games");
+  assert.match(unsupported, /class="language-status unsupported"[^>]+aria-label="不支援中文"/);
+  assert.match(unknown, /class="language-status unknown"[^>]+aria-label="中文支援待確認"/);
 });
 
 test("遊戲列把已選標籤排到前面並提供展開按鈕", () => {

@@ -12,7 +12,6 @@ export function steamCoverUrl() {
 }
 
 export function createLargeGamesFixture(dataDir) {
-  const games = {};
   const lines = [];
   const appids = largeGameAppids();
 
@@ -26,16 +25,15 @@ export function createLargeGamesFixture(dataDir) {
     lines.push(
       `- **千筆驗收遊戲 ${String(number).padStart(4, "0")}** (Large Game ${String(number).padStart(4, "0")})`,
       `  2026-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")} | 95% (${(1_000 + index).toLocaleString("en-US")}) | 策略, 獨立製作`,
+      `  社群標籤: ${tags.join(", ")}`,
       `  https://store.steampowered.com/app/${appid}`,
       "",
     );
-    games[appid] = { tags, fetchedAt: "2026-08-25T00:00:00.000Z" };
   }
   lines.push("------------------------------", "");
 
   fs.mkdirSync(dataDir, { recursive: true });
   fs.writeFileSync(path.join(dataDir, "遊戲.md"), lines.join("\n"), "utf8");
-  fs.writeFileSync(path.join(dataDir, "遊戲標籤.json"), JSON.stringify({ version: 1, locale: "tchinese", games }, null, 2), "utf8");
   return { dataDir, appids };
 }
 

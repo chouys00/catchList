@@ -1,4 +1,5 @@
 import { parseCommunityTags } from "./community-tags.js";
+import { parseSteamLanguageSupport } from "./store-language-support.js";
 
 export const UNKNOWN = "unknown";
 
@@ -52,8 +53,8 @@ export function inspectStorePageContract(html, { status = 200 } = {}) {
     title,
     releaseDate: matchText(source, /class=["']date["'][^>]*>([\s\S]*?)<\/div>/i),
     communityTags: parseCommunityTags(source),
-    supportTChinese: hardField(has(source, /<td[^>]*>\s*繁體中文\s*<\/td>/i)),
-    supportSChinese: hardField(has(source, /<td[^>]*>\s*簡體中文\s*<\/td>/i)),
+    supportTChinese: parseSteamLanguageSupport(source, "繁體中文"),
+    supportSChinese: parseSteamLanguageSupport(source, "簡體中文"),
     isFree: hardField(has(source, /\/genre\/Free%20to%20Play\//i) && has(source, /data-price-final=["']0["']/i)),
     hasInAppPurchases: hardField(has(source, /遊戲內購買|In-App Purchases/i)),
     hasMMO: hardField(has(source, /category2=20(?:[&"'])|大型多人線上|Massively Multiplayer/i)),

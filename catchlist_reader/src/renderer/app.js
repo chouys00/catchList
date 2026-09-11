@@ -14,7 +14,7 @@ const state = {
   active: "games",
   payload: null,
   filters: {
-    games: { query: "", year: "all", month: "all", min: "0", tags: [], tagsOpen: false, tagQuery: "", tagOptionsExpanded: false },
+    games: { query: "", year: "all", month: "all", min: "0", chinese: "all", tags: [], tagsOpen: false, tagQuery: "", tagOptionsExpanded: false },
     anime: { query: "", year: "all", season: "all", min: "0" },
     movies: { query: "", year: "all", category: "all", min: "0" },
   },
@@ -114,7 +114,7 @@ function toolbar(data) {
   if (state.active === "games") {
     const years = [...new Set(data.entries.map((entry) => entry.year))].filter(Number.isFinite).sort((a, b) => b - a);
     const months = [...new Set(data.entries.map((entry) => entry.month))].filter(Number.isFinite).sort((a, b) => a - b);
-    return `<div class="toolbar games">${search}<select class="field" data-filter="year" aria-label="遊戲年份">${options(years, filter.year, "所有年份")}</select><select class="field" data-filter="month" aria-label="遊戲月份">${options(months, filter.month, "所有月份")}</select><select class="field" data-filter="min" aria-label="最低好評率">${scoreOptions(filter.min, true)}</select><button class="button tag-toggle" type="button" data-action="toggle-tags" aria-controls="gameTagPanel" aria-expanded="${filter.tagsOpen}">標籤 ${filter.tags.length}</button><button class="button subtle" type="button" data-action="clear-filters">清除篩選</button></div>`;
+    return `<div class="toolbar games">${search}<select class="field" data-filter="year" aria-label="遊戲年份">${options(years, filter.year, "所有年份")}</select><select class="field" data-filter="month" aria-label="遊戲月份">${options(months, filter.month, "所有月份")}</select><select class="field" data-filter="min" aria-label="最低好評率">${scoreOptions(filter.min, true)}</select><select class="field chinese-filter" data-filter="chinese" aria-label="中文支援"><option value="all" ${filter.chinese === "all" ? "selected" : ""}>中文：全部</option><option value="supported" ${filter.chinese === "supported" ? "selected" : ""}>✓ 支援</option><option value="unsupported" ${filter.chinese === "unsupported" ? "selected" : ""}>× 不支援</option><option value="unknown" ${filter.chinese === "unknown" ? "selected" : ""}>— 待確認</option></select><button class="button tag-toggle" type="button" data-action="toggle-tags" aria-controls="gameTagPanel" aria-expanded="${filter.tagsOpen}">標籤 ${filter.tags.length}</button><button class="button subtle" type="button" data-action="clear-filters">清除篩選</button></div>`;
   }
   const years = [...new Set(data.entries.map((entry) => entry.year))].sort((a, b) => b - a);
   const third = state.active === "anime"
@@ -195,6 +195,10 @@ function gameLoadControlMarkup(visibleCount, totalCount) {
 function gameListMarkup(entries) {
   const visibleEntries = entries.slice(0, state.visibleGameCount);
   return `${entriesMarkup(visibleEntries)}${gameLoadControlMarkup(visibleEntries.length, entries.length)}`;
+}
+
+function gameColumnHeader() {
+  return `<div class="game-column-header" aria-hidden="true"><span>封面</span><span>遊戲名稱</span><span>發售日</span><span class="center">中文</span><span>好評率</span><span>社群標籤</span><span class="center">管理</span></div>`;
 }
 
 function stopGameAutoLoad() {
@@ -310,7 +314,7 @@ function syncTagOptionsOverflow() {
 
 function syncGameControls() {
   const filter = state.filters.games;
-  for (const key of ["query", "year", "month", "min", "tagQuery"]) {
+  for (const key of ["query", "year", "month", "min", "chinese", "tagQuery"]) {
     const control = app.querySelector(`[data-filter="${key}"]`);
     if (control) control.value = filter[key];
   }
@@ -333,9 +337,8 @@ function render() {
   const isGames = state.active === "games";
   if (isGames) syncGameTagViewport();
   const openLabel = isGames ? "開啟目前結果" : `搜尋目前結果 ${entries.length}`;
-  const warning = isGames && data.tagWarning ? `<p class="tag-sidecar-warning" role="status">${escapeHtml(data.tagWarning)}。目前仍可使用報告內的遊戲類型。</p>` : "";
   stopGameAutoLoad();
-  app.innerHTML = `<div class="layout"><section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1><div class="section-status"><div class="section-summary"><strong>${isGames ? "全部月份" : "全部年代"}</strong><span data-result-count>${entries.length} 筆結果</span></div><div class="section-actions"><button class="button primary" data-action="open-filtered" ${entries.length ? "" : "disabled"}>${openLabel}</button></div></div>${warning}${toolbar(data)}${isGames ? gameTagPanel() : ""}<div class="list">${isGames ? gameListMarkup(entries) : entriesMarkup(entries)}</div></section></div>`;
+  app.innerHTML = `<div class="layout"><section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1><div class="section-status"><div class="section-summary"><strong>${isGames ? "全部月份" : "全部年代"}</strong><span data-result-count>${entries.length} 筆結果</span></div><div class="section-actions"><button class="button primary" data-action="open-filtered" ${entries.length ? "" : "disabled"}>${openLabel}</button></div></div>${toolbar(data)}${isGames ? gameTagPanel() : ""}${isGames ? gameColumnHeader() : ""}<div class="list">${isGames ? gameListMarkup(entries) : entriesMarkup(entries)}</div></section></div>`;
   if (isGames) {
     syncTagOptionsOverflow();
     setupGameAutoLoad();
@@ -409,7 +412,7 @@ document.addEventListener("click", async (event) => {
     if (action === "close-tag-panel") { state.filters.games.tagsOpen = false; refreshTagPanel(); }
     if (action === "toggle-tag-options") { state.filters.games.tagOptionsExpanded = !state.filters.games.tagOptionsExpanded; refreshTagPanel(); }
     if (action === "clear-filters") {
-      state.filters.games = { query: "", year: "all", month: "all", min: "0", tags: [], tagsOpen: state.filters.games.tagsOpen, tagQuery: "", tagOptionsExpanded: false };
+      state.filters.games = { query: "", year: "all", month: "all", min: "0", chinese: "all", tags: [], tagsOpen: state.filters.games.tagsOpen, tagQuery: "", tagOptionsExpanded: false };
       state.expandedGameTags.clear();
       syncGameControls();
       refreshGameBrowser();

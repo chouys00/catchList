@@ -2,11 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { delay } from "@catchlist/core";
 
-const EMPTY_STORE = Object.freeze({
-  version: 1,
-  locale: "tchinese",
-  games: {}
-});
+export const MISSING_COMMUNITY_TAGS = "尚未補齊社群標籤";
+export const COMMUNITY_TAG_PREFIX = "社群標籤:";
 
 const APP_TAG_REGEX = /<a[^>]*class="[^"]*app_tag[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
 const APPID_REGEX = /^\d+$/;
@@ -23,67 +20,18 @@ function decodeHtml(value) {
     .replace(/&gt;/gi, ">");
 }
 
-function normalizeTags(tags) {
+export function normalizeCommunityTags(tags) {
   const normalized = [];
 
   for (const rawTag of Array.isArray(tags) ? tags : []) {
-    if (typeof rawTag !== "string") {
-      continue;
-    }
+    if (typeof rawTag !== "string") continue;
     const tag = rawTag.replace(/\s+/g, " ").trim();
-    if (!tag || normalized.includes(tag)) {
-      continue;
-    }
+    if (!tag || normalized.includes(tag)) continue;
     normalized.push(tag);
-    if (normalized.length === 20) {
-      break;
-    }
+    if (normalized.length === 20) break;
   }
 
   return normalized;
-}
-
-function createEmptyStore() {
-  return {
-    version: EMPTY_STORE.version,
-    locale: EMPTY_STORE.locale,
-    games: {}
-  };
-}
-
-function validStoreRoot(store) {
-  return store
-    && typeof store === "object"
-    && !Array.isArray(store)
-    && store.version === 1
-    && store.locale === "tchinese"
-    && store.games
-    && typeof store.games === "object"
-    && !Array.isArray(store.games);
-}
-
-function normalizeGameRecords(games) {
-  const normalizedGames = {};
-
-  for (const [appid, entry] of Object.entries(games)) {
-    if (!APPID_REGEX.test(appid)
-      || !entry
-      || typeof entry !== "object"
-      || Array.isArray(entry)
-      || !Array.isArray(entry.tags)
-      || entry.tags.some((tag) => typeof tag !== "string")
-      || typeof entry.fetchedAt !== "string"
-      || !entry.fetchedAt.trim()) {
-      continue;
-    }
-
-    normalizedGames[appid] = {
-      tags: normalizeTags(entry.tags),
-      fetchedAt: entry.fetchedAt
-    };
-  }
-
-  return normalizedGames;
 }
 
 export function parseCommunityTags(html) {
@@ -93,125 +41,90 @@ export function parseCommunityTags(html) {
     const tag = decodeHtml(match[1].replace(/<[^>]+>/g, " "))
       .replace(/\s+/g, " ")
       .trim();
-
-    if (!tag || tags.includes(tag)) {
-      continue;
-    }
-
+    if (!tag || tags.includes(tag)) continue;
     tags.push(tag);
-    if (tags.length === 20) {
-      break;
-    }
+    if (tags.length === 20) break;
   }
 
   return tags;
 }
 
-export function loadTagStore(filepath) {
-  if (!filepath || !fs.existsSync(filepath)) {
-    return createEmptyStore();
-  }
-
-  try {
-    const parsed = JSON.parse(fs.readFileSync(filepath, "utf8"));
-    if (!validStoreRoot(parsed)) {
-      return createEmptyStore();
-    }
-
-    return {
-      version: 1,
-      locale: "tchinese",
-      games: normalizeGameRecords(parsed.games)
-    };
-  } catch {
-    return createEmptyStore();
-  }
+function parseTagLine(line) {
+  const match = String(line ?? "").match(/^\s+社群標籤:\s*(.*)\s*$/);
+  if (!match || match[1].replace(/\s+/g, " ").trim() === MISSING_COMMUNITY_TAGS) return [];
+  return normalizeCommunityTags(match[1].split(","));
 }
 
-export function saveTagStore(filepath, store) {
+export function parseReportCommunityTags(content) {
+  const source = String(content ?? "");
+  const lines = source.split(/\r?\n/);
+  const legacyInitialization = /^# Steam 歷史初始化預覽\s*$/m.test(source);
+  const games = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    if (!/^- \*\*(.+?)\*\* \((.*)\)(?: \[(.*)\])?\s*$/.test(lines[index])) continue;
+    const detail = (lines[index + 1] ?? "").match(/^\s+\d{4}-\d{2}-\d{2} \| \d+% \([\d,]+\) \| (.+)\s*$/);
+    if (!detail) continue;
+    const tagLineIndex = /^\s+社群標籤:/.test(lines[index + 2] ?? "") ? index + 2 : null;
+    const urlIndex = tagLineIndex == null ? index + 2 : index + 3;
+    const url = (lines[urlIndex] ?? "").match(/^\s+https:\/\/store\.steampowered\.com\/app\/(\d+)\s*$/);
+    if (!url || !APPID_REGEX.test(url[1])) continue;
+    const tags = tagLineIndex == null
+      ? (legacyInitialization ? normalizeCommunityTags(detail[1].split(",")) : [])
+      : parseTagLine(lines[tagLineIndex]);
+    games.push({ appid: url[1], tags, tagLineIndex, urlIndex });
+    index = urlIndex;
+  }
+
+  return { lines, games, eol: source.includes("\r\n") ? "\r\n" : "\n" };
+}
+
+function atomicWrite(filepath, content) {
   const directory = path.dirname(filepath);
-  const tempFilepath = path.join(
-    directory,
-    `.${path.basename(filepath)}.${process.pid}.${Date.now()}.tmp`
-  );
-  const normalized = {
-    version: 1,
-    locale: "tchinese",
-    games: loadTagStoreFromObject(store).games
-  };
-
-  fs.mkdirSync(directory, { recursive: true });
-  fs.writeFileSync(tempFilepath, `${JSON.stringify(normalized, null, 2)}\n`, "utf8");
-  fs.renameSync(tempFilepath, filepath);
-}
-
-function loadTagStoreFromObject(store) {
-  if (!validStoreRoot(store)) {
-    return createEmptyStore();
+  const temporary = path.join(directory, `.${path.basename(filepath)}.${process.pid}.${Date.now()}.tmp`);
+  try {
+    fs.writeFileSync(temporary, content, "utf8");
+    fs.renameSync(temporary, filepath);
+  } finally {
+    if (fs.existsSync(temporary)) fs.unlinkSync(temporary);
   }
-
-  return {
-    version: 1,
-    locale: "tchinese",
-    games: normalizeGameRecords(store.games)
-  };
 }
 
-export async function backfillCommunityTags({
-  appids,
-  filepath,
-  fetchTags,
-  wait = delay,
-  now = () => new Date().toISOString()
-}) {
-  const store = loadTagStore(filepath);
-  const validAppids = [];
-  const seen = new Set();
+function replaceCommunityTags(content, appid, tags) {
+  const parsed = parseReportCommunityTags(content);
+  const game = parsed.games.find((entry) => entry.appid === String(appid));
+  if (!game) throw new Error(`遊戲報告找不到 AppID ${appid}`);
+  const value = tags.length ? tags.join(", ") : MISSING_COMMUNITY_TAGS;
+  const line = `  ${COMMUNITY_TAG_PREFIX} ${value}`;
+  if (game.tagLineIndex == null) parsed.lines.splice(game.urlIndex, 0, line);
+  else parsed.lines[game.tagLineIndex] = line;
+  return parsed.lines.join(parsed.eol);
+}
+
+export async function backfillCommunityTags({ filepath, fetchTags, wait = delay }) {
+  if (!filepath || !fs.existsSync(filepath)) throw new Error(`找不到既有遊戲報告：${filepath}`);
+  let content = fs.readFileSync(filepath, "utf8");
+  const initial = parseReportCommunityTags(content);
+  const pending = initial.games.filter((game) => game.tags.length === 0);
   const failed = [];
   let fetched = 0;
-  let skipped = 0;
   let requested = 0;
 
-  for (const appid of Array.isArray(appids) ? appids : []) {
-    if (!APPID_REGEX.test(String(appid)) || seen.has(String(appid))) {
-      continue;
-    }
-    seen.add(String(appid));
-    validAppids.push(String(appid));
-  }
-
-  for (const appid of validAppids) {
-    const existingTags = store.games[appid]?.tags;
-    if (Array.isArray(existingTags) && existingTags.length > 0) {
-      skipped += 1;
-      continue;
-    }
-
-    if (requested > 0) {
-      await wait(1500);
-    }
+  for (const game of pending) {
+    if (requested > 0) await wait(1500);
     requested += 1;
-
     let tags = null;
     try {
-      tags = await fetchTags(appid);
+      tags = await fetchTags(game.appid);
     } catch {
       tags = null;
     }
-
-    const normalizedTags = normalizeTags(tags);
-    if (normalizedTags.length === 0) {
-      failed.push(appid);
-      continue;
-    }
-
-    store.games[appid] = {
-      tags: normalizedTags,
-      fetchedAt: now()
-    };
-    saveTagStore(filepath, store);
-    fetched += 1;
+    const normalized = normalizeCommunityTags(tags);
+    content = replaceCommunityTags(content, game.appid, normalized);
+    atomicWrite(filepath, content);
+    if (normalized.length) fetched += 1;
+    else failed.push(game.appid);
   }
 
-  return { fetched, skipped, failed };
+  return { fetched, skipped: initial.games.length - pending.length, failed };
 }

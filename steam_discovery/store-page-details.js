@@ -1,6 +1,7 @@
 import { parseCommunityTags } from "./community-tags.js";
+import { parseSteamLanguageSupport } from "./store-language-support.js";
 
-export const STORE_PAGE_PARSER_VERSION = 3;
+export const STORE_PAGE_PARSER_VERSION = 4;
 export const UNKNOWN = "unknown";
 
 function text(value) {
@@ -20,10 +21,6 @@ function match(html, pattern) {
 
 function has(html, pattern) {
   return pattern.test(String(html));
-}
-
-function knownIfPresent(value) {
-  return value ? true : UNKNOWN;
 }
 
 function tagRecords(html) {
@@ -89,8 +86,8 @@ export function parseStorePageDetails(html, { appid, status = 200 } = {}) {
     // communityTags 保留既有相容格式；tagRecords 同時提供優先使用的穩定 ID。
     communityTags: tags.length ? tags.map((tag) => tag.name) : parseCommunityTags(source),
     tagRecords: tags,
-    supportTChinese: knownIfPresent(has(source, /<td[^>]*>\s*繁體中文\s*<\/td>/i)),
-    supportSChinese: knownIfPresent(has(source, /<td[^>]*>\s*簡體中文\s*<\/td>/i)),
+    supportTChinese: parseSteamLanguageSupport(source, "繁體中文"),
+    supportSChinese: parseSteamLanguageSupport(source, "簡體中文"),
     // 完整頁面只在有明確免費訊號時排除；其餘視為非免費，避免因缺少價格區塊誤刪。
     isFree,
     hasInAppPurchases,
