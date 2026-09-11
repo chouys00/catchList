@@ -6,7 +6,7 @@ const mediaCopy = {
   anime: { title: "動畫探索", intro: "跨季度搜尋高評分動畫，從年份、季度與評分縮小範圍。", search: "搜尋動畫名稱…" },
   movies: { title: "電影探索", intro: "跨月份尋找值得看的電影，以豆瓣估算分數由高到低排列。", search: "搜尋電影名稱…" },
 };
-const state = { active: "anime", payload: null, lastDeletedTitle: null, filters: { games: { query: "", year: "all", month: "all", min: "0" }, anime: { query: "", year: "all", season: "all", min: "0" }, movies: { query: "", year: "all", category: "all", min: "0" } } };
+const state = { active: "games", payload: null, lastDeletedTitle: null, filters: { games: { query: "", year: "all", month: "all", min: "0" }, anime: { query: "", year: "all", season: "all", min: "0" }, movies: { query: "", year: "all", category: "all", min: "0" } } };
 const bridge = createBridge();
 const app = document.querySelector("#app"); const folderLabel = document.querySelector("#folderLabel"); const dialog = document.querySelector("#confirmDialog"); const toast = document.querySelector("#toast");
 const library = (media = state.active) => state.payload?.libraries.find((item) => item.media === media) ?? { entries: [], sections: [], exists: false };

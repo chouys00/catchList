@@ -68,14 +68,11 @@ if (location.protocol.startsWith("http") && !window.catchList) {
   window.__catchListOpenUrlCalls = [];
   window.__coverRequests = [];
   window.__releasePreviewCovers = [];
-  window.__deleteCalls = [];
-  window.__releasePreviewDelete = [];
   const resolveGameCovers = previewParams.has("coverTest")
     ? (appids) => new Promise((resolve) => {
       window.__coverRequests.push(appids);
       window.__releasePreviewCovers.push(() => resolve(Object.fromEntries(appids.map((appid) => [appid, `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/header_tchinese.jpg`]))));
     })
     : undefined;
-  let previewDeleted = null;
-  window.catchList = { load: async () => payload, chooseDirectory: async () => payload, openUrls: async (urls) => { window.__catchListOpenUrlCalls.push(urls); return true; }, deleteEntry: async (media, entryId) => { const entry = payload.libraries.find((item) => item.media === media)?.entries.find((item) => item.id === entryId); previewDeleted = entry ? { media, entry } : null; window.__deleteCalls.push({ media, entryId }); if (previewParams.has("deleteTest")) await new Promise((resolve) => window.__releasePreviewDelete.push(resolve)); return { media, entryId, title: entry?.title ?? "作品", canUndo: true }; }, undoDelete: async () => ({ media: previewDeleted?.media, entryId: previewDeleted?.entry.id, title: previewDeleted?.entry.title ?? "作品", canUndo: false }), resolveGameCovers };
+  window.catchList = { load: async () => payload, chooseDirectory: async () => payload, openUrls: async (urls) => { window.__catchListOpenUrlCalls.push(urls); return true; }, deleteEntry: async () => payload, undoDelete: async () => ({ ...payload, restored: { title: "示範作品" } }), resolveGameCovers };
 }

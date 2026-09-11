@@ -45,14 +45,6 @@ test("動畫列先顯示評分與名稱，再顯示年份和集數", () => {
 
   assert.match(markup, /^<article class="item anime"><span class="score">9\.20<\/span><div class="title">/);
   assert.ok(markup.indexOf("2026 年春季") < markup.indexOf("19 · TV"));
-  assert.match(markup, /data-rate="anime-1"[^>]*>評分<\/button>/);
-  assert.match(markup, /data-delete="anime-1">刪除<\/button>/);
-});
-
-test("已有五角評分時在作品列顯示綜合分數", () => {
-  const markup = renderItemTemplate({ ...anime, personalRating: 4.36 }, "anime");
-
-  assert.match(markup, /data-rate="anime-1"[\s\S]*<span>我的<\/span> 4\.4／5<\/button>/);
 });
 
 test("電影列先顯示評分與名稱，再顯示年份、IMDb 與類別", () => {
@@ -61,17 +53,6 @@ test("電影列先顯示評分與名稱，再顯示年份、IMDb 與類別", () 
   assert.match(markup, /^<article class="item movies"><span class="score">8\.15<\/span><div class="title">/);
   assert.ok(markup.indexOf("2026 年 2 月") < markup.indexOf("IMDb 7.8 · 12 萬票"));
   assert.ok(markup.indexOf("IMDb 7.8 · 12 萬票") < markup.indexOf("劇情"));
-});
-
-test("真人劇列顯示地區與 IMDb 連結", () => {
-  const markup = renderItemTemplate({
-    id: "live-action-1", title: "測試真人劇", periodLabel: "2022 全年度", region: "韓國",
-    imdbScore: 8.2, imdbVotes: 7526, imdbUrl: "https://www.imdb.com/title/tt15146130/",
-  }, "liveAction");
-  assert.match(markup, /^<article class="item live-action">/);
-  assert.match(markup, /韓國/);
-  assert.match(markup, /IMDb 8\.2 · 7,526 票/);
-  assert.match(markup, /data-open="https:\/\/www\.imdb\.com\/title\/tt15146130\/">IMDb/);
 });
 
 test("遊戲列把好評率與評論數組合為同一欄", () => {

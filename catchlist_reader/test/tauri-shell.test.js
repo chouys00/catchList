@@ -184,7 +184,7 @@ test("sidecar 不存在、損壞或版本不支援時不阻斷三份報告", asy
       { media: "movies", filename: "電影.md", exists: true, content: movies },
     ] };
     const loaded = await createBridge(async () => snapshot).load();
-    assert.deepEqual(loaded.libraries.map((item) => item.entries.length), [1, 2, 1, 0], fixture.name);
+    assert.deepEqual(loaded.libraries.map((item) => item.entries.length), [1, 2, 1], fixture.name);
     assert.deepEqual(loaded.libraries[0].entries[0].tags, [], fixture.name);
     if (fixture.warning) assert.match(loaded.libraries[0].tagWarning, fixture.warning, fixture.name);
     else assert.equal(loaded.libraries[0].tagWarning, null, fixture.name);

@@ -8,7 +8,6 @@ Thumbs.db
 .npm-cache/
 catchlist_reader/dist/
 catchlist_reader/.cache/
-catchlist_reader/src-tauri/target/
 
 # 各專案執行期快取
 .title_cache.json

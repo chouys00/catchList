@@ -36,7 +36,7 @@ async function searchState(window) {
       focused: document.activeElement === input,
       selectionStart: input?.selectionStart ?? null,
       selectionEnd: input?.selectionEnd ?? null,
-      resultCount: document.querySelector('[data-result-count]')?.textContent ?? null,
+      resultCount: document.querySelector('.section-status span')?.textContent ?? null,
     };
   })()`);
 }
@@ -121,56 +121,6 @@ async function measureResponsiveLayout(window) {
   return { columnsAt900: { games, anime, movies }, tapTargets, resizeBehavior };
 }
 
-async function measureFilterDock(window) {
-  window.setContentSize(1440, 620);
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  await window.webContents.executeJavaScript(`document.querySelector('[data-media="games"]')?.click(); if (document.querySelector('[data-action="toggle-tags"]')?.getAttribute('aria-expanded') === 'true') document.querySelector('[data-action="toggle-tags"]')?.click(); window.scrollTo(0, 0); window.dispatchEvent(new Event('scroll'))`);
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  return window.webContents.executeJavaScript(`(async () => {
-    const tick = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    const waitFor = (predicate, message) => new Promise((resolve, reject) => {
-      const deadline = Date.now() + 1000;
-      const check = () => predicate() ? resolve() : Date.now() > deadline ? reject(new Error(message)) : setTimeout(check, 10);
-      check();
-    });
-    const dock = document.querySelector('[data-filter-dock]');
-    const topbar = document.querySelector('.topbar');
-    const snapshot = () => ({
-      collapsed: dock.classList.contains('is-collapsed'),
-      dockTop: Math.round(dock.getBoundingClientRect().top),
-      dockBottom: Math.round(dock.getBoundingClientRect().bottom),
-      topbarBottom: Math.round(topbar.getBoundingClientRect().bottom),
-    });
-    const spacer = document.createElement('div');
-    spacer.style.height = '1000px';
-    document.querySelector('.content')?.append(spacer);
-    document.querySelector('[data-filter="query"]')?.blur();
-    const initial = snapshot();
-    window.scrollTo({ top: Math.min(500, document.documentElement.scrollHeight), behavior: 'instant' });
-    window.dispatchEvent(new Event('scroll'));
-    await tick();
-    await waitFor(() => dock.classList.contains('is-collapsed'), '向下捲動後篩選列未收起');
-    const afterDown = snapshot();
-    window.scrollBy({ top: -32, behavior: 'instant' });
-    window.dispatchEvent(new Event('scroll'));
-    await tick();
-    await waitFor(() => !dock.classList.contains('is-collapsed'), '向上捲動後篩選列未展開');
-    const afterUp = snapshot();
-    window.scrollBy({ top: 32, behavior: 'instant' });
-    window.dispatchEvent(new Event('scroll'));
-    await tick();
-    await waitFor(() => dock.classList.contains('is-collapsed'), '再次向下捲動後篩選列未收起');
-    const searchInput = document.querySelector('[data-filter="query"]');
-    searchInput?.focus();
-    searchInput?.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
-    await tick();
-    await waitFor(() => !dock.classList.contains('is-collapsed'), '搜尋欄取得焦點後篩選列未展開');
-    const afterFocus = snapshot();
-    spacer.remove();
-    return { initial, afterDown, afterUp, afterFocus };
-  })()`);
-}
-
 async function captureResponsiveQa(window) {
   const outputDir = process.env.CATCHLIST_QA_DIR;
   if (!outputDir) return null;
@@ -216,7 +166,6 @@ async function runLargeGameBatchTest(address) {
   const window = new BrowserWindow({ show: false, webPreferences: { contextIsolation: true, sandbox: true } });
   try {
     await window.loadURL(`http://127.0.0.1:${address.port}?largeGames=1`);
-    await window.webContents.executeJavaScript(`document.querySelector('[data-media="games"]')?.click()`);
     await waitForGameCount(window, 50);
     const initial = await window.webContents.executeJavaScript(`(() => {
       window.__firstGameRow = document.querySelector('.item.games');
@@ -251,6 +200,13 @@ async function runLargeGameBatchTest(address) {
       return { itemCount: document.querySelectorAll('.item.games').length, resultCount: document.querySelector('[data-result-count]')?.textContent ?? null };
     })()`);
 
+    await window.webContents.executeJavaScript(`document.querySelector('[data-action="open-filtered"]')?.click()`);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const oversizedOpen = await window.webContents.executeJavaScript(`({
+      calls: window.__catchListOpenUrlCalls.length,
+      toast: document.querySelector('#toast')?.textContent?.trim() ?? null,
+    })`);
+
     const horizontalOverflow = {};
     for (const [name, width, height] of [["desktop", 1440, 900], ["mobile", 390, 844]]) {
       window.setContentSize(width, height);
@@ -258,7 +214,7 @@ async function runLargeGameBatchTest(address) {
       horizontalOverflow[name] = await window.webContents.executeJavaScript(`document.documentElement.scrollWidth > document.documentElement.clientWidth`);
     }
 
-    return { initial, afterFirstAppend, afterSecondAppend, afterFilter, horizontalOverflow };
+    return { initial, afterFirstAppend, afterSecondAppend, afterFilter, oversizedOpen, horizontalOverflow };
   } finally {
     window.destroy();
   }
@@ -268,7 +224,6 @@ async function runCoverUpdateTest(address) {
   const window = new BrowserWindow({ show: false, webPreferences: { contextIsolation: true, sandbox: true } });
   try {
     await window.loadURL(`http://127.0.0.1:${address.port}?largeGames=1&coverTest=1`);
-    await window.webContents.executeJavaScript(`document.querySelector('[data-media="games"]')?.click()`);
     await waitForGameCount(window, 50);
     await window.webContents.executeJavaScript(`new Promise((resolve, reject) => {
       const deadline = Date.now() + 5000;
@@ -296,56 +251,6 @@ async function runCoverUpdateTest(address) {
   }
 }
 
-async function runDeleteMutationTest(address) {
-  const window = new BrowserWindow({ show: false, webPreferences: { contextIsolation: true, sandbox: true } });
-  try {
-    await window.loadURL(`http://127.0.0.1:${address.port}?deleteTest=1`);
-    return await window.webContents.executeJavaScript(`(async () => {
-      const waitFor = (predicate, message) => new Promise((resolve, reject) => {
-        const deadline = Date.now() + 5000;
-        const check = () => predicate() ? resolve() : Date.now() > deadline ? reject(new Error(message)) : setTimeout(check, 10);
-        check();
-      });
-      await waitFor(() => document.querySelectorAll('.item').length === 9, '動畫清單未載入');
-      const beforeCount = document.querySelectorAll('.item').length;
-      const firstTitle = document.querySelector('.item .title strong')?.textContent ?? null;
-      const deleteButton = document.querySelector('[data-delete]');
-      if (!deleteButton) throw new Error('找不到刪除按鈕');
-      deleteButton.click();
-      await waitFor(() => document.querySelector('#confirmDialog')?.open, '刪除確認未開啟');
-      const confirmButton = document.querySelector('#dialogConfirm');
-      if (!confirmButton) throw new Error('找不到刪除確認按鈕');
-      confirmButton.click();
-      await waitFor(() => window.__deleteCalls.length === 1 && deleteButton.disabled, '刪除未進入等待狀態');
-      const pending = { disabled: deleteButton.disabled, label: deleteButton.textContent, calls: window.__deleteCalls.length };
-      deleteButton.click();
-      const callsAfterRepeat = window.__deleteCalls.length;
-      const releasedAt = performance.now();
-      window.__releasePreviewDelete.shift()?.();
-      await waitFor(() => document.querySelectorAll('.item').length === 8, '刪除後列表未局部更新');
-      const refreshMs = performance.now() - releasedAt;
-      const afterDeleteCount = document.querySelectorAll('.item').length;
-      await waitFor(() => document.querySelector('[data-action="undo"]'), '刪除後未顯示復原按鈕');
-      const undoButton = document.querySelector('[data-action="undo"]');
-      if (!undoButton) throw new Error('找不到復原按鈕');
-      undoButton.click();
-      await waitFor(() => document.querySelectorAll('.item').length === 9, '復原後列表未加回作品');
-      return {
-        beforeCount,
-        firstTitle,
-        pending,
-        callsAfterRepeat,
-        afterDeleteCount,
-        afterUndoCount: document.querySelectorAll('.item').length,
-        restored: [...document.querySelectorAll('.item .title strong')].some((element) => element.textContent === firstTitle),
-        refreshMs,
-      };
-    })()`);
-  } finally {
-    window.destroy();
-  }
-}
-
 async function run() {
   const server = await startServer();
   const address = server.address();
@@ -358,18 +263,11 @@ async function run() {
       done();
     })`);
 
-    const initialAnime = await window.webContents.executeJavaScript(`(() => ({
-      activeMedia: document.querySelector('.tab.active')?.dataset.media ?? null,
-      firstTab: document.querySelector('.tab')?.dataset.media ?? null,
-    }))()`);
-    await window.webContents.executeJavaScript(`document.querySelector('[data-media="games"]')?.click()`);
-
     const initialGames = await window.webContents.executeJavaScript(`(() => ({
       railCount: document.querySelectorAll('.rail').length,
       itemCount: document.querySelectorAll('.item.games').length,
       gamesLayout: document.querySelector('.layout')?.classList.contains('games-layout') ?? false,
-      hasBatchOpenButton: Boolean(document.querySelector('[data-action="open-filtered"]')),
-      resultCount: document.querySelector('[data-result-count]')?.textContent ?? null,
+      openLabel: document.querySelector('[data-action="open-filtered"]')?.textContent ?? null,
       tagWarning: document.querySelector('.tag-sidecar-warning')?.textContent ?? null,
       fixtureGames: Array.from(document.querySelectorAll('.item.games')).map((item) => ({
         title: item.querySelector('.title strong')?.textContent ?? null,
@@ -536,13 +434,11 @@ async function run() {
     })()`);
     const cleared = await searchState(window);
     const responsiveLayout = await measureResponsiveLayout(window);
-    const filterDock = await measureFilterDock(window);
     const visualQa = await captureResponsiveQa(window);
     const largeGameBatch = await runLargeGameBatchTest(address);
     const coverUpdate = await runCoverUpdateTest(address);
-    const deleteMutation = await runDeleteMutationTest(address);
 
-    process.stdout.write(`${JSON.stringify({ initialAnime, initialGames, typed, backspaced, insertedInMiddle, replacedSelection, chinese, gameBrowser, animeBeforeSearch, animeAfterSearch, animeRailCount, movieRailCount, restoredGameSearch, clearInteraction, cleared, responsiveLayout, filterDock, visualQa, largeGameBatch, coverUpdate, deleteMutation })}\n`);
+    process.stdout.write(`${JSON.stringify({ initialGames, typed, backspaced, insertedInMiddle, replacedSelection, chinese, gameBrowser, animeBeforeSearch, animeAfterSearch, animeRailCount, movieRailCount, restoredGameSearch, clearInteraction, cleared, responsiveLayout, visualQa, largeGameBatch, coverUpdate })}\n`);
   } finally {
     window.destroy();
     await new Promise((resolve) => server.close(resolve));

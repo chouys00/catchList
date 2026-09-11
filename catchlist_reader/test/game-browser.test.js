@@ -90,19 +90,6 @@ test("名稱、年份、月份與最低好評率可組合篩選", () => {
   assert.deepEqual(result.map(({ appid }) => appid), ["query-only"]);
 });
 
-test("最低評論數可與既有條件組合篩選", () => {
-  const result = filterAndSortGames(entries, {
-    query: "",
-    year: "all",
-    month: "all",
-    min: "90",
-    reviews: "20000",
-    tags: ["策略"],
-  });
-
-  assert.deepEqual(result.map(({ appid }) => appid), ["popular", "newer"]);
-});
-
 test("標籤選項把已選項固定在前並依數量排序", () => {
   const result = collectTagOptions(entries, ["牌組製作", "不存在的標籤"], "制");
 

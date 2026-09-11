@@ -11,13 +11,12 @@
   <div class="app-shell">
     <header class="topbar">
       <button class="brand" data-action="home" aria-label="回到清單頂端">
-        <span><strong>CatchList</strong><small>v1.0.8</small></span>
+        <span><strong>CatchList</strong><small>私人觀影與遊戲清單</small></span>
       </button>
       <nav class="tabs" aria-label="內容類型">
-        <button class="tab active" data-media="anime">動畫</button>
-        <button class="tab" data-media="games">遊戲</button>
+        <button class="tab active" data-media="games">遊戲</button>
+        <button class="tab" data-media="anime">動畫</button>
         <button class="tab" data-media="movies">電影</button>
-        <button class="tab" data-media="liveAction">真人劇</button>
       </nav>
       <button class="folder-button" data-action="choose-folder" title="更換 Markdown 資料夾">
         <span class="folder-dot"></span><span id="folderLabel">選擇資料夾</span>
@@ -43,32 +42,6 @@
     <form method="dialog">
       <button class="cover-close" type="submit" aria-label="關閉封面預覽">關閉</button>
       <figure><img id="coverImage" alt=""><figcaption id="coverTitle"></figcaption></figure>
-    </form>
-  </dialog>
-
-  <dialog id="ratingDialog" class="rating-dialog" aria-labelledby="ratingDialogTitle">
-    <form method="dialog">
-      <header class="rating-dialog-heading">
-        <div>
-          <p class="eyebrow">五角評分原型</p>
-          <h2 id="ratingDialogTitle" data-rating-title></h2>
-          <p>拖曳五個節點，或用數字精確調整。指標名稱之後再決定。</p>
-        </div>
-        <button class="rating-dialog-close" type="button" data-rating-close aria-label="關閉評分面板">關閉</button>
-      </header>
-      <div class="rating-workspace">
-        <section class="radar-panel" aria-label="五角評分雷達圖">
-          <svg class="rating-radar" data-rating-radar viewBox="0 0 360 336" aria-label="可拖曳的五角評分圖"></svg>
-          <div class="rating-overall"><span>綜合</span><strong data-rating-overall>3.0</strong><small>／5</small></div>
-        </section>
-        <section class="rating-controls" data-rating-controls aria-label="精確分數調整"></section>
-      </div>
-      <footer class="rating-dialog-actions">
-        <button class="button danger" type="button" data-rating-clear hidden>取消評分</button>
-        <span></span>
-        <button class="button subtle" type="button" data-rating-close>取消</button>
-        <button class="button primary" type="button" data-rating-save>儲存評分</button>
-      </footer>
     </form>
   </dialog>
 

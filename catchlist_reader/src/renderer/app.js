@@ -1,25 +1,22 @@
 import { collectTagOptionsFromIndex, createTagIndex, filterAndSortGames } from "./game-browser.js";
 import { renderItemTemplate } from "./item-template.js";
-import { applyDeleteResult, applyUndoResult } from "./library-state.js";
-import { createRadarRatingController, loadPrototypeRatings, prototypeRatingKey } from "./radar-rating.js";
 
 const GAME_BATCH_SIZE = 50;
+const MAX_EXTERNAL_BATCH_SIZE = 50;
 
 const mediaCopy = {
   games: { title: "遊戲探索", search: "搜尋遊戲名稱…" },
   anime: { title: "動畫探索", search: "搜尋動畫名稱…" },
   movies: { title: "電影探索", search: "搜尋電影名稱…" },
-  liveAction: { title: "真人劇年度清單", search: "搜尋真人劇名稱…" },
 };
 
 const state = {
-  active: "anime",
+  active: "games",
   payload: null,
   filters: {
-    games: { query: "", year: "all", month: "all", min: "0", reviews: "0", qualityOpen: false, tags: [], tagsOpen: false, tagQuery: "", tagOptionsExpanded: false },
+    games: { query: "", year: "all", month: "all", min: "0", tags: [], tagsOpen: false, tagQuery: "", tagOptionsExpanded: false },
     anime: { query: "", year: "all", season: "all", min: "0" },
     movies: { query: "", year: "all", category: "all", min: "0" },
-    liveAction: { query: "", year: "all", region: "all" },
   },
   expandedGameTags: new Set(),
   gameCovers: new Map(),
@@ -32,12 +29,6 @@ const state = {
   gameTagEntries: null,
   gameTagCompact: window.matchMedia?.("(max-width: 560px)").matches ?? false,
   gameResizeFrame: null,
-  filterDockCollapsed: false,
-  filterDockLastScrollY: window.scrollY,
-  filterDockScrollFrame: null,
-  prototypeRatings: loadPrototypeRatings(),
-  lastDeletedEntry: null,
-  libraryMutationPending: false,
 };
 
 const app = document.querySelector("#app");
@@ -46,17 +37,7 @@ const dialog = document.querySelector("#confirmDialog");
 const coverDialog = document.querySelector("#coverDialog");
 const coverImage = document.querySelector("#coverImage");
 const coverTitle = document.querySelector("#coverTitle");
-const ratingDialog = document.querySelector("#ratingDialog");
 const toast = document.querySelector("#toast");
-
-const ratingController = createRadarRatingController({
-  dialog: ratingDialog,
-  ratings: state.prototypeRatings,
-  onChange: ({ type, rating }) => {
-    render();
-    showToast(type === "save" ? `已暫存五角評分 ${rating.overall.toFixed(1)}／5` : "已取消暫存評分");
-  },
-});
 
 function library(media = state.active) {
   return state.payload?.libraries?.find((item) => item.media === media) ?? { entries: [], sections: [], exists: false };
@@ -80,8 +61,6 @@ function filteredEntries() {
     if (filter.year !== "all" && entry.year !== Number(filter.year)) return false;
     if (state.active === "anime" && filter.season !== "all" && entry.season !== filter.season) return false;
     if (state.active === "movies" && filter.category !== "all" && entry.category !== filter.category) return false;
-    if (state.active === "liveAction" && filter.region !== "all" && entry.region !== filter.region) return false;
-    if (state.active === "liveAction") return true;
     return entry.score >= Number(filter.min || 0);
   }).sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, "zh-Hant"));
 }
@@ -129,31 +108,19 @@ function scoreOptions(selected, game = false) {
   return `<option value="0">${label}</option>${values.map((score) => `<option value="${score}" ${Number(selected) === score ? "selected" : ""}>最低 ${game ? `${score}%` : score.toFixed(1)}</option>`).join("")}`;
 }
 
-function reviewOptions(selected) {
-  const values = [500, 1000, 2500, 5000, 10000, 25000];
-  return `<option value="0">不限評論數</option>${values.map((reviews) => `<option value="${reviews}" ${Number(selected) === reviews ? "selected" : ""}>至少 ${reviews.toLocaleString()} 則</option>`).join("")}`;
-}
-
-function qualityFilterCount(filter) {
-  return Number(Number(filter.min) > 0) + Number(Number(filter.reviews) > 0);
-}
-
-function toolbar(data, resultCount) {
+function toolbar(data) {
   const filter = state.filters[state.active];
-  const search = `<label class="search-control"><span class="sr-only">搜尋名稱</span><input class="field search" data-filter="query" value="${escapeHtml(filter.query)}" placeholder="${mediaCopy[state.active].search}" aria-label="搜尋名稱"><output class="result-count" data-result-count aria-live="polite">${resultCount} 筆</output></label>`;
+  const search = `<input class="field search" data-filter="query" value="${escapeHtml(filter.query)}" placeholder="${mediaCopy[state.active].search}" aria-label="搜尋名稱">`;
   if (state.active === "games") {
     const years = [...new Set(data.entries.map((entry) => entry.year))].filter(Number.isFinite).sort((a, b) => b - a);
     const months = [...new Set(data.entries.map((entry) => entry.month))].filter(Number.isFinite).sort((a, b) => a - b);
-    return `<div class="toolbar games">${search}<select class="field" data-filter="year" aria-label="遊戲年份">${options(years, filter.year, "所有年份")}</select><select class="field" data-filter="month" aria-label="遊戲月份">${options(months, filter.month, "所有月份")}</select><button class="button quality-toggle" type="button" data-action="toggle-quality" aria-controls="gameQualityPanel" aria-expanded="${filter.qualityOpen}">口碑門檻 <span>${qualityFilterCount(filter)}</span></button><button class="button tag-toggle" type="button" data-action="toggle-tags" aria-controls="gameTagPanel" aria-expanded="${filter.tagsOpen}">標籤 ${filter.tags.length}</button><button class="button subtle" type="button" data-action="clear-filters">清除篩選</button></div>`;
+    return `<div class="toolbar games">${search}<select class="field" data-filter="year" aria-label="遊戲年份">${options(years, filter.year, "所有年份")}</select><select class="field" data-filter="month" aria-label="遊戲月份">${options(months, filter.month, "所有月份")}</select><select class="field" data-filter="min" aria-label="最低好評率">${scoreOptions(filter.min, true)}</select><button class="button tag-toggle" type="button" data-action="toggle-tags" aria-controls="gameTagPanel" aria-expanded="${filter.tagsOpen}">標籤 ${filter.tags.length}</button><button class="button subtle" type="button" data-action="clear-filters">清除篩選</button></div>`;
   }
   const years = [...new Set(data.entries.map((entry) => entry.year))].sort((a, b) => b - a);
   const third = state.active === "anime"
     ? `<select class="field" data-filter="season" aria-label="季度">${options(["春", "夏", "秋", "冬"], filter.season, "所有季度")}</select>`
-    : state.active === "movies"
-      ? `<select class="field" data-filter="category" aria-label="影片類別">${options([...new Set(data.entries.map((entry) => entry.category))].sort((a, b) => a.localeCompare(b, "zh-Hant")), filter.category, "所有類別")}</select>`
-      : `<select class="field" data-filter="region" aria-label="地區">${options([...new Set(data.entries.map((entry) => entry.region))].sort((a, b) => a.localeCompare(b, "zh-Hant")), filter.region, "所有地區")}</select>`;
-  const score = state.active === "liveAction" ? "" : `<select class="field" data-filter="min" aria-label="最低評分">${scoreOptions(filter.min)}</select>`;
-  return `<div class="toolbar">${search}<select class="field" data-filter="year" aria-label="年份">${options(years, filter.year, "所有年份")}</select>${third}${score}</div>`;
+    : `<select class="field" data-filter="category" aria-label="影片類別">${options([...new Set(data.entries.map((entry) => entry.category))].sort((a, b) => a.localeCompare(b, "zh-Hant")), filter.category, "所有類別")}</select>`;
+  return `<div class="toolbar">${search}<select class="field" data-filter="year" aria-label="年份">${options(years, filter.year, "所有年份")}</select>${third}<select class="field" data-filter="min" aria-label="最低評分">${scoreOptions(filter.min)}</select></div>`;
 }
 
 function tagOptionMarkup({ tag, count, selected }) {
@@ -174,45 +141,6 @@ function syncGameTagViewport() {
   const changed = state.gameTagCompact !== compact;
   state.gameTagCompact = compact;
   return changed;
-}
-
-function filterDock() {
-  return app.querySelector("[data-filter-dock]");
-}
-
-function setFilterDockCollapsed(collapsed) {
-  state.filterDockCollapsed = collapsed;
-  filterDock()?.classList.toggle("is-collapsed", collapsed);
-}
-
-function filterDockMustStayOpen() {
-  return state.active === "games" && (state.filters.games.tagsOpen || state.filters.games.qualityOpen);
-}
-
-function syncFilterDockOnScroll() {
-  state.filterDockScrollFrame = null;
-  const dock = filterDock();
-  if (!dock) return;
-
-  const currentScrollY = Math.max(0, window.scrollY);
-  const previousScrollY = state.filterDockLastScrollY;
-  state.filterDockLastScrollY = currentScrollY;
-  const topbarBottom = document.querySelector(".topbar")?.getBoundingClientRect().bottom ?? 0;
-  const dockIsPinned = dock.getBoundingClientRect().top <= topbarBottom + 1;
-
-  if (!dockIsPinned || currentScrollY <= 0 || filterDockMustStayOpen()) {
-    setFilterDockCollapsed(false);
-    return;
-  }
-
-  const delta = currentScrollY - previousScrollY;
-  if (Math.abs(delta) < 8) return;
-  setFilterDockCollapsed(delta > 0);
-}
-
-function scheduleFilterDockSync() {
-  if (state.filterDockScrollFrame) return;
-  state.filterDockScrollFrame = window.requestAnimationFrame(syncFilterDockOnScroll);
 }
 
 function gameTagPanelContent() {
@@ -240,17 +168,8 @@ function gameTagPanel() {
   return `<section class="tag-panel" id="gameTagPanel" ${filter.tagsOpen ? "" : "hidden"} aria-label="社群標籤篩選"><div class="tag-panel-heading"><div class="tag-panel-title"><strong>社群標籤</strong><span>多選時需同時符合所有標籤</span></div><div class="tag-panel-controls"><input class="field" data-filter="tagQuery" value="${escapeHtml(filter.tagQuery)}" placeholder="搜尋標籤…" aria-label="搜尋社群標籤"><button class="button subtle" type="button" data-action="close-tag-panel">收起篩選</button></div></div><div class="selected-tags" data-selected-tags ${content.selectedHidden ? "hidden" : ""}><span>已選</span><div class="tag-options">${content.selectedMarkup}</div></div><div class="tag-options-meta"><span data-tag-summary>${content.summary}</span><button class="button subtle tag-options-toggle" type="button" data-action="toggle-tag-options" aria-controls="availableGameTags" aria-expanded="${content.expanded}" hidden>${content.expanded ? "收起" : "顯示更多"}</button></div><div class="${content.availableClass}" id="availableGameTags" data-available-tags>${content.availableMarkup}</div></section>`;
 }
 
-function gameQualityPanel() {
-  const filter = state.filters.games;
-  return `<section class="quality-panel" id="gameQualityPanel" ${filter.qualityOpen ? "" : "hidden"} aria-label="遊戲口碑門檻"><label class="quality-field"><span>最低好評率</span><select class="field" data-filter="min" aria-label="最低好評率">${scoreOptions(filter.min, true)}</select></label><label class="quality-field"><span>最低評論數</span><select class="field" data-filter="reviews" aria-label="最低評論數">${reviewOptions(filter.reviews)}</select></label></section>`;
-}
-
 function displayedEntries(entries) {
-  return entries.map((entry) => ({
-    ...entry,
-    ...(state.active === "games" ? { coverUrl: state.gameCovers.get(entry.appid) } : {}),
-    personalRating: state.prototypeRatings.get(prototypeRatingKey(state.active, entry.id))?.overall ?? null,
-  }));
+  return state.active === "games" ? entries.map((entry) => ({ ...entry, coverUrl: state.gameCovers.get(entry.appid) })) : entries;
 }
 
 function gameTagLimit() {
@@ -326,9 +245,12 @@ function appendNextGameBatch() {
 function refreshResults({ hydrateCovers = true, resetGames = true } = {}) {
   const entries = filteredEntries();
   const count = app.querySelector("[data-result-count]");
+  const openFiltered = app.querySelector('[data-action="open-filtered"]');
   const list = app.querySelector(".list");
-  if (!count || !list) return;
-  count.textContent = `${entries.length} 筆`;
+  if (!count || !openFiltered || !list) return;
+  count.textContent = `${entries.length} 筆結果`;
+  openFiltered.disabled = entries.length === 0;
+  openFiltered.textContent = state.active === "games" ? "開啟目前結果" : `搜尋目前結果 ${entries.length}`;
   if (state.active === "games") {
     if (resetGames) state.visibleGameCount = GAME_BATCH_SIZE;
     list.innerHTML = gameListMarkup(entries);
@@ -388,23 +310,14 @@ function syncTagOptionsOverflow() {
 
 function syncGameControls() {
   const filter = state.filters.games;
-  for (const key of ["query", "year", "month", "min", "reviews", "tagQuery"]) {
+  for (const key of ["query", "year", "month", "min", "tagQuery"]) {
     const control = app.querySelector(`[data-filter="${key}"]`);
     if (control) control.value = filter[key];
   }
 }
 
-function syncQualityControls() {
-  const filter = state.filters.games;
-  const toggle = app.querySelector('[data-action="toggle-quality"]');
-  if (!toggle) return;
-  toggle.setAttribute("aria-expanded", String(filter.qualityOpen));
-  toggle.innerHTML = `口碑門檻 <span>${qualityFilterCount(filter)}</span>`;
-}
-
 function refreshGameBrowser(options) {
   refreshResults(options);
-  syncQualityControls();
   refreshTagPanel();
 }
 
@@ -419,10 +332,10 @@ function render() {
   const entries = filteredEntries();
   const isGames = state.active === "games";
   if (isGames) syncGameTagViewport();
+  const openLabel = isGames ? "開啟目前結果" : `搜尋目前結果 ${entries.length}`;
   const warning = isGames && data.tagWarning ? `<p class="tag-sidecar-warning" role="status">${escapeHtml(data.tagWarning)}。目前仍可使用報告內的遊戲類型。</p>` : "";
   stopGameAutoLoad();
-  app.innerHTML = `<div class="layout"><section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1><div class="filter-dock${state.filterDockCollapsed ? " is-collapsed" : ""}" data-filter-dock>${warning}${toolbar(data, entries.length)}${isGames ? `${gameQualityPanel()}${gameTagPanel()}` : ""}</div><div class="list">${isGames ? gameListMarkup(entries) : entriesMarkup(entries)}</div></section></div>`;
-  state.filterDockLastScrollY = window.scrollY;
+  app.innerHTML = `<div class="layout"><section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1><div class="section-status"><div class="section-summary"><strong>${isGames ? "全部月份" : "全部年代"}</strong><span data-result-count>${entries.length} 筆結果</span></div><div class="section-actions"><button class="button primary" data-action="open-filtered" ${entries.length ? "" : "disabled"}>${openLabel}</button></div></div>${warning}${toolbar(data)}${isGames ? gameTagPanel() : ""}<div class="list">${isGames ? gameListMarkup(entries) : entriesMarkup(entries)}</div></section></div>`;
   if (isGames) {
     syncTagOptionsOverflow();
     setupGameAutoLoad();
@@ -454,6 +367,16 @@ async function load() {
   try { state.payload = await window.catchList.load(); render(); } catch (error) { showToast(error.message); }
 }
 
+async function openBatch(urls, label) {
+  if (!urls.length) return;
+  if (urls.length > MAX_EXTERNAL_BATCH_SIZE) {
+    showToast(`一次最多開啟 ${MAX_EXTERNAL_BATCH_SIZE} 個連結，請先縮小篩選結果。`);
+    return;
+  }
+  const confirmed = await ask({ title: `將開啟 ${urls.length} 個分頁`, message: `${label}。瀏覽器可能會詢問是否允許一次開啟多個分頁。`, confirm: "開啟分頁" });
+  if (confirmed) await window.catchList.openUrls(urls);
+}
+
 document.addEventListener("click", async (event) => {
   const cover = event.target.closest("[data-cover]");
   if (cover) { showCover(cover.dataset.cover, cover.dataset.coverTitle); return; }
@@ -461,7 +384,6 @@ document.addEventListener("click", async (event) => {
   if (media) {
     state.active = media;
     if (media === "games") state.visibleGameCount = GAME_BATCH_SIZE;
-    setFilterDockCollapsed(false);
     render();
     return;
   }
@@ -483,73 +405,29 @@ document.addEventListener("click", async (event) => {
   try {
     if (action === "home") window.scrollTo({ top: 0 });
     if (action === "choose-folder") { state.payload = await window.catchList.chooseDirectory(); state.expandedGameTags.clear(); state.visibleGameCount = GAME_BATCH_SIZE; render(); }
-    if (action === "toggle-quality") { state.filters.games.qualityOpen = !state.filters.games.qualityOpen; setFilterDockCollapsed(false); render(); }
-    if (action === "toggle-tags") { state.filters.games.tagsOpen = !state.filters.games.tagsOpen; setFilterDockCollapsed(false); refreshTagPanel(); }
+    if (action === "toggle-tags") { state.filters.games.tagsOpen = !state.filters.games.tagsOpen; refreshTagPanel(); }
     if (action === "close-tag-panel") { state.filters.games.tagsOpen = false; refreshTagPanel(); }
     if (action === "toggle-tag-options") { state.filters.games.tagOptionsExpanded = !state.filters.games.tagOptionsExpanded; refreshTagPanel(); }
     if (action === "clear-filters") {
-      state.filters.games = { query: "", year: "all", month: "all", min: "0", reviews: "0", qualityOpen: state.filters.games.qualityOpen, tags: [], tagsOpen: state.filters.games.tagsOpen, tagQuery: "", tagOptionsExpanded: false };
+      state.filters.games = { query: "", year: "all", month: "all", min: "0", tags: [], tagsOpen: state.filters.games.tagsOpen, tagQuery: "", tagOptionsExpanded: false };
       state.expandedGameTags.clear();
       syncGameControls();
       refreshGameBrowser();
       app.querySelector('[data-filter="query"]')?.focus();
     }
+    if (action === "open-filtered") {
+      const entries = filteredEntries();
+      await openBatch(entries.map((entry) => state.active === "games" ? entry.url : entry.searchUrl), state.active === "games" ? "開啟目前篩選結果的 Steam 商店頁面" : "使用 Google 搜尋目前篩選結果");
+    }
     if (action === "load-more-games") appendNextGameBatch();
-    if (action === "undo") {
-      if (state.libraryMutationPending) return;
-      state.libraryMutationPending = true;
-      const undoButton = event.target.closest('[data-action="undo"]');
-      if (undoButton) undoButton.disabled = true;
-      try {
-        const result = await window.catchList.undoDelete();
-        try {
-          state.payload = applyUndoResult(state.payload, result, state.lastDeletedEntry);
-        } catch {
-          state.payload = await window.catchList.load();
-        }
-        state.lastDeletedEntry = null;
-        toast.classList.remove("show");
-        render();
-        showToast(`已復原「${result.title}」`);
-      } finally {
-        state.libraryMutationPending = false;
-        if (undoButton?.isConnected) undoButton.disabled = false;
-      }
-    }
-    const ratingId = event.target.closest("[data-rate]")?.dataset.rate;
-    if (ratingId) {
-      const entry = library().entries.find((item) => item.id === ratingId);
-      if (entry) ratingController.open({ key: prototypeRatingKey(state.active, entry.id), title: entry.title });
-      return;
-    }
+    if (action === "undo") { const result = await window.catchList.undoDelete(); state.payload = result; toast.classList.remove("show"); render(); showToast(`已復原「${result.restored.title}」`); }
     const openUrl = event.target.closest("[data-open]")?.dataset.open;
     if (openUrl) await window.catchList.openUrls([openUrl]);
     const entryId = event.target.closest("[data-delete]")?.dataset.delete;
     if (entryId) {
-      if (state.libraryMutationPending) return;
       const entry = library().entries.find((item) => item.id === entryId);
       const confirmed = await ask({ eyebrow: "刪除作品", title: `刪除「${entry.title}」？`, message: "這筆資料會從 Markdown 真正刪除。系統會先備份，刪除後可立即復原。", confirm: "刪除", danger: true });
-      if (confirmed) {
-        state.libraryMutationPending = true;
-        const deleteButton = event.target.closest("[data-delete]");
-        if (deleteButton) { deleteButton.disabled = true; deleteButton.textContent = "刪除中…"; }
-        try {
-          const result = await window.catchList.deleteEntry(state.active, entryId);
-          try {
-            const applied = applyDeleteResult(state.payload, result);
-            state.payload = applied.payload;
-            state.lastDeletedEntry = applied.removed;
-          } catch {
-            state.payload = await window.catchList.load();
-            state.lastDeletedEntry = null;
-          }
-          render();
-          showToast(`已刪除「${entry.title}」`, true);
-        } finally {
-          state.libraryMutationPending = false;
-          if (deleteButton?.isConnected) { deleteButton.disabled = false; deleteButton.textContent = "刪除"; }
-        }
-      }
+      if (confirmed) { state.payload = await window.catchList.deleteEntry(state.active, entryId); render(); showToast(`已刪除「${entry.title}」`, true); }
     }
   } catch (error) { showToast(error.message); }
 });
@@ -579,18 +457,6 @@ window.addEventListener("resize", () => {
     if (syncGameTagViewport()) refreshResults({ hydrateCovers: false, resetGames: false });
     syncTagOptionsOverflow();
   });
-});
-
-window.addEventListener("scroll", scheduleFilterDockSync, { passive: true });
-
-document.addEventListener("focusin", (event) => {
-  if (!event.target.closest?.("[data-filter-dock]")) return;
-  if (state.filterDockScrollFrame) {
-    window.cancelAnimationFrame(state.filterDockScrollFrame);
-    state.filterDockScrollFrame = null;
-  }
-  state.filterDockLastScrollY = Math.max(0, window.scrollY);
-  setFilterDockCollapsed(false);
 });
 
 load();

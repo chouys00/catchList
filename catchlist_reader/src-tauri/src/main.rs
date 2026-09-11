@@ -12,11 +12,10 @@ use std::{
 use tauri::{Manager, State};
 use url::Url;
 
-const REPORTS: [(&str, &str); 4] = [
+const REPORTS: [(&str, &str); 3] = [
     ("games", "遊戲.md"),
     ("anime", "動畫.md"),
     ("movies", "電影.md"),
-    ("liveAction", "真人劇年度.md"),
 ];
 const SETTINGS_FILE: &str = "settings.json";
 const BACKUP_DIR: &str = ".catchlist-backups";
@@ -208,7 +207,7 @@ fn external_url(raw: &str) -> Result<Url, String> {
     let url = Url::parse(raw).map_err(|_| "外部連結不正確")?;
     let allowed_host = matches!(
         url.host_str(),
-        Some("www.google.com") | Some("store.steampowered.com") | Some("www.imdb.com")
+        Some("www.google.com") | Some("store.steampowered.com")
     );
     if url.scheme() != "https"
         || !allowed_host
@@ -223,9 +222,6 @@ fn external_url(raw: &str) -> Result<Url, String> {
     }
     if url.host_str() == Some("store.steampowered.com") && !url.path().starts_with("/app/") {
         return Err("Steam 連結必須是遊戲頁面".to_string());
-    }
-    if url.host_str() == Some("www.imdb.com") && !url.path().starts_with("/title/") {
-        return Err("IMDb 連結必須是作品頁面".to_string());
     }
     Ok(url)
 }
@@ -465,7 +461,6 @@ mod tests {
     fn links_have_exact_scheme_host_and_path_rules() {
         assert!(external_url("https://www.google.com/search?q=CatchList").is_ok());
         assert!(external_url("https://store.steampowered.com/app/123").is_ok());
-        assert!(external_url("https://www.imdb.com/title/tt15146130/").is_ok());
         assert!(external_url("http://www.google.com/search?q=x").is_err());
         assert!(external_url("https://www.google.com.evil.test/search?q=x").is_err());
         assert!(external_url("https://store.steampowered.com/agecheck/app/123").is_err());
