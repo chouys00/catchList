@@ -1,0 +1,53 @@
+schema_version: 3
+plan_revision: 3
+project: steam-data-initialization
+profile: audited
+mode: initialize
+status: complete
+stage_sequence:
+  - A1
+  - A2
+  - A3
+  - A4
+  - A5
+  - A6
+active_stage: A6
+stage_status: accepted
+gate_result: PASS
+next_stage: null
+handoff_mode: none
+checkpoint_policy: record-only
+blocking_acceptance_open: false
+execution:
+  mode: sequential
+  active_parallel_group: null
+  max_workers: 3
+base:
+  branch: codex/steam-initialize-data
+  lineage: codex/adjust-game-selection
+  head_at_planning: 853be450e76a495ec4e1da1a141561cea1d4df40
+  compared_with:
+    branch: master
+    head: 78d0a82ff83b710406f457eedbb24f1ad35d59cc
+data_scope:
+  from: 2015-01
+  through: 2026-02
+  output_root: steam_discovery/preview/initialization
+  formal_cloud_write_allowed: false
+runtime_constraints:
+  production_sources:
+    - FronkonGames
+    - https://store.steampowered.com/app/{appid}
+  forbidden_initialization_sources:
+    - https://store.steampowered.com/search/results/
+    - https://store.steampowered.com/api/appdetails
+    - https://store.steampowered.com/appreviews/{appid}
+documents:
+  spec: docs/steam-data-initialization/PROJECT_SPEC.md
+  roadmap: docs/steam-data-initialization/PROJECT_ROADMAP.md
+  decisions: docs/steam-data-initialization/DECISIONS.md
+  status: docs/steam-data-initialization/DEVELOPMENT_STATUS.md
+  log: docs/steam-data-initialization/DEVELOPMENT_LOG.md
+  acceptance: docs/steam-data-initialization/ACCEPTANCE.md
+  handoff: docs/steam-data-initialization/NEXT_TASK_HANDOFF.md
+updated_at: 2026-09-10

@@ -48,3 +48,10 @@ npm run update:all
 - 規格、Roadmap、狀態、決策與交接文件集中在 `docs/steam-game-data-refresh/`；執行前先讀取該資料夾全部文件。
 - `docs/steam-game-data-refresh/STAGE_STATE.yaml` 是控制狀態來源。用 `staged-task-runner` 一年建立一個 task，同一 task 內逐月串行執行；年度 PASS 後才建立下一年 task。
 - 固定使用 `gpt-5.6-luna`、`low` 思考程度。完整資料只寫 `steam_discovery/preview/`，不得修改檢視器或雲端 `遊戲.md`；搬移或覆蓋雲端資料仍須使用者另行明確授權。
+
+## 遊戲大量資料初始化計畫
+
+- 規格、Roadmap、狀態、決策、驗收與交接文件集中在 `docs/steam-data-initialization/`；執行前先讀取該資料夾全部文件。
+- `docs/steam-data-initialization/STAGE_STATE.yaml` 是控制狀態來源。初始化流程與每月更新分開，不得把初始化入口加入 `update:all`。
+- A1 通過前不得實作後續階段。初始化執行期只使用 FronkonGames 與單一 Steam 商店頁面，不得呼叫搜尋頁或 `appdetails`。
+- 完整結果只寫 `steam_discovery/preview/initialization/`；不得覆蓋既有預覽或雲端 `遊戲.md`。
