@@ -151,12 +151,16 @@ export async function fetchSearchPage(start = 0, {
 }
 
 /**
- * 取得特定遊戲的詳細資料 (Trad. Chinese)。結果會快取,重跑不重抓。
+ * 取得特定遊戲的詳細資料 (Trad. Chinese)。只有通過篩選的結果會快取。
  * @param {string} appid
  * @returns {Promise<object|null>}
  */
-export async function fetchAppDetails(appid) {
-  const cached = detailsCache[appid];
+export async function fetchAppDetails(appid, {
+  requester = getWithRetry,
+  cache = detailsCache,
+  saveCache = () => saveJson(DETAILS_CACHE_FILE, cache)
+} = {}) {
+  const cached = cache[appid];
   if (cached?._cacheVersion === DETAILS_CACHE_VERSION) {
     const { _cacheVersion, ...details } = cached;
     return details;
@@ -164,7 +168,7 @@ export async function fetchAppDetails(appid) {
 
   const url = "https://store.steampowered.com/api/appdetails";
   try {
-    const response = await getWithRetry(url, {
+    const response = await requester(url, {
       params: {
         appids: appid,
         cc: "tw",
@@ -175,11 +179,11 @@ export async function fetchAppDetails(appid) {
 
     const result = parseAppDetails(appid, response.data);
     if (result) {
-      detailsCache[appid] = {
+      cache[appid] = {
         _cacheVersion: DETAILS_CACHE_VERSION,
         ...result
       };
-      saveJson(DETAILS_CACHE_FILE, detailsCache);
+      saveCache();
     }
     return result;
   } catch (error) {
