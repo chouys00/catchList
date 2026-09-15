@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { hasReportFiles, hideEntry, loadAllLibraries, undoHide } from "./library.js";
+import { deleteEntry, hasReportFiles, hideEntry, loadAllLibraries, undoDelete, undoHide } from "./library.js";
 import { GameCoverCache, GameCoverService } from "./game-cover-cache.js";
 import { resolveSteamCover } from "./steam-covers.js";
 
@@ -12,7 +12,7 @@ const isolatedUserDataDir = process.env.CATCHLIST_USER_DATA_DIR?.trim();
 if (isolatedUserDataDir) app.setPath("userData", path.resolve(isolatedUserDataDir));
 let mainWindow;
 let dataDir;
-let lastHide;
+let lastOperation;
 let gameCoverService;
 
 function settingsPath() {
@@ -49,7 +49,7 @@ function initialDirectory() {
 function snapshot() {
   return {
     dataDir,
-    canUndo: Boolean(lastHide),
+    canUndo: Boolean(lastOperation),
     libraries: dataDir ? loadAllLibraries(dataDir) : [],
   };
 }
@@ -80,18 +80,25 @@ function registerIpc() {
     if (!hasReportFiles(selected)) throw new Error("這個資料夾找不到遊戲.md、動畫.md 或電影.md");
     dataDir = selected;
     saveDirectory(dataDir);
-    lastHide = null;
+    lastOperation = null;
     return snapshot();
   });
   ipcMain.handle("library:hide-entry", (_event, media, entryId) => {
     if (!dataDir) throw new Error("尚未選擇資料夾");
-    lastHide = hideEntry(dataDir, media, entryId);
+    lastOperation = { kind: "hide", operation: hideEntry(dataDir, media, entryId) };
     return snapshot();
   });
-  ipcMain.handle("library:undo-hide", () => {
-    if (!lastHide) throw new Error("沒有可復原的隱藏操作");
-    const restored = undoHide(dataDir, lastHide);
-    lastHide = null;
+  ipcMain.handle("library:delete-entry", (_event, media, entryId) => {
+    if (!dataDir) throw new Error("尚未選擇資料夾");
+    lastOperation = { kind: "delete", operation: deleteEntry(dataDir, media, entryId) };
+    return snapshot();
+  });
+  ipcMain.handle("library:undo-last-operation", () => {
+    if (!lastOperation) throw new Error("沒有可復原的操作");
+    const restored = lastOperation.kind === "delete"
+      ? undoDelete(lastOperation.operation)
+      : undoHide(dataDir, lastOperation.operation);
+    lastOperation = null;
     return { ...snapshot(), restored };
   });
   ipcMain.handle("library:resolve-game-covers", (_event, appids) => {

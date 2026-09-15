@@ -440,7 +440,7 @@ document.addEventListener("click", async (event) => {
       await openBatch(entries.map((entry) => state.active === "games" ? entry.url : entry.searchUrl), state.active === "games" ? "開啟目前篩選結果的 Steam 商店頁面" : "使用 Google 搜尋目前篩選結果");
     }
     if (action === "load-more-games") appendNextGameBatch();
-    if (action === "undo") { const result = await window.catchList.undoHide(); state.payload = result; toast.classList.remove("show"); render(); showToast(`已重新顯示「${result.restored.title}」`); }
+    if (action === "undo") { const result = await window.catchList.undoLastOperation(); state.payload = result; toast.classList.remove("show"); render(); showToast(`已復原「${result.restored.title}」`); }
     const openUrl = event.target.closest("[data-open]")?.dataset.open;
     if (openUrl) await window.catchList.openUrls([openUrl]);
     const entryId = event.target.closest("[data-hide]")?.dataset.hide;
@@ -448,6 +448,12 @@ document.addEventListener("click", async (event) => {
       const entry = library().entries.find((item) => item.id === entryId);
       const confirmed = await ask({ eyebrow: "隱藏作品", title: `隱藏「${entry.title}」？`, message: "作品會從閱讀器隱藏，Markdown 原始資料不會刪除。隱藏後可立即復原。", confirm: "隱藏", danger: true });
       if (confirmed) { state.payload = await window.catchList.hideEntry(state.active, entryId); render(); showToast(`已隱藏「${entry.title}」`, true); }
+    }
+    const deleteEntryId = event.target.closest("[data-delete]")?.dataset.delete;
+    if (deleteEntryId) {
+      const entry = library().entries.find((item) => item.id === deleteEntryId);
+      const confirmed = await ask({ eyebrow: "真正刪除作品", title: `真正刪除「${entry.title}」？`, message: "這會從 Markdown 移除作品資料。系統會先建立備份，但請只在確定不再需要此作品時使用。", confirm: "真正刪除", danger: true });
+      if (confirmed) { state.payload = await window.catchList.deleteEntry(state.active, deleteEntryId); render(); showToast(`已真正刪除「${entry.title}」`, true); }
     }
   } catch (error) { showToast(error.message); }
 });

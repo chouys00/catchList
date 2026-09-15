@@ -91,7 +91,7 @@ button.game-tag:hover { border-color: var(--muted); color: var(--ink); }
 
 .list { border-top: 1px solid var(--line); }
 .game-column-header,
-.item.games { grid-template-columns: 140px minmax(210px, 1.45fr) 92px 44px 112px minmax(180px, 1.25fr) 44px; }
+.item.games { grid-template-columns: 140px minmax(210px, 1.45fr) 92px 44px 112px minmax(180px, 1.25fr) 76px; }
 .game-column-header { display: grid; gap: 14px; align-items: end; padding: 10px 8px 8px; color: var(--dim); font-size: 10px; font-weight: 700; letter-spacing: .1em; }
 .game-column-header .center { text-align: center; }
 .game-load-sentinel { display: flex; justify-content: center; align-items: center; gap: 12px; min-height: 88px; color: var(--muted); font-size: 12px; }
@@ -135,7 +135,7 @@ button.game-cover:hover { border-color: var(--lime); }
 .rating strong { font-family: var(--serif); font-size: 20px; color: var(--lime); }
 .rating small { color: var(--muted); font-size: 12px; }
 .actions { display: flex; justify-content: end; gap: 7px; }
-.game-management { display: grid; place-items: center; }
+.game-management { display: flex; justify-content: center; gap: 2px; }
 .icon-button { display: grid; width: 34px; height: 34px; padding: 0; place-items: center; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--dim); cursor: pointer; }
 .icon-button svg { width: 18px; height: 18px; }
 .icon-button:hover { border-color: color-mix(in srgb, var(--danger) 38%, var(--line)); background: color-mix(in srgb, var(--danger) 8%, transparent); color: var(--danger); }
