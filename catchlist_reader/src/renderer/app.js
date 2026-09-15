@@ -452,8 +452,8 @@ document.addEventListener("click", async (event) => {
     const deleteEntryId = event.target.closest("[data-delete]")?.dataset.delete;
     if (deleteEntryId) {
       const entry = library().entries.find((item) => item.id === deleteEntryId);
-      const confirmed = await ask({ eyebrow: "真正刪除作品", title: `真正刪除「${entry.title}」？`, message: "這會從 Markdown 移除作品資料。系統會先建立備份，但請只在確定不再需要此作品時使用。", confirm: "真正刪除", danger: true });
-      if (confirmed) { state.payload = await window.catchList.deleteEntry(state.active, deleteEntryId); render(); showToast(`已真正刪除「${entry.title}」`, true); }
+      const confirmed = await ask({ eyebrow: "真正刪除作品", title: `真正刪除「${entry.title}」？`, message: "這會從 Markdown 永久移除作品資料，且不會建立備份或提供復原。", confirm: "真正刪除", danger: true });
+      if (confirmed) { state.payload = await window.catchList.deleteEntry(state.active, deleteEntryId); render(); showToast(`已真正刪除「${entry.title}」`); }
     }
   } catch (error) { showToast(error.message); }
 });

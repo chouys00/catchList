@@ -290,10 +290,6 @@ export function readHiddenEntries(dataDir) {
   );
 }
 
-function timestamp() {
-  return new Date().toISOString().replace(/[:.]/g, "-");
-}
-
 function writeHiddenEntries(dataDir, entries) {
   const filepath = path.join(path.resolve(dataDir), HIDDEN_ENTRIES_FILE);
   atomicWrite(filepath, `${JSON.stringify({ version: 1, entries }, null, 2)}\n`);
@@ -342,22 +338,10 @@ export function deleteEntry(dataDir, media, entryId) {
   const entry = parsed.entries.find((item) => item.id === entryId);
   if (!entry) throw new Error("作品已變更或不存在，請重新載入清單");
 
-  const backupDir = path.join(path.resolve(dataDir), ".catchlist-backups");
-  fs.mkdirSync(backupDir, { recursive: true });
-  const backupPath = path.join(backupDir, `${MEDIA_CONFIG[media].filename}.${timestamp()}.${entry.id}.bak`);
-  fs.copyFileSync(filepath, backupPath, fs.constants.COPYFILE_EXCL);
-
   const nextLines = [...parsed.lines];
   nextLines.splice(entry.lineStart, entry.lineEnd - entry.lineStart);
   atomicWrite(filepath, nextLines.join(parsed.eol));
-  return { media, entryId, title: entry.title, filepath, backupPath };
-}
-
-export function undoDelete(operation) {
-  if (!operation?.filepath || !operation?.backupPath) throw new Error("沒有可復原的刪除操作");
-  if (!fs.existsSync(operation.backupPath)) throw new Error("刪除備份已不存在");
-  atomicWrite(operation.filepath, fs.readFileSync(operation.backupPath, "utf8"));
-  return { media: operation.media, title: operation.title };
+  return { media, entryId, title: entry.title };
 }
 
 export function hasReportFiles(directory) {

@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { deleteEntry, hideEntry, loadLibrary, parseReport, readHiddenEntries, undoDelete, undoHide } from "../src/library.js";
+import { deleteEntry, hideEntry, loadLibrary, parseReport, readHiddenEntries, undoHide } from "../src/library.js";
 
 const anime = `2025  春  >7.70    (更新時間: 2025-07-01)\n\n- 測試動畫  **8.20**  (12 · TV)\n- 測試動畫  **8.20**  (12 · TV)\n------------------------------\n`;
 const movies = `2025  9月  >7.00    (更新時間: 2026-07-01  最低投票門檻: 30,000 票)\n\n- 測試電影  **8.15**  \`(IMDb: 8.3 | 一般外國片 (-0.15) | 144k票)\`\n------------------------------\n`;
@@ -106,20 +106,15 @@ test("隱藏遊戲只寫入隱藏紀錄，不修改四行遊戲資料", () => {
   assert.equal(loadLibrary(directory, "games").entries.length, 1);
 });
 
-test("真正刪除會移除 Markdown 作品，並可從備份完整還原", () => {
+test("真正刪除會直接移除 Markdown 作品，不建立備份", () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "catchlist-reader-"));
   const filepath = path.join(directory, "遊戲.md");
   fs.writeFileSync(filepath, games, "utf8");
   const entry = loadLibrary(directory, "games").entries[0];
 
-  const operation = deleteEntry(directory, "games", entry.id);
+  deleteEntry(directory, "games", entry.id);
   assert.equal(loadLibrary(directory, "games").entries.length, 0);
-  assert.ok(fs.existsSync(operation.backupPath));
-  assert.match(operation.backupPath, /\.catchlist-backups/);
-
-  undoDelete(operation);
-  assert.equal(fs.readFileSync(filepath, "utf8"), games);
-  assert.equal(loadLibrary(directory, "games").entries.length, 1);
+  assert.equal(fs.existsSync(path.join(directory, ".catchlist-backups")), false);
 });
 
 test("隱藏紀錄會套用到三種清單的整體載入", async () => {

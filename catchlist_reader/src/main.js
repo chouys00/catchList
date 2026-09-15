@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { deleteEntry, hasReportFiles, hideEntry, loadAllLibraries, undoDelete, undoHide } from "./library.js";
+import { deleteEntry, hasReportFiles, hideEntry, loadAllLibraries, undoHide } from "./library.js";
 import { GameCoverCache, GameCoverService } from "./game-cover-cache.js";
 import { resolveSteamCover } from "./steam-covers.js";
 
@@ -90,14 +90,13 @@ function registerIpc() {
   });
   ipcMain.handle("library:delete-entry", (_event, media, entryId) => {
     if (!dataDir) throw new Error("尚未選擇資料夾");
-    lastOperation = { kind: "delete", operation: deleteEntry(dataDir, media, entryId) };
+    deleteEntry(dataDir, media, entryId);
+    lastOperation = null;
     return snapshot();
   });
   ipcMain.handle("library:undo-last-operation", () => {
     if (!lastOperation) throw new Error("沒有可復原的操作");
-    const restored = lastOperation.kind === "delete"
-      ? undoDelete(lastOperation.operation)
-      : undoHide(dataDir, lastOperation.operation);
+    const restored = undoHide(dataDir, lastOperation.operation);
     lastOperation = null;
     return { ...snapshot(), restored };
   });
