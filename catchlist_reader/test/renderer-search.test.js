@@ -146,4 +146,5 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
   assert.deepEqual(result.largeGameBatch.horizontalOverflow, { desktop: false, mobile: false });
   assert.deepEqual(result.coverUpdate.initial, { requestCount: 1, firstRequestSize: 50, itemCount: 50 });
   assert.deepEqual(result.coverUpdate.afterUpdate, { firstRowPreserved: true, itemCount: 50, hasLoadedCover: true });
+  assert.deepEqual(result.coverUpdate.backdropDismiss, { opened: true, imageKeepsOpen: true, closedFromBackdrop: true });
 });

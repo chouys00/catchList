@@ -5,7 +5,7 @@ function escapeHtml(value) {
 }
 
 function actions(entry, label, url) {
-  return `<div class="actions"><button class="button compact primary" data-open="${escapeHtml(url)}">${label}</button><button class="button compact danger" data-delete="${entry.id}">刪除</button></div>`;
+  return `<div class="actions"><button class="button compact primary" data-open="${escapeHtml(url)}">${label}</button><button class="button compact danger" data-hide="${entry.id}">隱藏</button></div>`;
 }
 
 function gameLanguageStatus(value) {
@@ -23,8 +23,8 @@ function externalLinkIcon() {
   return '<svg class="external-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-9 9"/><path d="M18 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';
 }
 
-function deleteIcon() {
-  return '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>';
+function hideIcon() {
+  return '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 4.2A10.5 10.5 0 0 1 12 4c5.5 0 9 8 9 8a18 18 0 0 1-2.1 3.2M6.6 6.6C4.2 8.2 3 12 3 12s3.5 8 9 8a9.8 9.8 0 0 0 4.1-.9"/></svg>';
 }
 
 function renderGameTags(entry, view = {}) {
@@ -72,5 +72,5 @@ export function renderItemTemplate(entry, media, view) {
   const cover = entry.coverUrl
     ? `<button class="game-cover" type="button" data-cover="${escapeHtml(entry.coverUrl)}" data-cover-title="${escapeHtml(entry.title)}" data-game-appid="${appid}"><img src="${escapeHtml(entry.coverUrl)}" alt="遊戲封面：${escapeHtml(entry.title)}"></button>`
     : `<div class="game-cover game-cover-loading" data-game-appid="${appid}" aria-label="遊戲封面載入中"></div>`;
-  return `<article class="item games">${cover}<button class="title game-title-link" type="button" data-open="${escapeHtml(entry.url)}" aria-label="在 Steam 開啟 ${escapeHtml(entry.title)}"><strong class="title-primary">${escapeHtml(entry.title)}${externalLinkIcon()}</strong><small>${escapeHtml(entry.originalTitle)}</small></button><div class="game-facts"><span class="meta game-date">${escapeHtml(entry.releaseDate)}</span>${gameLanguageStatus(entry.chineseSupport)}<span class="rating"><strong>${entry.score}%</strong><small>(${entry.reviews.toLocaleString()})</small></span></div>${renderGameTags(entry, view)}<div class="game-management"><button class="icon-button danger" type="button" data-delete="${entry.id}" aria-label="刪除 ${escapeHtml(entry.title)}" title="刪除">${deleteIcon()}</button></div></article>`;
+  return `<article class="item games">${cover}<button class="title game-title-link" type="button" data-open="${escapeHtml(entry.url)}" aria-label="在 Steam 開啟 ${escapeHtml(entry.title)}"><strong class="title-primary">${escapeHtml(entry.title)}${externalLinkIcon()}</strong><small>${escapeHtml(entry.originalTitle)}</small></button><div class="game-facts"><span class="meta game-date">${escapeHtml(entry.releaseDate)}</span>${gameLanguageStatus(entry.chineseSupport)}<span class="rating"><strong>${entry.score}%</strong><small>(${entry.reviews.toLocaleString()})</small></span></div>${renderGameTags(entry, view)}<div class="game-management"><button class="icon-button danger" type="button" data-hide="${entry.id}" aria-label="隱藏 ${escapeHtml(entry.title)}" title="隱藏">${hideIcon()}</button></div></article>`;
 }

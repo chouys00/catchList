@@ -18,7 +18,7 @@ const REPORTS: [(&str, &str); 3] = [
     ("movies", "電影.md"),
 ];
 const SETTINGS_FILE: &str = "settings.json";
-const BACKUP_DIR: &str = ".catchlist-backups";
+const HIDDEN_ENTRIES_FILE: &str = ".catchlist-hidden.json";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -35,21 +35,28 @@ struct Snapshot {
     data_dir: Option<String>,
     can_undo: bool,
     reports: Vec<Report>,
+    hidden_entries: Vec<HiddenEntry>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+struct HiddenEntry {
+    hide_key: String,
+    media: String,
+    title: String,
+    hidden_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct DeleteOperation {
-    media: String,
-    entry_id: String,
-    filepath: PathBuf,
-    backup_path: PathBuf,
+struct HiddenRegistry {
+    version: u8,
+    entries: Vec<HiddenEntry>,
 }
 
 #[derive(Default)]
 struct AppState {
     data_dir: Mutex<Option<PathBuf>>,
-    last_delete: Mutex<Option<DeleteOperation>>,
+    last_hide: Mutex<Option<HiddenEntry>>,
 }
 
 fn report_filename(media: &str) -> Result<&'static str, String> {
@@ -164,6 +171,38 @@ fn atomic_write(path: &Path, content: &[u8], require_existing_file: bool) -> Res
     result.map_err(|error| error.to_string())
 }
 
+fn hidden_entries_path(directory: &Path) -> Result<PathBuf, String> {
+    Ok(safe_directory(directory)?.join(HIDDEN_ENTRIES_FILE))
+}
+
+fn read_hidden_entries(directory: &Path) -> Result<Vec<HiddenEntry>, String> {
+    let path = hidden_entries_path(directory)?;
+    if !path.exists() {
+        return Ok(Vec::new());
+    }
+    let metadata = fs::symlink_metadata(&path).map_err(|_| "無法讀取隱藏紀錄檔")?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return Err("隱藏紀錄檔必須是一般檔案".to_string());
+    }
+    let registry: HiddenRegistry =
+        serde_json::from_slice(&fs::read(path).map_err(|_| "無法讀取隱藏紀錄檔")?)
+            .map_err(|_| "隱藏紀錄檔格式不正確")?;
+    if registry.version != 1 {
+        return Err("不支援的隱藏紀錄檔版本".to_string());
+    }
+    Ok(registry.entries)
+}
+
+fn write_hidden_entries(directory: &Path, entries: Vec<HiddenEntry>) -> Result<(), String> {
+    let path = hidden_entries_path(directory)?;
+    let content = serde_json::to_vec_pretty(&HiddenRegistry {
+        version: 1,
+        entries,
+    })
+    .map_err(|_| "無法建立隱藏紀錄")?;
+    atomic_write(&path, &content, false)
+}
+
 fn external_url(raw: &str) -> Result<Url, String> {
     let url = Url::parse(raw).map_err(|_| "外部連結不正確")?;
     let allowed_host = matches!(
@@ -218,14 +257,20 @@ fn snapshot(state: &AppState) -> Result<Snapshot, String> {
                 .collect()
         })
         .unwrap_or_default();
+    let hidden_entries = data_dir
+        .as_deref()
+        .map(read_hidden_entries)
+        .transpose()?
+        .unwrap_or_default();
     Ok(Snapshot {
         data_dir: data_dir.map(|p| p.display().to_string()),
         can_undo: state
-            .last_delete
+            .last_hide
             .lock()
             .map_err(|_| "程式狀態無法讀取")?
             .is_some(),
         reports,
+        hidden_entries,
     })
 }
 
@@ -249,17 +294,18 @@ fn library_choose_directory(
         let directory = safe_directory(&selected)?;
         save_directory(&app, &directory)?;
         *state.data_dir.lock().map_err(|_| "程式狀態無法寫入")? = Some(directory);
-        *state.last_delete.lock().map_err(|_| "程式狀態無法寫入")? = None;
+        *state.last_hide.lock().map_err(|_| "程式狀態無法寫入")? = None;
     }
     snapshot(&state)
 }
 
 #[tauri::command]
-fn library_delete_entry(
+fn library_hide_entry(
     state: State<'_, AppState>,
     media: String,
     entry_id: String,
-    next_content: String,
+    hide_key: String,
+    title: String,
 ) -> Result<Snapshot, String> {
     if entry_id.len() != 24 || !entry_id.chars().all(|c| c.is_ascii_hexdigit()) {
         return Err("作品識別碼不正確".to_string());
@@ -270,68 +316,57 @@ fn library_delete_entry(
         .map_err(|_| "程式狀態無法讀取")?
         .clone()
         .ok_or_else(|| "尚未選擇資料夾".to_string())?;
-    let filepath = report_path(&directory, &media)?;
-    let original = fs::read(&filepath).map_err(|_| "無法讀取報告檔")?;
-    let backup_dir = directory.join(BACKUP_DIR);
-    fs::create_dir_all(&backup_dir).map_err(|_| "無法建立備份資料夾")?;
-    if fs::symlink_metadata(&backup_dir)
-        .map_err(|_| "無法確認備份資料夾")?
-        .file_type()
-        .is_symlink()
-    {
-        return Err("備份資料夾不可為連結".to_string());
+    report_path(&directory, &media)?;
+    if hide_key.len() > 2000 || title.len() > 500 {
+        return Err("隱藏紀錄內容過長".to_string());
     }
-    let stamp = SystemTime::now()
+    let expected_prefix = format!(r#"["{}","#, media);
+    if !hide_key.starts_with(&expected_prefix) {
+        return Err("作品隱藏識別碼不正確".to_string());
+    }
+    let mut entries = read_hidden_entries(&directory)?;
+    if entries.iter().any(|entry| entry.hide_key == hide_key) {
+        return Err("這部作品已隱藏".to_string());
+    }
+    let hidden_at = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|_| "系統時間不正確")?
-        .as_nanos();
-    let backup_path = backup_dir.join(format!(
-        "{}.{}.{}.bak",
-        report_filename(&media)?,
-        stamp,
-        entry_id
-    ));
-    fs::write(&backup_path, original).map_err(|_| "無法寫入備份")?;
-    atomic_write(&filepath, next_content.as_bytes(), true)?;
-    *state.last_delete.lock().map_err(|_| "程式狀態無法寫入")? = Some(DeleteOperation {
+        .as_secs()
+        .to_string();
+    let record = HiddenEntry {
+        hide_key,
         media,
-        entry_id,
-        filepath,
-        backup_path,
-    });
+        title,
+        hidden_at,
+    };
+    entries.push(record.clone());
+    write_hidden_entries(&directory, entries)?;
+    *state.last_hide.lock().map_err(|_| "程式狀態無法寫入")? = Some(record);
     snapshot(&state)
 }
 
 #[tauri::command]
-fn library_undo_delete(state: State<'_, AppState>) -> Result<Snapshot, String> {
+fn library_undo_hide(state: State<'_, AppState>) -> Result<Snapshot, String> {
     let operation = state
-        .last_delete
+        .last_hide
         .lock()
         .map_err(|_| "程式狀態無法讀取")?
         .clone()
-        .ok_or_else(|| "沒有可復原的刪除操作".to_string())?;
+        .ok_or_else(|| "沒有可復原的隱藏操作".to_string())?;
     let directory = state
         .data_dir
         .lock()
         .map_err(|_| "程式狀態無法讀取")?
         .clone()
         .ok_or_else(|| "尚未選擇資料夾".to_string())?;
-    if operation.filepath != report_path(&directory, &operation.media)?
-        || operation.backup_path.parent() != Some(directory.join(BACKUP_DIR).as_path())
-    {
-        return Err("復原資料不正確".to_string());
+    let mut entries = read_hidden_entries(&directory)?;
+    let original_len = entries.len();
+    entries.retain(|entry| entry.hide_key != operation.hide_key);
+    if entries.len() == original_len {
+        return Err("隱藏紀錄已不存在".to_string());
     }
-    let backup_meta =
-        fs::symlink_metadata(&operation.backup_path).map_err(|_| "刪除備份已不存在")?;
-    if backup_meta.file_type().is_symlink() || !backup_meta.is_file() {
-        return Err("刪除備份不正確".to_string());
-    }
-    atomic_write(
-        &operation.filepath,
-        &fs::read(&operation.backup_path).map_err(|_| "無法讀取刪除備份")?,
-        true,
-    )?;
-    *state.last_delete.lock().map_err(|_| "程式狀態無法寫入")? = None;
+    write_hidden_entries(&directory, entries)?;
+    *state.last_hide.lock().map_err(|_| "程式狀態無法寫入")? = None;
     snapshot(&state)
 }
 
@@ -382,8 +417,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             library_load,
             library_choose_directory,
-            library_delete_entry,
-            library_undo_delete,
+            library_hide_entry,
+            library_undo_hide,
             external_open_urls
         ])
         .run(tauri::generate_context!())
@@ -427,15 +462,17 @@ mod tests {
     }
 
     #[test]
-    fn backup_content_can_restore_a_report() {
+    fn hidden_entries_can_be_written_and_removed_without_changing_report() {
         let temp = report_dir();
         let target = report_path(temp.path(), "games").unwrap();
-        let backups = temp.path().join(BACKUP_DIR);
-        fs::create_dir(&backups).unwrap();
-        let backup = backups.join("遊戲.md.test.bak");
-        fs::copy(&target, &backup).unwrap();
-        atomic_write(&target, b"removed entry", true).unwrap();
-        atomic_write(&target, &fs::read(&backup).unwrap(), true).unwrap();
+        let entry = HiddenEntry {
+            hide_key: r#"["games","123","",0]"#.to_string(),
+            media: "games".to_string(),
+            title: "測試遊戲".to_string(),
+            hidden_at: "1234567890".to_string(),
+        };
+        write_hidden_entries(temp.path(), vec![entry.clone()]).unwrap();
+        assert_eq!(read_hidden_entries(temp.path()).unwrap(), vec![entry]);
         assert_eq!(fs::read_to_string(target).unwrap(), "original");
     }
 
@@ -444,7 +481,7 @@ mod tests {
         let temp = report_dir();
         let state = AppState {
             data_dir: Mutex::new(Some(fs::canonicalize(temp.path()).unwrap())),
-            last_delete: Mutex::new(None),
+            last_hide: Mutex::new(None),
         };
 
         let result = snapshot(&state).unwrap();
@@ -455,5 +492,6 @@ mod tests {
         );
         let serialized = serde_json::to_value(&result).unwrap();
         assert!(serialized.get("gameTags").is_none());
+        assert_eq!(serialized["hiddenEntries"], serde_json::json!([]));
     }
 }

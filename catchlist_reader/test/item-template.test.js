@@ -66,7 +66,7 @@ test("遊戲列把好評率與評論數組合為同一欄", () => {
   assert.match(markup, /測試遊戲[\s\S]*Test Game/);
   assert.match(markup, /class="language-status supported"[^>]+aria-label="支援中文"/);
   assert.equal(markup.includes(">Steam</button>"), false);
-  assert.match(markup, /class="icon-button danger"[^>]+aria-label="刪除 測試遊戲"/);
+  assert.match(markup, /class="icon-button danger"[^>]+aria-label="隱藏 測試遊戲"/);
   assert.ok(markup.indexOf("2026-02-18") < markup.indexOf("92%"));
   assert.ok(markup.indexOf("92%") < markup.indexOf("策略"));
 });

@@ -95,6 +95,15 @@ test("名稱、年份、月份與最低好評率可組合篩選", () => {
   assert.deepEqual(result.map(({ appid }) => appid), ["query-only"]);
 });
 
+test("最低評論數可和其他條件組合篩選", () => {
+  const result = filterAndSortGames(entries, {
+    min: "90",
+    minReviews: "20000",
+  });
+
+  assert.deepEqual(result.map(({ appid }) => appid), ["popular", "newer"]);
+});
+
 test("中文支援狀態可和其他條件組合篩選", () => {
   const supported = filterAndSortGames(entries, { chinese: "supported" });
   const unsupported = filterAndSortGames(entries, { chinese: "unsupported" });

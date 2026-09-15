@@ -14,7 +14,7 @@ const state = {
   active: "games",
   payload: null,
   filters: {
-    games: { query: "", year: "all", month: "all", min: "0", chinese: "all", tags: [], tagsOpen: false, tagQuery: "", tagOptionsExpanded: false },
+    games: { query: "", year: "all", month: "all", min: "0", minReviews: "0", chinese: "all", tags: [], tagsOpen: false, tagQuery: "", tagOptionsExpanded: false },
     anime: { query: "", year: "all", season: "all", min: "0" },
     movies: { query: "", year: "all", category: "all", min: "0" },
   },
@@ -102,10 +102,27 @@ function showCover(url, title) {
   coverDialog.showModal();
 }
 
+function closeCoverFromBackdrop(event) {
+  if (event.target !== coverDialog) return;
+  const bounds = coverDialog.getBoundingClientRect();
+  const outside = event.clientX < bounds.left
+    || event.clientX > bounds.right
+    || event.clientY < bounds.top
+    || event.clientY > bounds.bottom;
+  if (outside) coverDialog.close();
+}
+
+coverDialog.addEventListener("click", closeCoverFromBackdrop);
+
 function scoreOptions(selected, game = false) {
-  const values = game ? [80, 85, 90, 95, 97] : [7, 7.5, 8, 8.5, 9];
+  const values = game ? [85, 90, 95, 97] : [7, 7.5, 8, 8.5, 9];
   const label = game ? "不限好評率" : "不限分數";
   return `<option value="0">${label}</option>${values.map((score) => `<option value="${score}" ${Number(selected) === score ? "selected" : ""}>最低 ${game ? `${score}%` : score.toFixed(1)}</option>`).join("")}`;
+}
+
+function reviewOptions(selected) {
+  const values = [500, 1000, 5000, 10000, 50000];
+  return `<option value="0">評論：不限</option>${values.map((reviews) => `<option value="${reviews}" ${Number(selected) === reviews ? "selected" : ""}>${reviews.toLocaleString()}+</option>`).join("")}`;
 }
 
 function toolbar(data) {
@@ -114,7 +131,7 @@ function toolbar(data) {
   if (state.active === "games") {
     const years = [...new Set(data.entries.map((entry) => entry.year))].filter(Number.isFinite).sort((a, b) => b - a);
     const months = [...new Set(data.entries.map((entry) => entry.month))].filter(Number.isFinite).sort((a, b) => a - b);
-    return `<div class="toolbar games">${search}<select class="field" data-filter="year" aria-label="遊戲年份">${options(years, filter.year, "所有年份")}</select><select class="field" data-filter="month" aria-label="遊戲月份">${options(months, filter.month, "所有月份")}</select><select class="field" data-filter="min" aria-label="最低好評率">${scoreOptions(filter.min, true)}</select><select class="field chinese-filter" data-filter="chinese" aria-label="中文支援"><option value="all" ${filter.chinese === "all" ? "selected" : ""}>中文：全部</option><option value="supported" ${filter.chinese === "supported" ? "selected" : ""}>✓ 支援</option><option value="unsupported" ${filter.chinese === "unsupported" ? "selected" : ""}>× 不支援</option><option value="unknown" ${filter.chinese === "unknown" ? "selected" : ""}>— 待確認</option></select><button class="button tag-toggle" type="button" data-action="toggle-tags" aria-controls="gameTagPanel" aria-expanded="${filter.tagsOpen}">標籤 ${filter.tags.length}</button><button class="button subtle" type="button" data-action="clear-filters">清除篩選</button></div>`;
+    return `<div class="toolbar games">${search}<select class="field" data-filter="year" aria-label="遊戲年份">${options(years, filter.year, "所有年份")}</select><select class="field" data-filter="month" aria-label="遊戲月份">${options(months, filter.month, "所有月份")}</select><select class="field" data-filter="min" aria-label="最低好評率">${scoreOptions(filter.min, true)}</select><select class="field reviews-filter" data-filter="minReviews" aria-label="最低評論數">${reviewOptions(filter.minReviews)}</select><select class="field chinese-filter" data-filter="chinese" aria-label="中文支援"><option value="all" ${filter.chinese === "all" ? "selected" : ""}>中文：全部</option><option value="supported" ${filter.chinese === "supported" ? "selected" : ""}>✓ 支援</option><option value="unsupported" ${filter.chinese === "unsupported" ? "selected" : ""}>× 不支援</option><option value="unknown" ${filter.chinese === "unknown" ? "selected" : ""}>— 待確認</option></select><button class="button tag-toggle" type="button" data-action="toggle-tags" aria-controls="gameTagPanel" aria-expanded="${filter.tagsOpen}">標籤 ${filter.tags.length}</button><button class="button subtle" type="button" data-action="clear-filters">清除篩選</button></div>`;
   }
   const years = [...new Set(data.entries.map((entry) => entry.year))].sort((a, b) => b - a);
   const third = state.active === "anime"
@@ -314,7 +331,7 @@ function syncTagOptionsOverflow() {
 
 function syncGameControls() {
   const filter = state.filters.games;
-  for (const key of ["query", "year", "month", "min", "chinese", "tagQuery"]) {
+  for (const key of ["query", "year", "month", "min", "minReviews", "chinese", "tagQuery"]) {
     const control = app.querySelector(`[data-filter="${key}"]`);
     if (control) control.value = filter[key];
   }
@@ -412,7 +429,7 @@ document.addEventListener("click", async (event) => {
     if (action === "close-tag-panel") { state.filters.games.tagsOpen = false; refreshTagPanel(); }
     if (action === "toggle-tag-options") { state.filters.games.tagOptionsExpanded = !state.filters.games.tagOptionsExpanded; refreshTagPanel(); }
     if (action === "clear-filters") {
-      state.filters.games = { query: "", year: "all", month: "all", min: "0", chinese: "all", tags: [], tagsOpen: state.filters.games.tagsOpen, tagQuery: "", tagOptionsExpanded: false };
+      state.filters.games = { query: "", year: "all", month: "all", min: "0", minReviews: "0", chinese: "all", tags: [], tagsOpen: state.filters.games.tagsOpen, tagQuery: "", tagOptionsExpanded: false };
       state.expandedGameTags.clear();
       syncGameControls();
       refreshGameBrowser();
@@ -423,14 +440,14 @@ document.addEventListener("click", async (event) => {
       await openBatch(entries.map((entry) => state.active === "games" ? entry.url : entry.searchUrl), state.active === "games" ? "開啟目前篩選結果的 Steam 商店頁面" : "使用 Google 搜尋目前篩選結果");
     }
     if (action === "load-more-games") appendNextGameBatch();
-    if (action === "undo") { const result = await window.catchList.undoDelete(); state.payload = result; toast.classList.remove("show"); render(); showToast(`已復原「${result.restored.title}」`); }
+    if (action === "undo") { const result = await window.catchList.undoHide(); state.payload = result; toast.classList.remove("show"); render(); showToast(`已重新顯示「${result.restored.title}」`); }
     const openUrl = event.target.closest("[data-open]")?.dataset.open;
     if (openUrl) await window.catchList.openUrls([openUrl]);
-    const entryId = event.target.closest("[data-delete]")?.dataset.delete;
+    const entryId = event.target.closest("[data-hide]")?.dataset.hide;
     if (entryId) {
       const entry = library().entries.find((item) => item.id === entryId);
-      const confirmed = await ask({ eyebrow: "刪除作品", title: `刪除「${entry.title}」？`, message: "這筆資料會從 Markdown 真正刪除。系統會先備份，刪除後可立即復原。", confirm: "刪除", danger: true });
-      if (confirmed) { state.payload = await window.catchList.deleteEntry(state.active, entryId); render(); showToast(`已刪除「${entry.title}」`, true); }
+      const confirmed = await ask({ eyebrow: "隱藏作品", title: `隱藏「${entry.title}」？`, message: "作品會從閱讀器隱藏，Markdown 原始資料不會刪除。隱藏後可立即復原。", confirm: "隱藏", danger: true });
+      if (confirmed) { state.payload = await window.catchList.hideEntry(state.active, entryId); render(); showToast(`已隱藏「${entry.title}」`, true); }
     }
   } catch (error) { showToast(error.message); }
 });

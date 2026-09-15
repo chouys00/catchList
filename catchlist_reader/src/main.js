@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { deleteEntry, hasReportFiles, loadAllLibraries, undoDelete } from "./library.js";
+import { hasReportFiles, hideEntry, loadAllLibraries, undoHide } from "./library.js";
 import { GameCoverCache, GameCoverService } from "./game-cover-cache.js";
 import { resolveSteamCover } from "./steam-covers.js";
 
@@ -12,7 +12,7 @@ const isolatedUserDataDir = process.env.CATCHLIST_USER_DATA_DIR?.trim();
 if (isolatedUserDataDir) app.setPath("userData", path.resolve(isolatedUserDataDir));
 let mainWindow;
 let dataDir;
-let lastDelete;
+let lastHide;
 let gameCoverService;
 
 function settingsPath() {
@@ -49,7 +49,7 @@ function initialDirectory() {
 function snapshot() {
   return {
     dataDir,
-    canUndo: Boolean(lastDelete),
+    canUndo: Boolean(lastHide),
     libraries: dataDir ? loadAllLibraries(dataDir) : [],
   };
 }
@@ -80,18 +80,18 @@ function registerIpc() {
     if (!hasReportFiles(selected)) throw new Error("這個資料夾找不到遊戲.md、動畫.md 或電影.md");
     dataDir = selected;
     saveDirectory(dataDir);
-    lastDelete = null;
+    lastHide = null;
     return snapshot();
   });
-  ipcMain.handle("library:delete-entry", (_event, media, entryId) => {
+  ipcMain.handle("library:hide-entry", (_event, media, entryId) => {
     if (!dataDir) throw new Error("尚未選擇資料夾");
-    lastDelete = deleteEntry(dataDir, media, entryId);
+    lastHide = hideEntry(dataDir, media, entryId);
     return snapshot();
   });
-  ipcMain.handle("library:undo-delete", () => {
-    if (!lastDelete) throw new Error("沒有可復原的刪除操作");
-    const restored = undoDelete(lastDelete);
-    lastDelete = null;
+  ipcMain.handle("library:undo-hide", () => {
+    if (!lastHide) throw new Error("沒有可復原的隱藏操作");
+    const restored = undoHide(dataDir, lastHide);
+    lastHide = null;
     return { ...snapshot(), restored };
   });
   ipcMain.handle("library:resolve-game-covers", (_event, appids) => {

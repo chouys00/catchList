@@ -7,6 +7,7 @@ export const MEDIA_CONFIG = {
   anime: { label: "動畫", filename: "動畫.md", unit: "部" },
   movies: { label: "電影", filename: "電影.md", unit: "部" },
 };
+export const HIDDEN_ENTRIES_FILE = ".catchlist-hidden.json";
 const MISSING_COMMUNITY_TAGS = "尚未補齊社群標籤";
 
 function clean(value) {
@@ -56,6 +57,12 @@ function parseVoteCount(raw) {
 function finalizeEntry(media, section, raw, occurrence, range, fields) {
   return {
     id: createId(media, section.key, raw, occurrence),
+    hideKey: JSON.stringify([
+      media,
+      media === "games" ? fields.appid : section.key,
+      media === "games" ? "" : fields.title,
+      media === "games" ? 0 : occurrence,
+    ]),
     media,
     sectionKey: section.key,
     periodLabel: section.label,
@@ -221,7 +228,7 @@ export function resolveReportPath(dataDir, media) {
   return target;
 }
 
-export function loadLibrary(dataDir, media) {
+export function loadLibrary(dataDir, media, hiddenKeys) {
   const filepath = resolveReportPath(dataDir, media);
   if (!fs.existsSync(filepath)) {
     return {
@@ -236,23 +243,23 @@ export function loadLibrary(dataDir, media) {
   const content = fs.readFileSync(filepath, "utf8");
   const parsed = parseReport(media, content);
   const stat = fs.statSync(filepath);
+  const effectiveHiddenKeys = hiddenKeys ?? new Set(readHiddenEntries(dataDir).map((entry) => entry.hideKey));
   return {
     ...MEDIA_CONFIG[media],
     media,
     filepath,
     exists: true,
     updatedAt: stat.mtime.toISOString(),
-    entries: parsed.entries.map(({ lineStart, lineEnd, ...entry }) => entry),
+    entries: parsed.entries
+      .filter((entry) => !effectiveHiddenKeys.has(entry.hideKey))
+      .map(({ lineStart, lineEnd, ...entry }) => entry),
     sections: parsed.sections,
   };
 }
 
 export function loadAllLibraries(dataDir) {
-  return Object.keys(MEDIA_CONFIG).map((media) => loadLibrary(dataDir, media));
-}
-
-function timestamp() {
-  return new Date().toISOString().replace(/[:.]/g, "-");
+  const hiddenKeys = new Set(readHiddenEntries(dataDir).map((entry) => entry.hideKey));
+  return Object.keys(MEDIA_CONFIG).map((media) => loadLibrary(dataDir, media, hiddenKeys));
 }
 
 function atomicWrite(filepath, content) {
@@ -266,7 +273,30 @@ function atomicWrite(filepath, content) {
   }
 }
 
-export function deleteEntry(dataDir, media, entryId) {
+export function readHiddenEntries(dataDir) {
+  const filepath = path.join(path.resolve(dataDir), HIDDEN_ENTRIES_FILE);
+  if (!fs.existsSync(filepath)) return [];
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(filepath, "utf8"));
+  } catch {
+    throw new Error("隱藏紀錄檔格式不正確");
+  }
+  if (parsed?.version !== 1 || !Array.isArray(parsed.entries)) {
+    throw new Error("隱藏紀錄檔格式不正確");
+  }
+  return parsed.entries.filter((entry) =>
+    entry && typeof entry.hideKey === "string" && MEDIA_CONFIG[entry.media]
+  );
+}
+
+function writeHiddenEntries(dataDir, entries) {
+  const filepath = path.join(path.resolve(dataDir), HIDDEN_ENTRIES_FILE);
+  atomicWrite(filepath, `${JSON.stringify({ version: 1, entries }, null, 2)}\n`);
+  return filepath;
+}
+
+export function hideEntry(dataDir, media, entryId) {
   const filepath = resolveReportPath(dataDir, media);
   if (!fs.existsSync(filepath)) throw new Error(`找不到 ${MEDIA_CONFIG[media].filename}`);
   const original = fs.readFileSync(filepath, "utf8");
@@ -274,29 +304,29 @@ export function deleteEntry(dataDir, media, entryId) {
   const entry = parsed.entries.find((item) => item.id === entryId);
   if (!entry) throw new Error("作品已變更或不存在，請重新載入清單");
 
-  const backupDir = path.join(path.resolve(dataDir), ".catchlist-backups");
-  fs.mkdirSync(backupDir, { recursive: true });
-  const backupPath = path.join(backupDir, `${MEDIA_CONFIG[media].filename}.${timestamp()}.${entry.id}.bak`);
-  fs.copyFileSync(filepath, backupPath, fs.constants.COPYFILE_EXCL);
-
-  const nextLines = [...parsed.lines];
-  nextLines.splice(entry.lineStart, entry.lineEnd - entry.lineStart);
-  atomicWrite(filepath, nextLines.join(parsed.eol));
+  const entries = readHiddenEntries(dataDir);
+  if (entries.some((item) => item.hideKey === entry.hideKey)) {
+    throw new Error("這部作品已隱藏");
+  }
+  const hiddenAt = new Date().toISOString();
+  const record = { hideKey: entry.hideKey, media, title: entry.title, hiddenAt };
+  const hiddenFilepath = writeHiddenEntries(dataDir, [...entries, record]);
   return {
     media,
     entryId,
     title: entry.title,
-    filepath,
-    backupPath,
-    deletedAt: new Date().toISOString(),
+    hideKey: entry.hideKey,
+    hiddenFilepath,
+    hiddenAt,
   };
 }
 
-export function undoDelete(operation) {
-  if (!operation?.filepath || !operation?.backupPath) throw new Error("沒有可復原的刪除操作");
-  if (!fs.existsSync(operation.backupPath)) throw new Error("刪除備份已不存在");
-  const content = fs.readFileSync(operation.backupPath, "utf8");
-  atomicWrite(operation.filepath, content);
+export function undoHide(dataDir, operation) {
+  if (!operation?.hideKey) throw new Error("沒有可復原的隱藏操作");
+  const entries = readHiddenEntries(dataDir);
+  const nextEntries = entries.filter((entry) => entry.hideKey !== operation.hideKey);
+  if (nextEntries.length === entries.length) throw new Error("隱藏紀錄已不存在");
+  writeHiddenEntries(dataDir, nextEntries);
   return { media: operation.media, title: operation.title };
 }
 

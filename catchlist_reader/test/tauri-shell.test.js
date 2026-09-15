@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { gameDisplayTags, parseReport, removeEntry, shouldShowPeriodRail } from "../src/tauri-shell/library.js";
+import { gameDisplayTags, parseReport, shouldShowPeriodRail } from "../src/tauri-shell/library.js";
 import { createBridge } from "../src/tauri-shell/tauri-bridge.js";
 
 const anime = `2025  春  >7.70    (更新時間: 2025-07-01)\n\n- 測試動畫  **8.20**  (12 · TV)\n------------------------------\n`;
@@ -50,19 +50,16 @@ test("Tauri 遊戲同日期同分數時依評論數再依標題排序", async ()
   assert.deepEqual(sortEntriesForMedia("games", entries).map((entry) => entry.id), ["popular", "alpha", "beta"]);
 });
 
-test("Tauri 刪除重複動畫時保留區段標題", () => {
+test("Tauri 重複動畫具有各自的跨後端隱藏識別碼", () => {
   const duplicateAnime = anime.replace("------------------------------", "- 測試動畫  **8.20**  (12 · TV)\n------------------------------");
   const report = parseReport("anime", duplicateAnime);
-  const next = removeEntry("anime", duplicateAnime, report.entries[1].id);
-  assert.match(next, /^2025  春  >7\.70/m);
-  assert.equal((next.match(/測試動畫/g) ?? []).length, 1);
+  assert.notEqual(report.entries[0].hideKey, report.entries[1].hideKey);
+  assert.equal(report.entries[1].hideKey, '["anime","2025-春","測試動畫",1]');
 });
 
-test("Tauri 刪除四行遊戲紀錄時一併移除標籤", () => {
+test("Tauri 遊戲使用 AppID 作為跨後端隱藏識別碼", () => {
   const report = parseReport("games", games);
-  const next = removeEntry("games", games, report.entries[0].id);
-  assert.match(next, /^2025  9月/m);
-  assert.doesNotMatch(next, /測試遊戲|牌組製作/);
+  assert.equal(report.entries[0].hideKey, '["games","123456","",0]');
 });
 
 test("橋接層只需報告內容，不再接收獨立遊戲標籤檔", async () => {
@@ -75,7 +72,20 @@ test("橋接層只需報告內容，不再接收獨立遊戲標籤檔", async ()
   const bridge = createBridge(async (command, args) => { calls.push({ command, args }); return snapshot; });
   const loaded = await bridge.load();
   assert.deepEqual(loaded.libraries[0].entries[0].tags, ["牌組製作", "策略"]);
-  await bridge.deleteEntry("games", loaded.libraries[0].entries[0].id, loaded.libraries[0]);
-  assert.deepEqual(calls.map((item) => item.command), ["library_load", "library_delete_entry"]);
-  assert.doesNotMatch(calls[1].args.nextContent, /測試遊戲|牌組製作/);
+  const entry = loaded.libraries[0].entries[0];
+  await bridge.hideEntry("games", entry);
+  assert.deepEqual(calls.map((item) => item.command), ["library_load", "library_hide_entry"]);
+  assert.deepEqual(calls[1].args, { media: "games", entryId: entry.id, hideKey: entry.hideKey, title: "測試遊戲" });
+  assert.match(snapshot.reports[0].content, /測試遊戲|牌組製作/);
+});
+
+test("橋接層依隱藏紀錄排除作品且保留 Markdown 內容", async () => {
+  const parsed = parseReport("games", games).entries[0];
+  const snapshot = { dataDir: "C:\\CatchList", canUndo: true, hiddenEntries: [{ hideKey: parsed.hideKey }], reports: [
+    { media: "games", filename: "遊戲.md", exists: true, content: games },
+  ] };
+  const bridge = createBridge(async () => snapshot);
+  const loaded = await bridge.load();
+  assert.equal(loaded.libraries[0].entries.length, 0);
+  assert.equal(loaded.libraries[0].content, games);
 });

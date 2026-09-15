@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { deleteEntry, loadLibrary, parseReport, undoDelete } from "../src/library.js";
+import { hideEntry, loadLibrary, parseReport, readHiddenEntries, undoHide } from "../src/library.js";
 
 const anime = `2025  春  >7.70    (更新時間: 2025-07-01)\n\n- 測試動畫  **8.20**  (12 · TV)\n- 測試動畫  **8.20**  (12 · TV)\n------------------------------\n`;
 const movies = `2025  9月  >7.00    (更新時間: 2026-07-01  最低投票門檻: 30,000 票)\n\n- 測試電影  **8.15**  \`(IMDb: 8.3 | 一般外國片 (-0.15) | 144k票)\`\n------------------------------\n`;
@@ -79,28 +79,48 @@ test("2026-02 fixture 保留正式報告的七筆遊戲欄位", () => {
   ]);
 });
 
-test("刪除指定重複動畫並保留區段標題", () => {
+test("隱藏指定重複動畫時保留 Markdown 並可復原", () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "catchlist-reader-"));
   const filepath = path.join(directory, "動畫.md");
   fs.writeFileSync(filepath, anime, "utf8");
   const entries = loadLibrary(directory, "anime").entries;
-  const operation = deleteEntry(directory, "anime", entries[1].id);
-  const afterDelete = fs.readFileSync(filepath, "utf8");
-  assert.match(afterDelete, /^2025  春  >7\.70/m);
-  assert.equal((afterDelete.match(/測試動畫/g) ?? []).length, 1);
-  undoDelete(operation);
+  const operation = hideEntry(directory, "anime", entries[1].id);
   assert.equal(fs.readFileSync(filepath, "utf8"), anime);
+  assert.equal(loadLibrary(directory, "anime").entries.length, 1);
+  undoHide(directory, operation);
+  assert.equal(fs.readFileSync(filepath, "utf8"), anime);
+  assert.equal(readHiddenEntries(directory).length, 0);
 });
 
-test("刪除四行遊戲紀錄時不殘留社群標籤並可完整復原", () => {
+test("隱藏遊戲只寫入隱藏紀錄，不修改四行遊戲資料", () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "catchlist-reader-"));
   const filepath = path.join(directory, "遊戲.md");
   fs.writeFileSync(filepath, games, "utf8");
   const entry = loadLibrary(directory, "games").entries[0];
-  const operation = deleteEntry(directory, "games", entry.id);
-  assert.doesNotMatch(fs.readFileSync(filepath, "utf8"), /測試遊戲|牌組製作/);
-  undoDelete(operation);
+  const operation = hideEntry(directory, "games", entry.id);
   assert.equal(fs.readFileSync(filepath, "utf8"), games);
+  const records = readHiddenEntries(directory);
+  assert.deepEqual(records.map(({ media, title }) => ({ media, title })), [{ media: "games", title: "測試遊戲" }]);
+  assert.equal(loadLibrary(directory, "games").entries.length, 0);
+  undoHide(directory, operation);
+  assert.equal(loadLibrary(directory, "games").entries.length, 1);
+});
+
+test("隱藏紀錄會套用到三種清單的整體載入", async () => {
+  const { loadAllLibraries } = await import("../src/library.js");
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "catchlist-reader-"));
+  fs.writeFileSync(path.join(directory, "動畫.md"), anime, "utf8");
+  fs.writeFileSync(path.join(directory, "電影.md"), movies, "utf8");
+  fs.writeFileSync(path.join(directory, "遊戲.md"), games, "utf8");
+  for (const media of ["anime", "movies", "games"]) {
+    const entry = loadLibrary(directory, media).entries[0];
+    hideEntry(directory, media, entry.id);
+  }
+  assert.deepEqual(loadAllLibraries(directory).map((library) => [library.media, library.entries.length]), [
+    ["games", 0],
+    ["anime", 1],
+    ["movies", 0],
+  ]);
 });
 
 test("動畫與電影載入結果不混入 tags", () => {

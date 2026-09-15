@@ -26,4 +26,4 @@ npm run reader:build
 
 可攜版會輸出到 `catchlist_reader/dist/`。正式使用時，把 EXE 放到三份 Markdown 的同一資料夾。
 
-刪除作品前會在資料資料夾的 `.catchlist-backups/` 建立備份；閱讀器內可復原最後一次刪除。
+隱藏作品時會把紀錄寫入資料資料夾的 `.catchlist-hidden.json`，不會修改 Markdown 報告；閱讀器內可立即復原最後一次隱藏。

@@ -245,7 +245,25 @@ async function runCoverUpdateTest(address) {
       itemCount: document.querySelectorAll('.item.games').length,
       hasLoadedCover: Boolean(document.querySelector('.item.games .game-cover img')),
     })`);
-    return { initial, afterUpdate };
+    const backdropDismiss = await window.webContents.executeJavaScript(`(async () => {
+      const tick = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
+      const dialog = document.querySelector('#coverDialog');
+      document.querySelector('.item.games .game-cover')?.click();
+      await tick();
+      const opened = dialog?.open === true;
+      document.querySelector('#coverImage')?.click();
+      await tick();
+      const imageKeepsOpen = dialog?.open === true;
+      const bounds = dialog.getBoundingClientRect();
+      dialog.dispatchEvent(new MouseEvent('click', {
+        bubbles: true,
+        clientX: Math.max(0, bounds.left - 5),
+        clientY: Math.max(0, bounds.top - 5),
+      }));
+      await tick();
+      return { opened, imageKeepsOpen, closedFromBackdrop: dialog?.open === false };
+    })()`);
+    return { initial, afterUpdate, backdropDismiss };
   } finally {
     window.destroy();
   }

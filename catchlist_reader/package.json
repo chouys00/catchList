@@ -1,6 +1,6 @@
 {
   "name": "catchlist-reader",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "description": "CatchList 動畫、電影與遊戲 Markdown 桌面閱讀器",
   "type": "module",

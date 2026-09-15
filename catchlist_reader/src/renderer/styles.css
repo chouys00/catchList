@@ -47,7 +47,7 @@ button { color: inherit; }
 .section-status strong { color: var(--ink); font-family: var(--serif); font-size: 20px; font-weight: 500; }
 
 .toolbar { display: grid; grid-template-columns: minmax(180px, 1.5fr) repeat(2, minmax(130px, .7fr)) auto; gap: 8px; margin: 14px 0; }
-.toolbar.games { grid-template-columns: minmax(220px, 1.8fr) repeat(3, minmax(106px, .62fr)) minmax(100px, .5fr) minmax(92px, auto) auto; }
+.toolbar.games { grid-template-columns: minmax(190px, 1.6fr) repeat(4, minmax(108px, .58fr)) minmax(100px, .52fr) minmax(92px, auto) auto; }
 .field { width: 100%; min-height: 38px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); color: var(--ink); padding: 0 12px; outline: none; }
 .field:focus { border-color: var(--lime); box-shadow: 0 0 0 2px color-mix(in srgb, var(--lime) 18%, transparent); }
 .button { min-height: 38px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); padding: 0 14px; cursor: pointer; }
@@ -91,7 +91,7 @@ button.game-tag:hover { border-color: var(--muted); color: var(--ink); }
 
 .list { border-top: 1px solid var(--line); }
 .game-column-header,
-.item.games { grid-template-columns: 124px minmax(210px, 1.45fr) 92px 44px 112px minmax(180px, 1.25fr) 44px; }
+.item.games { grid-template-columns: 140px minmax(210px, 1.45fr) 92px 44px 112px minmax(180px, 1.25fr) 44px; }
 .game-column-header { display: grid; gap: 14px; align-items: end; padding: 10px 8px 8px; color: var(--dim); font-size: 10px; font-weight: 700; letter-spacing: .1em; }
 .game-column-header .center { text-align: center; }
 .game-load-sentinel { display: flex; justify-content: center; align-items: center; gap: 12px; min-height: 88px; color: var(--muted); font-size: 12px; }
@@ -102,7 +102,7 @@ button.game-tag:hover { border-color: var(--muted); color: var(--ink); }
 .item.games::before { content: ""; position: absolute; inset: 7px auto 7px 0; width: 2px; background: var(--lime); opacity: 0; transform: scaleY(.45); transition: opacity 140ms ease, transform 140ms ease; }
 .item.games:hover { background: color-mix(in srgb, var(--surface-2) 62%, transparent); }
 .item.games:hover::before { opacity: 1; transform: scaleY(1); }
-.game-cover { width: 124px; aspect-ratio: 460 / 215; margin: 0; padding: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); }
+.game-cover { width: 140px; aspect-ratio: 460 / 215; margin: 0; padding: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); }
 button.game-cover { display: block; cursor: zoom-in; }
 button.game-cover:hover { border-color: var(--lime); }
 .game-cover-loading { background: linear-gradient(100deg, var(--surface-2) 20%, #292e2a 45%, var(--surface-2) 70%); }

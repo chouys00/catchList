@@ -74,5 +74,5 @@ if (location.protocol.startsWith("http") && !window.catchList) {
       window.__releasePreviewCovers.push(() => resolve(Object.fromEntries(appids.map((appid) => [appid, `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/header_tchinese.jpg`]))));
     })
     : undefined;
-  window.catchList = { load: async () => payload, chooseDirectory: async () => payload, openUrls: async (urls) => { window.__catchListOpenUrlCalls.push(urls); return true; }, deleteEntry: async () => payload, undoDelete: async () => ({ ...payload, restored: { title: "示範作品" } }), resolveGameCovers };
+  window.catchList = { load: async () => payload, chooseDirectory: async () => payload, openUrls: async (urls) => { window.__catchListOpenUrlCalls.push(urls); return true; }, hideEntry: async () => payload, undoHide: async () => ({ ...payload, restored: { title: "示範作品" } }), resolveGameCovers };
 }
