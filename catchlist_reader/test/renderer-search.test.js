@@ -38,7 +38,7 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
     railCount: 0,
     itemCount: 7,
     gamesLayout: false,
-    openLabel: "開啟目前結果",
+    openLabel: null,
     hideCount: 7,
     hasReviewFilter: true,
     scoreOptions: ["0", "85", "90", "95", "97"],
@@ -155,7 +155,8 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
   assert.deepEqual(result.largeGameBatch.afterSecondAppend, { itemCount: 150, firstNodePreserved: true, fiftiethNodePreserved: true });
   assert.deepEqual(result.largeGameBatch.afterFilter, { itemCount: 50, resultCount: "1000 筆結果" });
   assert.equal(result.largeGameBatch.oversizedOpen.calls, 0);
-  assert.match(result.largeGameBatch.oversizedOpen.toast, /一次最多開啟 50 個連結/);
+  assert.equal(result.largeGameBatch.oversizedOpen.buttonExists, false);
+  assert.equal(result.largeGameBatch.oversizedOpen.toast, "");
   assert.deepEqual(result.largeGameBatch.horizontalOverflow, { desktop: false, mobile: false });
   assert.deepEqual(result.coverUpdate.initial, { requestCount: 1, firstRequestSize: 50, itemCount: 50 });
   assert.deepEqual(result.coverUpdate.afterUpdate, { firstRowPreserved: true, itemCount: 50, hasLoadedCover: true });

@@ -1,5 +1,5 @@
 {
-  "minimumVersion": "1.0.14",
+  "minimumVersion": "1.0.16",
   "officialRuntime": "electron-portable",
   "requiredFeatures": [
     "liveAction",
@@ -10,6 +10,7 @@
     "favorites",
     "hiddenManagement",
     "updateStatus",
-    "backToTop"
+    "backToTop",
+    "manualGames"
   ]
 }

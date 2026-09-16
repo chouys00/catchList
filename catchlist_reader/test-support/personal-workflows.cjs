@@ -66,7 +66,7 @@ app.whenReady().then(async () => {
   await win.loadFile(path.join(readerRoot, "src/renderer/index.html"));
   await until("document.querySelectorAll('.item.games').length === 7");
   assert.equal(await js("document.querySelector('#advancedFilters').hidden"), true);
-  assert.ok(await js("document.querySelector('.list').getBoundingClientRect().top < 210"), "桌面首筆結果應位於 210px 內");
+  assert.ok(await js("document.querySelector('.list').getBoundingClientRect().top < 240"), "桌面首筆結果應位於 240px 內，包含新增的工具列留白");
   await capture("compact-desktop");
   const select = (key, value) => js(`(() => { const el = document.querySelector('[data-filter="${key}"]'); el.value = '${value}'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
   await select("sort", "score");
@@ -83,11 +83,11 @@ app.whenReady().then(async () => {
   visitFixture.media.games.keys.pop();
   fs.writeFileSync(historyPath, JSON.stringify(visitFixture));
   visits = new VisitHistory();
-  await click('[data-action="reload"]');
+  await click('[data-media="anime"]'); await click('[data-media="games"]');
   await until("document.querySelector('.new-filter span').textContent === '1'");
   await click('[data-action="toggle-new"]');
   assert.equal(await js("document.querySelectorAll('.item').length"), 1);
-  await click('[data-action="reload"]');
+  await click('[data-media="anime"]'); await click('[data-media="games"]');
   assert.equal(await js("document.querySelectorAll('.item').length"), 1);
   await click('[data-media="anime"]');
   await click('[data-media="games"]');
@@ -131,10 +131,11 @@ app.whenReady().then(async () => {
   win.setContentSize(1440, 900);
   await new Promise((resolve) => setTimeout(resolve, 100));
   assert.match(await js("document.querySelector('.update-panel summary').textContent"), /1 類更新失敗/);
+  const listTopBeforeDetails = await js("document.querySelector('.list').getBoundingClientRect().top");
   await click(".update-panel summary");
   assert.equal(await js("document.querySelectorAll('.update-row').length"), 4);
   assert.match(await js("document.querySelector('.update-details').textContent"), /新增 7 筆/);
-  assert.ok(await js("document.querySelector('.list').getBoundingClientRect().top < 210"), "更新詳情不可推擠列表");
+  assert.equal(await js("document.querySelector('.list').getBoundingClientRect().top"), listTopBeforeDetails, "更新詳情不可推擠列表");
   await js("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))");
   assert.equal(await js("document.querySelector('.update-panel').open"), false);
 
@@ -214,7 +215,7 @@ app.whenReady().then(async () => {
   }
   await click('[data-action="toggle-new"]');
   fs.writeFileSync(historyPath, "broken");
-  await click('[data-action="reload"]');
+  await click('[data-media="anime"]'); await click('[data-media="games"]');
   await until("document.querySelector('.new-filter').disabled");
   assert.equal(await js("document.querySelectorAll('.item.games').length"), 7);
   assert.equal(await js("document.querySelector('.new-filter').getAttribute('aria-pressed')"), "false");

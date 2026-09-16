@@ -80,7 +80,7 @@ test("真人劇列顯示年度、地區與 IMDb 資訊", () => {
 test("遊戲列把好評率與評論數組合為同一欄", () => {
   const markup = renderItemTemplate(game, "games");
 
-  assert.match(markup, /^<article class="item games"><button class="game-cover" type="button" data-cover=/);
+  assert.match(markup, /^<article class="item games" data-game-row="123456"><button class="game-cover" type="button" data-cover=/);
   assert.match(markup, /<img src="https:\/\/shared\.akamai\.steamstatic\.com\/store_item_assets\/steam\/apps\/123456\/hash\/header_tchinese\.jpg\?t=1" alt="遊戲封面：測試遊戲">/);
   assert.match(markup, /<span class="rating"><strong>92%<\/strong><small>\(18,452\)<\/small><\/span>/);
   assert.match(markup, /class="title game-title-link"[^>]+data-open="https:\/\/example\.com\/game"/);

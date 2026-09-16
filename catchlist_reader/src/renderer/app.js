@@ -1,4 +1,5 @@
 import { collectTagOptionsFromIndex, createTagIndex, filterAndSortGames } from "./game-browser.js";
+import { openManualGamePanel } from "./manual-game-panel.js";
 import { renderItemTemplate } from "./item-template.js";
 import { viewNavigation, hiddenListMarkup, updateStatusMarkup } from "./personal-ui.js";
 
@@ -21,7 +22,7 @@ const state = {
   mutationPending: false,
   payload: null,
   filters: {
-    games: { query: "", year: "all", month: "all", min: "0", minReviews: "0", chinese: "all", tags: [], tagsOpen: false, tagQuery: "", tagOptionsExpanded: false },
+    games: { manualOnly: "all", query: "", year: "all", month: "all", min: "0", minReviews: "0", chinese: "all", tags: [], tagsOpen: false, tagQuery: "", tagOptionsExpanded: false },
     anime: { query: "", year: "all", season: "all", min: "0" },
     movies: { query: "", year: "all", category: "all", min: "0" },
     liveAction: { query: "", year: "all", region: "all" },
@@ -147,7 +148,7 @@ function advancedToolbar(data) {
   if (state.active === "games") {
     const years = [...new Set(data.entries.map((entry) => entry.year))].filter(Number.isFinite).sort((a, b) => b - a);
     const months = [...new Set(data.entries.map((entry) => entry.month))].filter(Number.isFinite).sort((a, b) => a - b);
-    return `<div class="toolbar games">${search}<select class="field" data-filter="year" aria-label="遊戲年份">${options(years, filter.year, "所有年份")}</select><select class="field" data-filter="month" aria-label="遊戲月份">${options(months, filter.month, "所有月份")}</select><select class="field" data-filter="min" aria-label="最低好評率">${scoreOptions(filter.min, true)}</select><select class="field reviews-filter" data-filter="minReviews" aria-label="最低評論數">${reviewOptions(filter.minReviews)}</select><select class="field chinese-filter" data-filter="chinese" aria-label="中文支援"><option value="all" ${filter.chinese === "all" ? "selected" : ""}>中文：全部</option><option value="supported" ${filter.chinese === "supported" ? "selected" : ""}>✓ 支援</option><option value="unsupported" ${filter.chinese === "unsupported" ? "selected" : ""}>× 不支援</option><option value="unknown" ${filter.chinese === "unknown" ? "selected" : ""}>— 待確認</option></select><button class="button tag-toggle" type="button" data-action="toggle-tags" aria-controls="gameTagPanel" aria-expanded="${filter.tagsOpen}">標籤 ${filter.tags.length}</button><button class="button subtle" type="button" data-action="clear-filters">清除篩選</button></div>`;
+    return `<div class="toolbar games">${search}<select class="field" data-filter="year" aria-label="遊戲年份">${options(years, filter.year, "所有年份")}</select><select class="field" data-filter="month" aria-label="遊戲月份">${options(months, filter.month, "所有月份")}</select><select class="field" data-filter="min" aria-label="最低好評率">${scoreOptions(filter.min, true)}</select><select class="field reviews-filter" data-filter="minReviews" aria-label="最低評論數">${reviewOptions(filter.minReviews)}</select><select class="field chinese-filter" data-filter="chinese" aria-label="中文支援"><option value="all" ${filter.chinese === "all" ? "selected" : ""}>中文：全部</option><option value="supported" ${filter.chinese === "supported" ? "selected" : ""}>✓ 支援</option><option value="unsupported" ${filter.chinese === "unsupported" ? "selected" : ""}>× 不支援</option><option value="unknown" ${filter.chinese === "unknown" ? "selected" : ""}>— 待確認</option></select><select class="field" data-filter="manualOnly" aria-label="收錄來源"><option value="all" ${filter.manualOnly !== "manual" ? "selected" : ""}>來源：全部</option><option value="manual" ${filter.manualOnly === "manual" ? "selected" : ""}>只看手動加入</option></select><button class="button tag-toggle" type="button" data-action="toggle-tags" aria-controls="gameTagPanel" aria-expanded="${filter.tagsOpen}">標籤 ${filter.tags.length}</button><button class="button subtle" type="button" data-action="clear-filters">清除篩選</button></div>`;
   }
   const years = [...new Set(data.entries.map((entry) => entry.year))].sort((a, b) => b - a);
   if (state.active === "liveAction") {
@@ -162,7 +163,7 @@ function advancedToolbar(data) {
 
 function activeFilterCount() {
   const filter = state.filters[state.active];
-  return ["year", "month", "season", "category", "region", "min", "minReviews", "chinese"]
+  return ["year", "month", "season", "category", "region", "min", "minReviews", "chinese", "manualOnly"]
     .filter((key) => filter[key] && !["all", "0"].includes(filter[key])).length + (filter.tags?.length ?? 0);
 }
 
@@ -172,7 +173,7 @@ function toolbar(data, count, openLabel) {
     : [["score", "評分最高"], ["date", "年份最新"], ...(state.active === "anime" ? [] : [["reviews", "票數最多"]])];
   const selected = filter.sort ?? (state.active === "games" ? "date" : "score");
   const newCount = data.entries.filter((entry) => entry.isNew && (state.view !== "favorites" || entry.favorite)).length;
-  return `<div class="browse-toolbar"><input class="field search" data-filter="query" value="${escapeHtml(filter.query)}" placeholder="${mediaCopy[state.active].search}" aria-label="搜尋名稱"><select class="field sort-field" data-filter="sort" aria-label="排序方式">${sorts.map(([key, label]) => `<option value="${key}" ${key === selected ? "selected" : ""}>${label}</option>`).join("")}</select><button class="button new-filter" type="button" data-action="toggle-new" aria-pressed="${Boolean(filter.newOnly)}" ${state.payload.visitWarning ? "disabled" : ""} title="本次來訪新增的作品；第一次使用先建立基準">新收錄 <span>${newCount}</span></button><button class="button filter-toggle" type="button" data-action="toggle-filters" aria-controls="advancedFilters" aria-expanded="${state.filtersOpen}">篩選${activeFilterCount() ? ` · ${activeFilterCount()}` : ""}</button><span class="result-count" data-result-count>${count} 筆結果</span><button class="button subtle batch-open" data-action="open-filtered" ${count ? "" : "disabled"}>${openLabel}</button></div><section id="advancedFilters" aria-label="進階篩選" ${state.filtersOpen ? "" : "hidden"}>${advancedToolbar(data)}${state.active === "games" ? gameTagPanel() : '<button class="button subtle" type="button" data-action="clear-filters">清除篩選</button>'}</section>`;
+  return `<div class="browse-toolbar${state.active === "games" ? " games-toolbar" : ""}"><input class="field search" data-filter="query" value="${escapeHtml(filter.query)}" placeholder="${mediaCopy[state.active].search}" aria-label="搜尋名稱"><select class="field sort-field" data-filter="sort" aria-label="排序方式">${sorts.map(([key, label]) => `<option value="${key}" ${key === selected ? "selected" : ""}>${label}</option>`).join("")}</select><button class="button new-filter" type="button" data-action="toggle-new" aria-pressed="${Boolean(filter.newOnly)}" ${state.payload.visitWarning ? "disabled" : ""} title="本次來訪新增的作品；第一次使用先建立基準">新收錄 <span>${newCount}</span></button><button class="button filter-toggle" type="button" data-action="toggle-filters" aria-controls="advancedFilters" aria-expanded="${state.filtersOpen}">篩選${activeFilterCount() ? ` · ${activeFilterCount()}` : ""}</button><span class="result-count" data-result-count>${count} 筆結果</span>${state.active === "games" ? "" : `<button class="button subtle batch-open" data-action="open-filtered" ${count ? "" : "disabled"}>${openLabel}</button>`}</div><section id="advancedFilters" aria-label="進階篩選" ${state.filtersOpen ? "" : "hidden"}>${advancedToolbar(data)}${state.active === "games" ? gameTagPanel() : '<button class="button subtle" type="button" data-action="clear-filters">清除篩選</button>'}</section>`;
 }
 
 function syncFilterSummary() {
@@ -310,10 +311,12 @@ function refreshResults({ hydrateCovers = true, resetGames = true } = {}) {
   const count = app.querySelector("[data-result-count]");
   const openFiltered = app.querySelector('[data-action="open-filtered"]');
   const list = app.querySelector(".list");
-  if (!count || !openFiltered || !list) return;
+  if (!count || !list) return;
   count.textContent = `${entries.length} 筆結果`;
-  openFiltered.disabled = entries.length === 0;
-  openFiltered.textContent = state.active === "games" ? "開啟目前結果" : state.active === "liveAction" ? `開啟目前結果 ${entries.length}` : `搜尋目前結果 ${entries.length}`;
+  if (openFiltered) {
+    openFiltered.disabled = entries.length === 0;
+    openFiltered.textContent = state.active === "liveAction" ? `開啟目前結果 ${entries.length}` : `搜尋目前結果 ${entries.length}`;
+  }
   if (state.active === "games") {
     if (resetGames) state.visibleGameCount = GAME_BATCH_SIZE;
     list.innerHTML = gameListMarkup(entries);
@@ -373,7 +376,7 @@ function syncTagOptionsOverflow() {
 
 function syncGameControls() {
   const filter = state.filters[state.active];
-  for (const key of ["query", "year", "month", "season", "category", "region", "min", "minReviews", "chinese", "tagQuery"]) {
+  for (const key of ["query", "year", "month", "season", "category", "region", "min", "minReviews", "chinese", "tagQuery", "manualOnly"]) {
     const control = app.querySelector(`[data-filter="${key}"]`);
     if (control) control.value = filter[key];
   }
@@ -402,7 +405,8 @@ function render() {
   const hidden = (state.payload.hiddenEntries ?? []).filter((entry) => entry.media === state.active);
   const navigation = viewNavigation(state.view, state.active, data.entries, hidden.length);
   const update = updateStatusMarkup(state.payload, state.active, state.statusOpen);
-  const heading = `<div class="browse-heading">${navigation}${update}<button class="button subtle reload-button" type="button" data-action="reload">重新讀取</button></div>`;
+  const operations = state.active === "games" ? `<button class="button add-game-button" type="button" data-action="add-game" ${data.warning ? "disabled" : ""}><span aria-hidden="true">＋</span>新增遊戲</button>` : "";
+  const heading = `<div class="browse-heading">${navigation}<div class="browse-tools">${update}${operations}</div></div>${data.warning ? `<p class="status-warning" role="alert">${escapeHtml(data.warning)}</p>` : ""}`;
   stopGameAutoLoad();
   if (state.view === "hidden") {
     const result = hiddenListMarkup(hidden, state.hiddenQuery);
@@ -412,7 +416,7 @@ function render() {
   const entries = filteredEntries();
   const isGames = state.active === "games";
   if (isGames) syncGameTagViewport();
-  const openLabel = isGames ? "開啟目前結果" : state.active === "liveAction" ? `開啟目前結果 ${entries.length}` : `搜尋目前結果 ${entries.length}`;
+  const openLabel = state.active === "liveAction" ? `開啟目前結果 ${entries.length}` : `搜尋目前結果 ${entries.length}`;
   stopGameAutoLoad();
   app.innerHTML = `<div class="layout"><section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1>${heading}${toolbar(data, entries.length, openLabel)}${state.payload.visitWarning ? `<p class="status-warning" role="alert">${escapeHtml(state.payload.visitWarning)}</p>` : ""}${state.filters[state.active].newOnly ? '<p class="new-note">顯示本次來訪新增的作品。首次使用先建立基準；重新讀取不會清除本次標記。</p>' : ""}${isGames ? gameColumnHeader() : ""}<div class="list">${isGames ? gameListMarkup(entries) : entriesMarkup(entries)}</div></section></div>`;
   if (isGames) {
@@ -502,6 +506,9 @@ document.addEventListener("click", async (event) => {
   }
   const action = event.target.closest("[data-action]")?.dataset.action;
   try {
+    if (action === "add-game" && state.active === "games") {
+      openManualGamePanel({ onSaved: (payload) => { const y = window.scrollY; state.payload = payload; toast.classList.remove("show"); render(); window.scrollTo({ top: y, behavior: "instant" }); }, onView: viewGame });
+    }
     if (action === "toggle-filters") {
       state.filtersOpen = !state.filtersOpen;
       app.querySelector("#advancedFilters").hidden = !state.filtersOpen;
@@ -509,7 +516,6 @@ document.addEventListener("click", async (event) => {
       if (state.filtersOpen && state.active === "games") syncTagOptionsOverflow();
     }
     if (action === "toggle-new") { state.filters[state.active].newOnly = !state.filters[state.active].newOnly; render(); }
-    if (action === "reload" && await load()) showToast("已重新讀取資料");
     const favoriteId = event.target.closest("[data-favorite]")?.dataset.favorite;
     const restoreKey = event.target.closest("[data-restore]")?.dataset.restore;
     if (favoriteId || restoreKey) {
@@ -539,16 +545,16 @@ document.addEventListener("click", async (event) => {
     if (action === "toggle-tag-options") { state.filters.games.tagOptionsExpanded = !state.filters.games.tagOptionsExpanded; refreshTagPanel(); }
     if (action === "clear-filters") {
       const filter = state.filters[state.active];
-      Object.assign(filter, { query: "", year: "all", month: "all", season: "all", category: "all", region: "all", min: "0", minReviews: "0", chinese: "all", tags: [], tagQuery: "", tagOptionsExpanded: false });
+      Object.assign(filter, { manualOnly: "all", query: "", year: "all", month: "all", season: "all", category: "all", region: "all", min: "0", minReviews: "0", chinese: "all", tags: [], tagQuery: "", tagOptionsExpanded: false });
       state.expandedGameTags.clear();
       syncGameControls();
       if (state.active === "games") refreshGameBrowser(); else refreshResults();
       app.querySelector('[data-filter="query"]')?.focus();
     }
-    if (action === "open-filtered") {
+    if (action === "open-filtered" && state.active !== "games") {
       const entries = filteredEntries();
-      const urls = entries.map((entry) => state.active === "games" || state.active === "liveAction" ? entry.url : entry.searchUrl);
-      const label = state.active === "games" ? "開啟目前篩選結果的 Steam 商店頁面" : state.active === "liveAction" ? "開啟目前篩選結果的 IMDb 或 Google 頁面" : "使用 Google 搜尋目前篩選結果";
+      const urls = entries.map((entry) => state.active === "liveAction" ? entry.url : entry.searchUrl);
+      const label = state.active === "liveAction" ? "開啟目前篩選結果的 IMDb 或 Google 頁面" : "使用 Google 搜尋目前篩選結果";
       await openBatch(urls, label);
     }
     if (action === "load-more-games") appendNextGameBatch();
@@ -564,7 +570,7 @@ document.addEventListener("click", async (event) => {
     const deleteEntryId = event.target.closest("[data-delete]")?.dataset.delete;
     if (deleteEntryId) {
       const entry = library().entries.find((item) => item.id === deleteEntryId);
-      const confirmed = await ask({ eyebrow: "真正刪除作品", title: `真正刪除「${entry.title}」？`, message: "這會從 Markdown 永久移除作品資料，且不會建立備份或提供復原。", confirm: "真正刪除", danger: true });
+      const confirmed = await ask({ eyebrow: "真正刪除作品", title: `真正刪除「${entry.title}」？`, message: entry.manualAdded ? (entry.reportSource ? "這會同時從遊戲.md 與手動清單永久移除這款遊戲，不提供復原。" : "這會從手動清單永久移除這款遊戲，不提供復原。") : "這會從 Markdown 永久移除作品資料，且不會建立備份或提供復原。", confirm: "真正刪除", danger: true });
       if (confirmed) { state.payload = await window.catchList.deleteEntry(state.active, deleteEntryId); render(); showToast(`已真正刪除「${entry.title}」`); }
     }
   } catch (error) { showToast(error.message); }
@@ -630,6 +636,17 @@ document.addEventListener("keydown", (event) => {
   const panel = app.querySelector(".update-panel");
   if (panel?.open) { panel.open = false; state.statusOpen = false; panel.querySelector("summary").focus(); }
 });
+
+function viewGame(appid) {
+  state.view = "all";
+  Object.assign(state.filters.games, { query: "", year: "all", month: "all", min: "0", minReviews: "0", chinese: "all", tags: [], tagQuery: "", manualOnly: "all", newOnly: false });
+  const index = filteredEntries().findIndex((entry) => entry.appid === appid);
+  state.visibleGameCount = Math.max(GAME_BATCH_SIZE, Math.ceil((index + 1) / GAME_BATCH_SIZE) * GAME_BATCH_SIZE);
+  render();
+  const row = app.querySelector(`[data-game-row="${CSS.escape(appid)}"]`);
+  row?.scrollIntoView({ block: "center", behavior: "instant" });
+  row?.querySelector(".game-title-link")?.focus({ preventScroll: true });
+}
 
 syncBackToTop();
 load();

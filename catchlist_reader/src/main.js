@@ -8,6 +8,7 @@ import { loadUpdateStatus } from "./update-status.js";
 import { GameCoverCache, GameCoverService } from "./game-cover-cache.js";
 import { resolveSteamCover } from "./steam-covers.js";
 import { VisitHistory } from "./visit-history.js";
+import { ManualGameService } from "./manual-game-service.js";
 
 const sourceDir = path.dirname(fileURLToPath(import.meta.url));
 const isolatedUserDataDir = process.env.CATCHLIST_USER_DATA_DIR?.trim();
@@ -17,6 +18,7 @@ let dataDir;
 let lastOperation;
 let gameCoverService;
 const visits = new VisitHistory();
+const manualGames = new ManualGameService();
 let activeMedia = "games";
 
 function settingsPath() {
@@ -77,7 +79,18 @@ function validExternalUrl(raw) {
 }
 
 function registerIpc() {
+  ipcMain.handle("games:preview", (_event, input) => {
+    if (!dataDir || activeMedia !== "games") throw new Error("請先開啟遊戲頁並選擇資料夾");
+    return manualGames.prepare(dataDir, input);
+  });
+  ipcMain.handle("games:cancel-preview", () => { manualGames.cancel(); });
+  ipcMain.handle("games:add", (_event, token) => {
+    if (!dataDir || activeMedia !== "games") throw new Error("請先開啟遊戲頁");
+    const appid = manualGames.commit(dataDir, token);
+    return { ...snapshot(), addedAppid: appid };
+  });
   ipcMain.handle("library:load", (_event, media) => {
+    if (media !== "games") manualGames.cancel();
     if (["games", "anime", "movies", "liveAction"].includes(media)) activeMedia = media;
     return snapshot();
   });
@@ -99,7 +112,8 @@ function registerIpc() {
     });
     if (result.canceled) return snapshot();
     const selected = result.filePaths[0];
-    if (!hasReportFiles(selected)) throw new Error("這個資料夾找不到遊戲.md、動畫.md、電影.md 或真人劇年度.md");
+    if (!hasReportFiles(selected)) throw new Error("這個資料夾找不到 CatchList 報告或手動遊戲清單");
+    manualGames.cancel();
     dataDir = selected;
     saveDirectory(dataDir);
     lastOperation = null;

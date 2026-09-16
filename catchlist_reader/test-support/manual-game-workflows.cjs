@@ -1,0 +1,128 @@
+// 真實 Chromium、正式 preload 與資料服務；Steam 回應固定，僅寫隔離資料。
+const { app, BrowserWindow, ipcMain, session } = require("electron");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const assert = require("node:assert/strict");
+const { pathToFileURL } = require("node:url");
+const root = path.resolve(process.env.CATCHLIST_TEST_READER_ROOT || path.join(__dirname, ".."));
+const temp = fs.mkdtempSync(path.join(os.tmpdir(), "catchlist-manual-ui-"));
+app.setPath("userData", path.join(temp, "profile"));
+const deadline = setTimeout(() => { console.error("手動收錄互動測試逾時"); app.exit(1); }, 55000);
+app.whenReady().then(async () => {
+  const lib = await import(pathToFileURL(path.join(root, "src/library.js")));
+  const { ManualGameService } = await import(pathToFileURL(path.join(root, "src/manual-game-service.js")));
+  const { VisitHistory } = await import(pathToFileURL(path.join(root, "src/visit-history.js")));
+  const visits = new VisitHistory(); let active = "games"; let now = Date.now();
+  const game = (appid) => ({ appid, title: "朋友推薦的未發售遊戲：很長的遊戲名稱也要完整顯示", releaseDate: null, releaseLabel: "即將推出", score: null, reviews: 0, tags: ["探索", "合作"], genres: ["冒險"], chineseSupport: "unknown", fetchedAt: new Date().toISOString(), warnings: [] });
+  const service = new ManualGameService({ now: () => now += 2000, lookup: async (appid) => {
+    if (appid === "999") throw new Error("Steam 暫時限制請求，請稍後重試");
+    if (appid === "777") await new Promise((resolve) => setTimeout(resolve, 150));
+    return game(appid);
+  } });
+  const fixture = fs.readFileSync(path.join(__dirname, "../test-data/steam-tags-2026-02/遊戲.md"), "utf8");
+  fs.writeFileSync(path.join(temp, "遊戲.md"), fixture);
+  const snapshot = () => ({ dataDir: temp, appVersion: JSON.parse(fs.readFileSync(path.join(root, "package.json"))).version, ...visits.annotate(temp, lib.loadAllLibraries(temp), active), hiddenEntries: lib.loadHiddenEntries(temp) });
+  ipcMain.handle("library:load", (_, media) => { active = media; return snapshot(); });
+  ipcMain.handle("games:preview", (_, input) => service.prepare(temp, input));
+  ipcMain.handle("games:cancel-preview", () => service.cancel());
+  ipcMain.handle("games:add", (_, token) => { const addedAppid = service.commit(temp, token); return { ...snapshot(), addedAppid }; });
+  ipcMain.handle("library:set-favorite", (_, media, id, value) => { lib.setFavorite(temp, media, id, value); return snapshot(); });
+  ipcMain.handle("library:hide-entry", (_, media, id) => { lib.hideEntry(temp, media, id); return snapshot(); });
+  ipcMain.handle("library:restore-hidden", (_, key) => { lib.restoreHiddenEntry(temp, key); return snapshot(); });
+  ipcMain.handle("library:delete-entry", (_, media, id) => { lib.deleteEntry(temp, media, id); return snapshot(); });
+  ipcMain.handle("library:resolve-game-covers", () => ({}));
+  ipcMain.handle("external:open-urls", () => { throw new Error("測試不得開啟外部連結"); });
+  session.defaultSession.webRequest.onBeforeRequest({ urls: ["https://*/*", "http://*/*"] }, (_, callback) => callback({ cancel: true }));
+  const win = new BrowserWindow({ show: false, width: 1440, height: 900, webPreferences: { preload: path.join(root, "src/preload.cjs"), contextIsolation: true, sandbox: true } });
+  const js = (code) => win.webContents.executeJavaScript(code);
+  const until = async (code) => { for (let i = 0; i < 120; i++) { if (await js(code)) return; await new Promise((r) => setTimeout(r, 25)); } throw new Error(`等待畫面逾時：${code}`); };
+  const click = async (selector) => { await js(`document.querySelector(${JSON.stringify(selector)}).click()`); };
+  const fill = (selector, value) => js(`(() => { const input = document.querySelector(${JSON.stringify(selector)}); input.value = ${JSON.stringify(value)}; input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  const select = (key, value) => js(`(() => { const input = document.querySelector('[data-filter="${key}"]'); input.value = '${value}'; input.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  const capture = async (name) => {
+    if (!process.env.CATCHLIST_QA_DIR) return;
+    await new Promise((r) => setTimeout(r, 220));
+    fs.mkdirSync(process.env.CATCHLIST_QA_DIR, { recursive: true });
+    fs.writeFileSync(path.join(process.env.CATCHLIST_QA_DIR, `${name}.png`), (await win.webContents.capturePage()).toPNG());
+  };
+  const openPanel = async () => { await click('[data-action="add-game"]'); await until('document.querySelector("#manualGameDialog")?.open'); };
+  const preview = async (appid) => { await fill("#steamGameInput", appid); await js('document.querySelector("#manualGameLookup").requestSubmit()'); await until('!document.querySelector("[data-panel-save]").disabled'); };
+  await win.loadFile(path.join(root, "src/renderer/index.html"));
+  await until('document.querySelectorAll(".item.games").length === 7');
+  assert.equal(await js('!!document.querySelector("[data-action=reload]")'), false);
+  const spacing = await js(`(() => { const heading = document.querySelector('.browse-heading').getBoundingClientRect(); const update = document.querySelector('.update-panel').getBoundingClientRect(); const button = document.querySelector('[data-action=add-game]').getBoundingClientRect(); return { bottom: heading.bottom - button.bottom, gap: button.left - update.right }; })()`);
+  assert.ok(spacing.bottom >= 14 && spacing.gap >= 24, JSON.stringify(spacing));
+  await capture("header-desktop");
+  await openPanel();
+  await until("document.querySelector('#manualGameDialog').getAnimations().every((animation) => animation.playState === 'finished')");
+  const inputPoint = await js("(() => { const r = document.querySelector('#steamGameInput').getBoundingClientRect(); return { x: Math.round(r.left + 20), y: Math.round(r.top + 20) }; })()");
+  win.webContents.sendInputEvent({ type: "mouseDown", ...inputPoint, button: "left", clickCount: 1 });
+  win.webContents.sendInputEvent({ type: "mouseUp", ...inputPoint, button: "left", clickCount: 1 });
+  assert.equal(await js('document.querySelector("#manualGameDialog").open'), true);
+  win.webContents.sendInputEvent({ type: "mouseDown", x: 100, y: 200, button: "left", clickCount: 1 });
+  win.webContents.sendInputEvent({ type: "mouseUp", x: 100, y: 200, button: "left", clickCount: 1 });
+  await until('!document.querySelector("#manualGameDialog")');
+  assert.equal(await js('document.activeElement.matches("[data-action=add-game]")'), true);
+  assert.equal(await js('!!document.querySelector(".batch-open")'), false);
+  await fill('[data-filter="query"]', "不會找到的文字"); assert.equal(await js('document.querySelectorAll(".item.games").length'), 0);
+  await openPanel(); await preview("123");
+  assert.equal(fs.existsSync(path.join(temp, ".catchlist-manual-games.json")), false);
+  await capture("manual-preview-desktop");
+  for (const width of [1440, 1024, 390]) {
+    win.setContentSize(width, 900);
+    await until(`innerWidth === ${width} && document.querySelector('#manualGameDialog').getAnimations().every((animation) => animation.playState === 'finished')`);
+    const bounds = await js(`(() => { const p = document.querySelector('#manualGameDialog'); const r = p.getBoundingClientRect(); const b = p.querySelector('[data-panel-save]').getBoundingClientRect(); return { left: r.left, right: r.right, width: innerWidth, overflow: p.scrollWidth > p.clientWidth, buttonBottom: b.bottom, height: innerHeight }; })()`);
+    assert.ok(bounds.left >= -1 && bounds.right <= bounds.width + 1); assert.equal(bounds.overflow, false); assert.ok(bounds.buttonBottom <= bounds.height);
+    await capture(`manual-panel-${width}`);
+  }
+  await click('[data-panel-save]'); await until('document.querySelector("[data-panel-save]").textContent === "查看新增遊戲"');
+  assert.equal(await js('document.querySelector("[data-filter=query]").value'), "不會找到的文字");
+  await click('[data-panel-save]'); await until('!document.querySelector("#manualGameDialog")');
+  assert.ok(await js('!!document.querySelector("[data-game-row=\\"123\\"] .manual-source")'));
+  assert.equal(await js('document.querySelector("[data-filter=query]").value'), "");
+  await click('[data-game-row="123"] [data-favorite]'); await until('document.querySelector("[data-game-row=\\"123\\"] [data-favorite]").getAttribute("aria-pressed") === "true"');
+  await click('[data-game-row="123"] [data-hide]'); await until('document.querySelector("#confirmDialog").open'); await click('#dialogConfirm');
+  await until('!document.querySelector("[data-game-row=\\"123\\"]")');
+  await openPanel(); await preview("123"); assert.equal(await js('document.querySelector("[data-panel-save]").textContent'), "恢復並查看");
+  await click('[data-panel-save]'); await until('!document.querySelector("#manualGameDialog")');
+  assert.equal(await js('document.querySelector("[data-game-row=\\"123\\"] [data-favorite]").getAttribute("aria-pressed")'), "true");
+  await click('[data-action="toggle-filters"]'); await select("manualOnly", "manual"); assert.equal(await js('document.querySelectorAll(".item.games").length'), 1);
+  await select("min", "85"); assert.equal(await js('document.querySelectorAll(".item.games").length'), 0);
+  await click('[data-action="clear-filters"]'); assert.equal(await js('document.querySelectorAll(".item.games").length'), 8);
+  for (const width of [1440, 1024, 390]) {
+    win.setContentSize(width, 900); await js('window.scrollTo(0, 0)'); await new Promise((r) => setTimeout(r, 100));
+    assert.equal(await js('document.documentElement.scrollWidth > innerWidth'), false);
+    await capture(`manual-list-${width}`);
+  }
+  await openPanel(); await preview("123"); assert.equal(await js('document.querySelector("[data-panel-save]").textContent'), "查看遊戲");
+  await click('[data-panel-close]'); await until('!document.querySelector("#manualGameDialog")');
+  await openPanel(); await fill('#steamGameInput', "777"); await js('document.querySelector("#manualGameLookup").requestSubmit()');
+  await click('[data-panel-close]');
+  assert.equal(await js('!!document.querySelector("#manualGameDialog")'), false);
+  assert.equal(lib.loadLibrary(temp, "games").entries.length, 8);
+  // 不等待舊回應，立刻重新開啟；舊面板 close 事件不得取消這次預覽。
+  await openPanel(); await preview("123");
+  await new Promise((r) => setTimeout(r, 200));
+  assert.equal(await js('document.querySelector("[data-panel-save]").textContent'), "查看遊戲");
+  await fill('#steamGameInput', "999"); await js('document.querySelector("#manualGameLookup").requestSubmit()');
+  await until('document.querySelector(".manual-status").classList.contains("failed")');
+  await capture("manual-error-mobile");
+  win.webContents.sendInputEvent({ type: "keyDown", keyCode: "Escape" }); win.webContents.sendInputEvent({ type: "keyUp", keyCode: "Escape" });
+  await until('!document.querySelector("#manualGameDialog")');
+  for (const media of ["anime", "movies", "liveAction"]) {
+    await click(`[data-media="${media}"]`); await until(`document.querySelector('[data-media="${media}"]').classList.contains('active')`);
+    assert.equal(await js('!!document.querySelector("[data-action=add-game], [data-filter=manualOnly], #manualGameDialog")'), false);
+    assert.equal(await js('!!document.querySelector(".batch-open")'), true);
+  }
+  await click('[data-media="games"]'); await until('!!document.querySelector("[data-action=add-game]")');
+  win.reload(); await until('document.querySelectorAll(".item.games").length === 8');
+  assert.equal(lib.loadLibrary(temp, "games").entries.find((e) => e.appid === "123").favorite, true);
+  assert.equal(fs.readFileSync(path.join(temp, "遊戲.md"), "utf8"), fixture);
+  await click('[data-game-row="123"] [data-delete]'); await until('document.querySelector("#confirmDialog").open');
+  assert.match(await js('document.querySelector("#dialogMessage").textContent'), /手動清單/);
+  await click('#dialogConfirm'); await until('!document.querySelector("[data-game-row=\\"123\\"]")');
+  assert.equal(lib.loadLibrary(temp, "games").entries.length, 7);
+  console.log(JSON.stringify({ success: true, widths: [1440, 1024, 390], reportUnchanged: true, manualFlows: true }));
+  clearTimeout(deadline); win.destroy(); app.exit(0);
+}).catch((error) => { console.error(error); clearTimeout(deadline); app.exit(1); });

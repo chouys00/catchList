@@ -203,6 +203,7 @@ async function runLargeGameBatchTest(address) {
     await window.webContents.executeJavaScript(`document.querySelector('[data-action="open-filtered"]')?.click()`);
     await new Promise((resolve) => setTimeout(resolve, 50));
     const oversizedOpen = await window.webContents.executeJavaScript(`({
+      buttonExists: !!document.querySelector('[data-action="open-filtered"]'),
       calls: window.__catchListOpenUrlCalls.length,
       toast: document.querySelector('#toast')?.textContent?.trim() ?? null,
     })`);

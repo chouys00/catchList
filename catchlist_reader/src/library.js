@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { MANUAL_GAMES_FILE, readManualGames, manualEntry, manualJson, commitGameFiles, recoverGameTransaction, readOptional } from "./manual-games.js";
 
 export const MEDIA_CONFIG = {
   games: { label: "遊戲", filename: "遊戲.md", unit: "款" },
@@ -272,9 +273,29 @@ export function resolveReportPath(dataDir, media) {
   return target;
 }
 
+export function sourceEntries(dataDir, media, { strict = false } = {}) {
+  if (media === "games") recoverGameTransaction(dataDir);
+  const filepath = resolveReportPath(dataDir, media);
+  const content = readOptional(filepath);
+  const parsed = parseReport(media, content ?? "");
+  if (media !== "games") return { ...parsed, exists: content !== null };
+  let manual = [];
+  let warning = null;
+  try { manual = readManualGames(dataDir).entries; } catch (error) { if (strict) throw error; warning = error.message; }
+  const merged = new Map(manual.map((record) => [record.appid, manualEntry(record)]));
+  for (const entry of parsed.entries) {
+    const previous = merged.get(entry.appid);
+    // 報告若重複收錄同款，以第一筆為準，個人狀態仍以 AppID 識別。
+    if (previous?.reportSource) continue;
+    merged.set(entry.appid, { ...entry, reportSource: true, manualAdded: Boolean(previous?.manualAdded), addedAt: previous?.addedAt });
+  }
+  return { ...parsed, entries: [...merged.values()], warning, exists: content !== null || manual.length > 0 };
+}
+
 export function loadLibrary(dataDir, media, hiddenKeys, favorites) {
   const filepath = resolveReportPath(dataDir, media);
-  if (!fs.existsSync(filepath)) {
+  const parsed = sourceEntries(dataDir, media);
+  if (!parsed.exists && !parsed.warning) {
     return {
       ...MEDIA_CONFIG[media],
       media,
@@ -282,19 +303,19 @@ export function loadLibrary(dataDir, media, hiddenKeys, favorites) {
       exists: false,
       entries: [],
       sections: [],
+      knownKeys: [],
     };
   }
-  const content = fs.readFileSync(filepath, "utf8");
-  const parsed = parseReport(media, content);
-  const stat = fs.statSync(filepath);
+  const stat = fs.existsSync(filepath) ? fs.statSync(filepath) : null;
   const effectiveHiddenKeys = hiddenKeys ?? new Set(readHiddenEntries(dataDir).map((entry) => entry.hideKey));
   const favoriteKeys = favorites ?? new Set(readFavorites(dataDir).map((entry) => entry.key));
   return {
     ...MEDIA_CONFIG[media],
     media,
     filepath,
-    exists: true,
-    updatedAt: stat.mtime.toISOString(),
+    exists: parsed.exists,
+    warning: parsed.warning,
+    updatedAt: stat?.mtime.toISOString() ?? null,
     knownKeys: [...new Set(parsed.entries.map((entry) => entry.hideKey))],
     entries: parsed.entries
       .filter((entry) => !effectiveHiddenKeys.has(entry.hideKey))
@@ -324,8 +345,7 @@ export function readFavorites(dataDir) {
 
 export function setFavorite(dataDir, media, entryId, favorite) {
   if (typeof favorite !== "boolean") throw new Error("收藏狀態不正確");
-  const filepath = resolveReportPath(dataDir, media);
-  const entry = parseReport(media, fs.readFileSync(filepath, "utf8")).entries.find((item) => item.id === entryId);
+  const entry = sourceEntries(dataDir, media).entries.find((item) => item.id === entryId);
   if (!entry) throw new Error("作品已變更或不存在，請重新載入清單");
   const records = readFavorites(dataDir);
   const exists = records.some((record) => record.key === entry.hideKey);
@@ -341,8 +361,7 @@ export function loadHiddenEntries(dataDir) {
   const byMedia = new Map();
   return records.map((record) => {
     if (!byMedia.has(record.media)) {
-      const filepath = resolveReportPath(dataDir, record.media);
-      const entries = fs.existsSync(filepath) ? parseReport(record.media, fs.readFileSync(filepath, "utf8")).entries : [];
+      const entries = sourceEntries(dataDir, record.media).entries;
       byMedia.set(record.media, new Map(entries.map((entry) => [entry.hideKey, entry])));
     }
     const entry = byMedia.get(record.media).get(record.hideKey);
@@ -390,10 +409,7 @@ function writeHiddenEntries(dataDir, entries) {
 }
 
 export function hideEntry(dataDir, media, entryId) {
-  const filepath = resolveReportPath(dataDir, media);
-  if (!fs.existsSync(filepath)) throw new Error(`找不到 ${MEDIA_CONFIG[media].filename}`);
-  const original = fs.readFileSync(filepath, "utf8");
-  const parsed = parseReport(media, original);
+  const parsed = sourceEntries(dataDir, media);
   const entry = parsed.entries.find((item) => item.id === entryId);
   if (!entry) throw new Error("作品已變更或不存在，請重新載入清單");
 
@@ -424,6 +440,23 @@ export function undoHide(dataDir, operation) {
 }
 
 export function deleteEntry(dataDir, media, entryId) {
+  if (media === "games") {
+    const entry = sourceEntries(dataDir, media, { strict: true }).entries.find((item) => item.id === entryId);
+    if (!entry) throw new Error("作品已變更或不存在，請重新載入清單");
+    const changes = [];
+    if (entry.reportSource) {
+      const before = fs.readFileSync(resolveReportPath(dataDir, media), "utf8");
+      const parsed = parseReport(media, before);
+      for (const item of parsed.entries.filter((item) => item.appid === entry.appid).sort((a, b) => b.lineStart - a.lineStart)) parsed.lines.splice(item.lineStart, item.lineEnd - item.lineStart);
+      changes.push({ name: "遊戲.md", before, after: parsed.lines.join(parsed.eol) });
+    }
+    if (entry.manualAdded) {
+      const manual = readManualGames(dataDir);
+      changes.push({ name: MANUAL_GAMES_FILE, before: manual.raw, after: manualJson(manual.entries.filter((item) => item.appid !== entry.appid)) });
+    }
+    commitGameFiles(dataDir, changes);
+    return { media, entryId, title: entry.title };
+  }
   const filepath = resolveReportPath(dataDir, media);
   if (!fs.existsSync(filepath)) throw new Error(`找不到 ${MEDIA_CONFIG[media].filename}`);
   const original = fs.readFileSync(filepath, "utf8");
@@ -439,5 +472,5 @@ export function deleteEntry(dataDir, media, entryId) {
 
 export function hasReportFiles(directory) {
   if (!directory || !fs.existsSync(directory)) return false;
-  return Object.values(MEDIA_CONFIG).some(({ filename }) => fs.existsSync(path.join(directory, filename)));
+  return fs.existsSync(path.join(directory, MANUAL_GAMES_FILE)) || Object.values(MEDIA_CONFIG).some(({ filename }) => fs.existsSync(path.join(directory, filename)));
 }
