@@ -5,15 +5,16 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { deleteEntry, hideEntry, loadLibrary, parseReport, readHiddenEntries, undoHide } from "../src/library.js";
+import { deleteEntry, hideEntry, loadLibrary, parseReport, readHiddenEntries, undoHide, setFavorite, readFavorites, loadHiddenEntries, restoreHiddenEntry } from "../src/library.js";
 
 const anime = `2025  春  >7.70    (更新時間: 2025-07-01)\n\n- 測試動畫  **8.20**  (12 · TV)\n- 測試動畫  **8.20**  (12 · TV)\n------------------------------\n`;
 const movies = `2025  9月  >7.00    (更新時間: 2026-07-01  最低投票門檻: 30,000 票)\n\n- 測試電影  **8.15**  \`(IMDb: 8.3 | 一般外國片 (-0.15) | 144k票)\`\n------------------------------\n`;
 const games = `2025  9月  (更新時間: 2026-03-01)\n\n- **測試遊戲** (Test Game) [AppID: 123456 | 中文支援: 支援中文 | 🎮]\n  2025-09-02 | 97% (12,345) | 動作, 獨立製作\n  社群標籤: 牌組製作, 策略, 輕度 Rogue\n  https://store.steampowered.com/app/123456\n\n------------------------------\n`;
+const liveAction = `# 真人劇年度必看\n\n2025  全年度  (整理時間: 2026-09-15)\n\n## 韓劇\n- [測試韓劇](https://www.imdb.com/title/tt1234567/)：8.2／10（7,526 票）\n- 資料不足劇：IMDb：資料不足\n\n## 日劇\n- [測試日劇](https://www.imdb.com/title/tt7654321/)：7.9／10（907 票）\n\n------------------------------\n`;
 const missingTags = games.replace("牌組製作, 策略, 輕度 Rogue", "尚未補齊社群標籤");
 const steamTagsFixtureDir = fileURLToPath(new URL("../test-data/steam-tags-2026-02/", import.meta.url));
 
-test("解析三種報告與外部連結", () => {
+test("解析四種報告與外部連結", () => {
   const animeEntries = parseReport("anime", anime).entries;
   assert.equal(animeEntries.length, 2);
   assert.notEqual(animeEntries[0].id, animeEntries[1].id);
@@ -26,6 +27,15 @@ test("解析三種報告與外部連結", () => {
   assert.deepEqual(game.genres, ["動作", "獨立製作"]);
   assert.deepEqual(game.tags, ["牌組製作", "策略", "輕度 Rogue"]);
   assert.equal(game.chineseSupport, "supported");
+  const shows = parseReport("liveAction", liveAction).entries;
+  assert.equal(shows.length, 3);
+  assert.deepEqual(shows.map(({ title, region, imdbScore, votes }) => ({ title, region, imdbScore, votes })), [
+    { title: "測試韓劇", region: "韓劇", imdbScore: 8.2, votes: 7526 },
+    { title: "資料不足劇", region: "韓劇", imdbScore: null, votes: null },
+    { title: "測試日劇", region: "日劇", imdbScore: 7.9, votes: 907 },
+  ]);
+  assert.equal(new URL(shows[0].url).hostname, "www.imdb.com");
+  assert.equal(new URL(shows[1].url).searchParams.get("q"), "資料不足劇 真人劇");
 });
 
 test("中文支援徽章解析支援、不支援與待確認三種狀態", () => {
@@ -117,7 +127,7 @@ test("真正刪除會直接移除 Markdown 作品，不建立備份", () => {
   assert.equal(fs.existsSync(path.join(directory, ".catchlist-backups")), false);
 });
 
-test("隱藏紀錄會套用到三種清單的整體載入", async () => {
+test("隱藏紀錄會套用到所有清單的整體載入", async () => {
   const { loadAllLibraries } = await import("../src/library.js");
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "catchlist-reader-"));
   fs.writeFileSync(path.join(directory, "動畫.md"), anime, "utf8");
@@ -131,10 +141,71 @@ test("隱藏紀錄會套用到三種清單的整體載入", async () => {
     ["games", 0],
     ["anime", 1],
     ["movies", 0],
+    ["liveAction", 0],
   ]);
 });
 
 test("動畫與電影載入結果不混入 tags", () => {
   assert.equal("tags" in parseReport("anime", anime).entries[0], false);
   assert.equal("tags" in parseReport("movies", movies).entries[0], false);
+});
+
+test("四類收藏獨立持久化，重讀與評分更新後保留，不修改報告", () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "catchlist-favorites-"));
+  for (const [media, filename, content] of [["games", "遊戲.md", games], ["anime", "動畫.md", anime], ["movies", "電影.md", movies], ["liveAction", "真人劇年度.md", liveAction]]) {
+    const filepath = path.join(directory, filename);
+    fs.writeFileSync(filepath, content);
+    const entry = loadLibrary(directory, media).entries[0];
+    setFavorite(directory, media, entry.id, true);
+    setFavorite(directory, media, entry.id, true);
+    assert.equal(fs.readFileSync(filepath, "utf8"), content);
+    assert.equal(loadLibrary(directory, media).entries[0].favorite, true);
+    fs.writeFileSync(filepath, content.replace("97%", "96%").replace("**8.20**", "**8.30**").replace("**8.15**", "**8.25**").replace("8.2／10", "8.3／10"));
+    const refreshed = loadLibrary(directory, media).entries[0];
+    assert.equal(refreshed.favorite, true);
+    setFavorite(directory, media, refreshed.id, false);
+    assert.equal(loadLibrary(directory, media).entries[0].favorite, false);
+  }
+  assert.deepEqual(readFavorites(directory), []);
+});
+
+test("收藏遊戲在隱藏、重新讀取與恢復後仍保留，其他隱藏紀錄不受影響", () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "catchlist-personal-"));
+  fs.writeFileSync(path.join(directory, "遊戲.md"), games);
+  fs.writeFileSync(path.join(directory, "動畫.md"), anime);
+  const game = loadLibrary(directory, "games").entries[0];
+  setFavorite(directory, "games", game.id, true);
+  hideEntry(directory, "games", game.id);
+  hideEntry(directory, "anime", loadLibrary(directory, "anime").entries[0].id);
+  const record = loadHiddenEntries(directory).find((entry) => entry.media === "games");
+  assert.equal(record.available, true);
+  assert.equal(loadLibrary(directory, "games").entries.length, 0);
+  restoreHiddenEntry(directory, record.hideKey);
+  assert.equal(loadLibrary(directory, "games").entries[0].favorite, true);
+  assert.equal(readHiddenEntries(directory).length, 1);
+});
+
+test("失效隱藏紀錄可清除，不重建或修改報告", () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "catchlist-hidden-"));
+  const filepath = path.join(directory, "遊戲.md");
+  fs.writeFileSync(filepath, games);
+  const game = loadLibrary(directory, "games").entries[0];
+  hideEntry(directory, "games", game.id);
+  deleteEntry(directory, "games", game.id);
+  const original = fs.readFileSync(filepath, "utf8");
+  const record = loadHiddenEntries(directory)[0];
+  assert.equal(record.available, false);
+  restoreHiddenEntry(directory, record.hideKey);
+  assert.deepEqual(loadHiddenEntries(directory), []);
+  assert.equal(fs.readFileSync(filepath, "utf8"), original);
+});
+
+test("損壞的收藏紀錄不會被新收藏覆蓋", () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "catchlist-corrupt-"));
+  fs.writeFileSync(path.join(directory, "遊戲.md"), games);
+  const entry = loadLibrary(directory, "games").entries[0];
+  const filepath = path.join(directory, ".catchlist-favorites.json");
+  fs.writeFileSync(filepath, "broken");
+  assert.throws(() => setFavorite(directory, "games", entry.id, true), /格式不正確/);
+  assert.equal(fs.readFileSync(filepath, "utf8"), "broken");
 });

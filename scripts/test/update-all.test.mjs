@@ -12,6 +12,7 @@ function runWithStatuses(statuses) {
   const errors = [];
   const result = runAllUpdates({
     rootDir: root,
+    recorder: null,
     platform: "win32",
     npmExecPath: "C:/npm/npm-cli.js",
     nodePath: "C:/node/node.exe",

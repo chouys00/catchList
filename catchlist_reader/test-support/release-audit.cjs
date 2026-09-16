@@ -1,0 +1,51 @@
+// 以真實報告的隔離副本驗證封裝介面；不開啟外部連結、不修改正式資料。
+const { app, BrowserWindow, ipcMain } = require('electron');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+const { pathToFileURL } = require('node:url');
+const root = path.resolve(process.argv[2] || path.join(__dirname, '..'));
+const reports = process.argv[3];
+const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'catchlist-release-audit-'));
+app.setPath('userData', path.join(temp, 'profile'));
+app.whenReady().then(async () => {
+  const lib = await import(pathToFileURL(path.resolve(__dirname, '../src/library.js')).href);
+  for (const { filename } of Object.values(lib.MEDIA_CONFIG)) {
+    fs.copyFileSync(path.join(reports, filename), path.join(temp, filename));
+  }
+  const originals = Object.values(lib.MEDIA_CONFIG).map(({ filename }) => [filename, fs.readFileSync(path.join(temp, filename))]);
+  const version = JSON.parse(fs.readFileSync(path.join(root, 'package.json'))).version;
+  let operation;
+  const snapshot = () => ({ dataDir: temp, appVersion: version, libraries: lib.loadAllLibraries(temp) });
+  ipcMain.handle('library:load', snapshot);
+  ipcMain.handle('library:resolve-game-covers', () => ({}));
+  ipcMain.handle('library:hide-entry', (_, media, id) => { operation = lib.hideEntry(temp, media, id); return snapshot(); });
+  ipcMain.handle('library:undo-last-operation', () => ({ ...snapshot(), restored: lib.undoHide(temp, operation), libraries: lib.loadAllLibraries(temp) }));
+  const win = new BrowserWindow({ show: false, width: 1440, height: 900, webPreferences: { preload: path.join(root, 'src/preload.cjs'), contextIsolation: true, sandbox: true } });
+  const js = (code) => win.webContents.executeJavaScript(code);
+  const until = async (code) => { for (let n = 0; n < 100; n++) { if (await js(code)) return; await new Promise(r => setTimeout(r, 50)); } throw new Error(`等待畫面逾時：${code}`); };
+  await win.loadFile(path.join(root, 'src/renderer/index.html'));
+  await until('!!document.querySelector(".item.games")');
+  const games = await js(`(() => ({ count: document.querySelector('[data-result-count]').textContent, tags: document.querySelectorAll('[data-game-tag]').length, warnings: document.querySelectorAll('.tag-warning').length, hide: document.querySelectorAll('[data-hide]').length, remove: document.querySelectorAll('[data-delete]').length, reviews: !!document.querySelector('[data-filter="minReviews"]'), cover: getComputedStyle(document.querySelector('.game-cover')).width, scores: [...document.querySelector('[data-filter="min"]').options].map(x=>x.value), title: document.title }))()`);
+  assert.ok(games.tags > 0); assert.equal(games.warnings, 0); assert.equal(games.hide, 50); assert.equal(games.remove, 50); assert.ok(games.reviews); assert.equal(games.cover, '140px'); assert.deepEqual(games.scores, ['0','85','90','95','97']);
+  await js(`document.querySelector('[data-game-tag]').click()`);
+  assert.ok(await js(`!!document.querySelector('[data-selected-tag]')`));
+  await js(`document.querySelector('[data-action="clear-filters"]').click(); document.querySelector('[data-hide]').click()`);
+  await until('document.querySelector("#confirmDialog").open');
+  await js(`document.querySelector('#dialogConfirm').click()`);
+  await until(`document.querySelector('[data-result-count]').textContent !== ${JSON.stringify(games.count)}`);
+  await js(`document.querySelector('[data-action="undo"]').click()`);
+  await until(`document.querySelector('[data-result-count]').textContent === ${JSON.stringify(games.count)}`);
+  await js(`document.querySelector('[data-media="liveAction"]').click()`);
+  await until('!!document.querySelector(".item.live-action")');
+  const shows = await js(`({ count: document.querySelectorAll('.item.live-action').length, hide: document.querySelectorAll('[data-hide]').length, regions: document.querySelector('[data-filter="region"]').options.length })`);
+  assert.equal(shows.count, 50); assert.equal(shows.hide, 50); assert.equal(shows.regions, 6);
+  await js(`const select = document.querySelector('[data-filter="region"]'); select.value = '韓劇'; select.dispatchEvent(new Event('change', {bubbles:true}));`);
+  assert.equal(await js(`document.querySelectorAll('.item.live-action').length`), 10);
+  await js(`const input = document.querySelector('[data-filter="query"]'); input.value = '我的出走日記'; input.dispatchEvent(new Event('input', {bubbles:true}));`);
+  assert.equal(await js(`document.querySelectorAll('.item.live-action').length`), 1);
+  for (const [filename, bytes] of originals) assert.deepEqual(fs.readFileSync(path.join(temp, filename)), bytes);
+  console.log(JSON.stringify({ version, games, shows, hideUndo: 'PASS', regionSearch: 'PASS', reportsUnchanged: true }));
+  win.destroy(); app.quit();
+}).catch(error => { console.error(error); app.exit(1); });

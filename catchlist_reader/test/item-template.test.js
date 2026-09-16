@@ -41,6 +41,17 @@ const game = {
   url: "https://example.com/game"
 };
 
+const liveAction = {
+  id: "show-1",
+  title: "測試真人劇",
+  periodLabel: "2025 年全年度",
+  region: "韓劇",
+  imdbScore: 8.2,
+  votesLabel: "7,526 票",
+  hasImdbUrl: true,
+  url: "https://www.imdb.com/title/tt1234567/",
+};
+
 test("動畫列先顯示評分與名稱，再顯示年份和集數", () => {
   const markup = renderItemTemplate(anime, "anime");
 
@@ -56,6 +67,16 @@ test("電影列先顯示評分與名稱，再顯示年份、IMDb 與類別", () 
   assert.ok(markup.indexOf("IMDb 7.8 · 12 萬票") < markup.indexOf("劇情"));
 });
 
+test("真人劇列顯示年度、地區與 IMDb 資訊", () => {
+  const markup = renderItemTemplate(liveAction, "liveAction");
+
+  assert.match(markup, /2025 年全年度/);
+  assert.match(markup, /韓劇/);
+  assert.match(markup, /IMDb 8\.2 · 7,526 票/);
+  assert.match(markup, /data-open="https:\/\/www\.imdb\.com\/title\/tt1234567\/"/);
+  assert.match(markup, />開啟 IMDb<\/button>/);
+});
+
 test("遊戲列把好評率與評論數組合為同一欄", () => {
   const markup = renderItemTemplate(game, "games");
 
@@ -68,8 +89,8 @@ test("遊戲列把好評率與評論數組合為同一欄", () => {
   assert.equal(markup.includes(">Steam</button>"), false);
   assert.match(markup, /class="icon-button"[^>]+aria-label="隱藏 測試遊戲"/);
   assert.match(markup, /class="icon-button danger"[^>]+aria-label="真正刪除 測試遊戲"/);
-  assert.ok(markup.indexOf("2026-02-18") < markup.indexOf("92%"));
-  assert.ok(markup.indexOf("92%") < markup.indexOf("策略"));
+  assert.ok(markup.indexOf("92%") < markup.indexOf("2026-02-18"));
+  assert.ok(markup.indexOf("2026-02-18") < markup.indexOf("策略"));
 });
 
 test("中文支援圖示涵蓋不支援與待確認狀態", () => {
@@ -158,4 +179,5 @@ test("renderer 以 module 載入含 import 的 app.js", () => {
   assert.match(html, /<script type="module" src="app\.js"><\/script>/);
   assert.match(html, /img-src 'self' data: https:\/\/\*\.steamstatic\.com/);
   assert.match(html, /<dialog id="coverDialog"/);
+  assert.match(html, /id="backToTop"[^>]+data-action="back-to-top"[^>]+aria-label="返回頂部"/);
 });

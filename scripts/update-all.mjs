@@ -10,13 +10,17 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { npmInvocation } from "./npm-invocation.mjs";
+import { createUpdateRecorder } from "./update-status.mjs";
+import { CONFIG as MOVIES_CONFIG } from "../imdb_tracker/config.js";
+import { CONFIG as GAMES_CONFIG } from "../steam_discovery/config.js";
+import { TARGET_PATH } from "../spiderMAL/.cursor/skills/find-anime/lib/constants.js";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 export const PROJECTS = Object.freeze([
-  { name: "動畫 (spiderMAL)",      dir: "spiderMAL" },
-  { name: "電影 (imdb_tracker)",   dir: "imdb_tracker" },
-  { name: "遊戲 (steam_discovery)", dir: "steam_discovery" },
+  { name: "動畫 (spiderMAL)", dir: "spiderMAL", media: "anime", outputFile: TARGET_PATH },
+  { name: "電影 (imdb_tracker)", dir: "imdb_tracker", media: "movies", outputFile: MOVIES_CONFIG.OUTPUT_FILE },
+  { name: "遊戲 (steam_discovery)", dir: "steam_discovery", media: "games", outputFile: GAMES_CONFIG.OUTPUT_FILE },
 ]);
 
 /**
@@ -32,20 +36,41 @@ export function runAllUpdates({
   nodePath = process.execPath,
   log = console.log,
   error = console.error,
+  recorder = createUpdateRecorder(),
 } = {}) {
   const failures = [];
+  const statusWarnings = [];
 
   for (const project of projects) {
     log("\n" + "█".repeat(60));
     log(`█  開始更新:${project.name}`);
     log("█".repeat(60) + "\n");
 
-    const invocation = npmInvocation(platform, npmExecPath, nodePath);
-    const result = spawn(invocation.command, invocation.args, {
-      cwd: path.join(rootDir, project.dir),
-      stdio: "inherit",
-      shell: false,
-    });
+    const trackedProject = { ...project, outputFile: project.outputFile
+      ? path.resolve(rootDir, project.dir, project.outputFile) : undefined };
+    let context;
+    const record = (action) => {
+      if (!recorder || !trackedProject.outputFile) return;
+      try { return action(); }
+      catch (cause) {
+        const message = `${project.name} 無法儲存更新狀態：${cause.message}`;
+        statusWarnings.push(message);
+        error(message);
+      }
+    };
+    context = record(() => recorder.start(trackedProject));
+    let result;
+    try {
+      const invocation = npmInvocation(platform, npmExecPath, nodePath);
+      result = spawn(invocation.command, invocation.args, {
+        cwd: path.join(rootDir, project.dir),
+        stdio: "inherit",
+        shell: false,
+      });
+    } catch (cause) {
+      result = { status: null, error: cause };
+    }
+    record(() => recorder.finish(trackedProject, context, result));
 
     if (result.status !== 0) {
       failures.push(project.name);
@@ -57,12 +82,12 @@ export function runAllUpdates({
   log("\n" + "=".repeat(60));
   if (failures.length > 0) {
     error(`❌ 本次更新有 ${failures.length} 個專案失敗:${failures.join("、")}`);
-    error("   失敗的專案下次執行會自動回補缺漏，也可單獨重跑，例如：npm run update:tv");
-    return { failures, exitCode: 1 };
+    error("   失敗的專案下次執行會自動回補缺漏，也可單獨重跑，例如：npm run update:games");
+    return { failures, statusWarnings, exitCode: 1 };
   }
 
   log("✅ 三個每月專案全部更新完成!");
-  return { failures, exitCode: 0 };
+  return { failures, statusWarnings, exitCode: statusWarnings.length ? 1 : 0 };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -32,11 +32,17 @@ function runHarness() {
 test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後維持正常互動", { timeout: 30_000 }, async () => {
   const result = await runHarness();
 
-  assert.deepEqual(result.initialGames, {
+  const { communityTagCount, ...initialGames } = result.initialGames;
+  assert.ok(communityTagCount > 0);
+  assert.deepEqual(initialGames, {
     railCount: 0,
     itemCount: 7,
     gamesLayout: false,
     openLabel: "開啟目前結果",
+    hideCount: 7,
+    hasReviewFilter: true,
+    scoreOptions: ["0", "85", "90", "95", "97"],
+    brand: "CatchList test-version",
     fixtureGames: [
       { title: "HER TREES : PUZZLE DREAM", releaseDate: "2026-02-10", score: "97%", reviews: "(1,768)" },
       { title: "你有餅嗎？", releaseDate: "2026-02-08", score: "97%", reviews: "(1,500)" },
@@ -118,6 +124,13 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
   assert.equal(result.animeAfterSearch.resultCount, "1 筆結果");
   assert.equal(result.animeRailCount, 0);
   assert.equal(result.movieRailCount, 0);
+  assert.deepEqual(result.liveAction, {
+    itemCount: 3,
+    hideCount: 3,
+    regionOptions: ["all", "日劇", "韓劇"],
+    koreanCount: 2,
+    searchCount: 1,
+  });
   assert.equal(result.restoredGameSearch.value, "你有餅嗎？");
   assert.deepEqual(result.cleared, {
     value: "", focused: true, selectionStart: 0, selectionEnd: 0, resultCount: "7 筆結果",

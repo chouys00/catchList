@@ -1,0 +1,15 @@
+{
+  "minimumVersion": "1.0.13",
+  "officialRuntime": "electron-portable",
+  "requiredFeatures": [
+    "liveAction",
+    "persistentHide",
+    "communityTags",
+    "gameScoreFilter",
+    "gameReviewFilter",
+    "favorites",
+    "hiddenManagement",
+    "updateStatus",
+    "backToTop"
+  ]
+}

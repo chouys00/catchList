@@ -286,6 +286,11 @@ async function run() {
       itemCount: document.querySelectorAll('.item.games').length,
       gamesLayout: document.querySelector('.layout')?.classList.contains('games-layout') ?? false,
       openLabel: document.querySelector('[data-action="open-filtered"]')?.textContent ?? null,
+      hideCount: document.querySelectorAll('[data-hide]').length,
+      hasReviewFilter: Boolean(document.querySelector('[data-filter="minReviews"]')),
+      scoreOptions: Array.from(document.querySelector('[data-filter="min"]')?.options ?? []).map((option) => option.value),
+      communityTagCount: document.querySelectorAll('[data-game-tag]').length,
+      brand: document.querySelector('.brand strong')?.textContent ?? null,
       fixtureGames: Array.from(document.querySelectorAll('.item.games')).map((item) => ({
         title: item.querySelector('.title strong')?.textContent ?? null,
         releaseDate: item.querySelector('.meta')?.textContent ?? null,
@@ -311,6 +316,8 @@ async function run() {
     const replacedSelection = await searchState(window);
 
     await press(window, "A", ["control"]);
+    // Windows 背景視窗可能未接收原生 Ctrl+A；明確設定本案例需要的全選範圍。
+    await window.webContents.executeJavaScript(`document.querySelector('[data-filter="query"]').select()`);
     await window.webContents.insertText("你有餅嗎？");
     const chinese = await searchState(window);
 
@@ -437,6 +444,22 @@ async function run() {
     const animeRailCount = await window.webContents.executeJavaScript(`document.querySelectorAll('.rail').length`);
     await window.webContents.executeJavaScript(`document.querySelector('[data-media="movies"]').click()`);
     const movieRailCount = await window.webContents.executeJavaScript(`document.querySelectorAll('.rail').length`);
+    await window.webContents.executeJavaScript(`document.querySelector('[data-media="liveAction"]').click()`);
+    const liveAction = await window.webContents.executeJavaScript(`(() => {
+      const initial = {
+        itemCount: document.querySelectorAll('.item.live-action').length,
+        hideCount: document.querySelectorAll('[data-hide]').length,
+        regionOptions: Array.from(document.querySelector('[data-filter="region"]')?.options ?? []).map((option) => option.value),
+      };
+      const region = document.querySelector('[data-filter="region"]');
+      region.value = '韓劇';
+      region.dispatchEvent(new Event('change', { bubbles: true }));
+      const koreanCount = document.querySelectorAll('.item.live-action').length;
+      const query = document.querySelector('[data-filter="query"]');
+      query.value = '我的出走日記';
+      query.dispatchEvent(new InputEvent('input', { bubbles: true, data: '我的出走日記', inputType: 'insertText' }));
+      return { ...initial, koreanCount, searchCount: document.querySelectorAll('.item.live-action').length };
+    })()`);
     await window.webContents.executeJavaScript(`document.querySelector('[data-media="games"]').click()`);
     const restoredGameSearch = await searchState(window);
 
@@ -455,7 +478,7 @@ async function run() {
     const largeGameBatch = await runLargeGameBatchTest(address);
     const coverUpdate = await runCoverUpdateTest(address);
 
-    process.stdout.write(`${JSON.stringify({ initialGames, typed, backspaced, insertedInMiddle, replacedSelection, chinese, gameBrowser, animeBeforeSearch, animeAfterSearch, animeRailCount, movieRailCount, restoredGameSearch, clearInteraction, cleared, responsiveLayout, visualQa, largeGameBatch, coverUpdate })}\n`);
+    process.stdout.write(`${JSON.stringify({ initialGames, typed, backspaced, insertedInMiddle, replacedSelection, chinese, gameBrowser, animeBeforeSearch, animeAfterSearch, animeRailCount, movieRailCount, liveAction, restoredGameSearch, clearInteraction, cleared, responsiveLayout, visualQa, largeGameBatch, coverUpdate })}\n`);
   } finally {
     window.destroy();
     await new Promise((resolve) => server.close(resolve));

@@ -3,7 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { deleteEntry, hasReportFiles, hideEntry, loadAllLibraries, undoHide } from "./library.js";
+import { deleteEntry, hasReportFiles, hideEntry, loadAllLibraries, undoHide, setFavorite, loadHiddenEntries, restoreHiddenEntry } from "./library.js";
+import { loadUpdateStatus } from "./update-status.js";
 import { GameCoverCache, GameCoverService } from "./game-cover-cache.js";
 import { resolveSteamCover } from "./steam-covers.js";
 
@@ -49,8 +50,11 @@ function initialDirectory() {
 function snapshot() {
   return {
     dataDir,
+    appVersion: app.getVersion(),
     canUndo: Boolean(lastOperation),
     libraries: dataDir ? loadAllLibraries(dataDir) : [],
+    hiddenEntries: dataDir ? loadHiddenEntries(dataDir) : [],
+    updateStatus: dataDir ? loadUpdateStatus(dataDir) : null,
   };
 }
 
@@ -65,11 +69,22 @@ async function resolveGameCovers(appids) {
 function validExternalUrl(raw) {
   const url = new URL(raw);
   if (url.protocol !== "https:") return false;
-  return url.hostname === "www.google.com" || url.hostname === "store.steampowered.com";
+  return url.hostname === "www.google.com" || url.hostname === "store.steampowered.com" || url.hostname === "www.imdb.com";
 }
 
 function registerIpc() {
   ipcMain.handle("library:load", () => snapshot());
+  ipcMain.handle("library:set-favorite", (_event, media, entryId, favorite) => {
+    if (!dataDir) throw new Error("尚未選擇資料夾");
+    setFavorite(dataDir, media, entryId, favorite);
+    return snapshot();
+  });
+  ipcMain.handle("library:restore-hidden", (_event, hideKey) => {
+    if (!dataDir) throw new Error("尚未選擇資料夾");
+    restoreHiddenEntry(dataDir, hideKey);
+    if (lastOperation?.operation.hideKey === hideKey) lastOperation = null;
+    return snapshot();
+  });
   ipcMain.handle("library:choose-directory", async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
       title: "選擇 CatchList 資料夾",
@@ -77,7 +92,7 @@ function registerIpc() {
     });
     if (result.canceled) return snapshot();
     const selected = result.filePaths[0];
-    if (!hasReportFiles(selected)) throw new Error("這個資料夾找不到遊戲.md、動畫.md 或電影.md");
+    if (!hasReportFiles(selected)) throw new Error("這個資料夾找不到遊戲.md、動畫.md、電影.md 或真人劇年度.md");
     dataDir = selected;
     saveDirectory(dataDir);
     lastOperation = null;
@@ -121,7 +136,7 @@ function createWindow() {
     minHeight: 620,
     backgroundColor: "#111315",
     icon: path.join(sourceDir, "assets", "catchlist.ico"),
-    title: "CatchList 閱讀器",
+    title: `CatchList 閱讀器 ${app.getVersion()}`,
     webPreferences: {
       preload: path.join(sourceDir, "preload.cjs"),
       contextIsolation: true,

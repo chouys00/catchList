@@ -5,7 +5,12 @@ function escapeHtml(value) {
 }
 
 function actions(entry, label, url) {
-  return `<div class="actions"><button class="button compact primary" data-open="${escapeHtml(url)}">${label}</button><button class="button compact" data-hide="${entry.id}">隱藏</button><button class="button compact danger" data-delete="${entry.id}">真正刪除</button></div>`;
+  return `<div class="actions"><button class="button compact primary" data-open="${escapeHtml(url)}">${label}</button>${favoriteButton(entry)}<button class="button compact" data-hide="${entry.id}">隱藏</button><button class="button compact danger" data-delete="${entry.id}">真正刪除</button></div>`;
+}
+
+function favoriteButton(entry) {
+  const label = entry.favorite ? "取消收藏" : "加入收藏";
+  return `<button class="icon-button favorite-button${entry.favorite ? " saved" : ""}" type="button" data-favorite="${escapeHtml(entry.id)}" aria-pressed="${Boolean(entry.favorite)}" aria-label="${label} ${escapeHtml(entry.title)}" title="${label}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button>`;
 }
 
 function gameLanguageStatus(value) {
@@ -72,9 +77,14 @@ export function renderItemTemplate(entry, media, view) {
     return `<article class="item movies"><span class="score">${entry.score.toFixed(2)}</span><div class="title"><strong>${escapeHtml(entry.title)}</strong></div><span class="meta">${escapeHtml(entry.periodLabel)}</span><span class="meta">IMDb ${entry.imdbScore.toFixed(1)} · ${escapeHtml(entry.votesLabel)}</span><span class="meta">${escapeHtml(entry.category)}</span>${actions(entry, "Google 搜尋", entry.searchUrl)}</article>`;
   }
 
+  if (media === "liveAction") {
+    const imdb = entry.imdbScore == null ? "IMDb 資料不足" : `IMDb ${entry.imdbScore.toFixed(1)} · ${escapeHtml(entry.votesLabel)}`;
+    return `<article class="item live-action"><div class="title"><strong>${escapeHtml(entry.title)}</strong></div><span class="meta">${escapeHtml(entry.periodLabel)}</span><span class="meta">${escapeHtml(entry.region)}</span><span class="meta">${imdb}</span>${actions(entry, entry.hasImdbUrl ? "開啟 IMDb" : "Google 搜尋", entry.url)}</article>`;
+  }
+
   const appid = escapeHtml(entry.appid);
   const cover = entry.coverUrl
     ? `<button class="game-cover" type="button" data-cover="${escapeHtml(entry.coverUrl)}" data-cover-title="${escapeHtml(entry.title)}" data-game-appid="${appid}"><img src="${escapeHtml(entry.coverUrl)}" alt="遊戲封面：${escapeHtml(entry.title)}"></button>`
     : `<div class="game-cover game-cover-loading" data-game-appid="${appid}" aria-label="遊戲封面載入中"></div>`;
-  return `<article class="item games">${cover}<button class="title game-title-link" type="button" data-open="${escapeHtml(entry.url)}" aria-label="在 Steam 開啟 ${escapeHtml(entry.title)}"><strong class="title-primary">${escapeHtml(entry.title)}${externalLinkIcon()}</strong><small>${escapeHtml(entry.originalTitle)}</small></button><div class="game-facts"><span class="meta game-date">${escapeHtml(entry.releaseDate)}</span>${gameLanguageStatus(entry.chineseSupport)}<span class="rating"><strong>${entry.score}%</strong><small>(${entry.reviews.toLocaleString()})</small></span></div>${renderGameTags(entry, view)}<div class="game-management"><button class="icon-button" type="button" data-hide="${entry.id}" aria-label="隱藏 ${escapeHtml(entry.title)}" title="隱藏">${hideIcon()}</button><button class="icon-button danger" type="button" data-delete="${entry.id}" aria-label="真正刪除 ${escapeHtml(entry.title)}" title="真正刪除">${deleteIcon()}</button></div></article>`;
+  return `<article class="item games">${cover}<button class="title game-title-link" type="button" data-open="${escapeHtml(entry.url)}" aria-label="在 Steam 開啟 ${escapeHtml(entry.title)}"><strong class="title-primary">${escapeHtml(entry.title)}${externalLinkIcon()}</strong><small>${escapeHtml(entry.originalTitle)}</small></button><div class="game-facts"><span class="rating"><strong>${entry.score}%</strong><small>(${entry.reviews.toLocaleString()})</small></span><span class="meta game-date">${escapeHtml(entry.releaseDate)}</span>${gameLanguageStatus(entry.chineseSupport)}</div>${renderGameTags(entry, view)}<div class="game-management">${favoriteButton(entry)}<button class="icon-button" type="button" data-hide="${entry.id}" aria-label="隱藏 ${escapeHtml(entry.title)}" title="隱藏">${hideIcon()}</button><button class="icon-button danger" type="button" data-delete="${entry.id}" aria-label="真正刪除 ${escapeHtml(entry.title)}" title="真正刪除">${deleteIcon()}</button></div></article>`;
 }

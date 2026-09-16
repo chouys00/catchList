@@ -17,6 +17,7 @@
         <button class="tab active" data-media="games">遊戲</button>
         <button class="tab" data-media="anime">動畫</button>
         <button class="tab" data-media="movies">電影</button>
+        <button class="tab" data-media="liveAction">真人劇</button>
       </nav>
       <button class="folder-button" data-action="choose-folder" title="更換 Markdown 資料夾">
         <span class="folder-dot"></span><span id="folderLabel">選擇資料夾</span>
@@ -45,6 +46,9 @@
     </form>
   </dialog>
 
+  <button id="backToTop" class="back-to-top" type="button" data-action="back-to-top" aria-label="返回頂部" aria-hidden="true" tabindex="-1" title="返回頂部">
+    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 14 6-6 6 6"/></svg>
+  </button>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="preview.js" defer></script>
   <script type="module" src="app.js"></script>

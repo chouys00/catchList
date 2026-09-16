@@ -1,14 +1,17 @@
 {
   "name": "catchlist-reader",
-  "version": "1.0.4",
+  "version": "1.0.13",
   "private": true,
-  "description": "CatchList 動畫、電影與遊戲 Markdown 桌面閱讀器",
+  "description": "CatchList 動畫、電影、遊戲與真人劇 Markdown 桌面閱讀器",
   "type": "module",
   "main": "src/main.js",
   "scripts": {
     "dev": "electron .",
     "manual:large-games": "node test-support/launch-large-game-manual.mjs",
     "test": "node --test --experimental-test-isolation=none",
+    "release:guard": "node test-support/release-guard.mjs",
+    "release:check": "npm run release:guard && npm test",
+    "prebuild:portable": "npm run release:check",
     "build:portable": "electron-builder --win portable --x64"
   },
   "devDependencies": {

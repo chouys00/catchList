@@ -52,6 +52,11 @@ if (location.protocol.startsWith("http") && !window.catchList) {
   ];
   const anime = Array.from({ length: 9 }, (_, index) => ({ id: `anime-${index}`, media: "anime", sectionKey: index > 5 ? "2025-冬" : "2026-春", periodLabel: index > 5 ? "2025 年冬季" : "2026 年春季", year: index > 5 ? 2025 : 2026, season: index > 5 ? "冬" : "春", title: ["星海郵差", "春日食堂", "無聲樂團", "迷宮圖書館", "北境列車", "紙飛機日記", "月下劍客", "雨城偵探", "最後的魔法課"][index], score: 9.1 - index * .13, episodes: "12", format: "TV", searchUrl: `https://www.google.com/search?q=${index}` }));
   const movies = Array.from({ length: 9 }, (_, index) => ({ id: `movie-${index}`, media: "movies", sectionKey: index > 5 ? "2024-12" : "2025-09", periodLabel: index > 5 ? "2024 年 12 月" : "2025 年 9 月", year: index > 5 ? 2024 : 2025, month: index > 5 ? 12 : 9, title: ["遠方來信", "第七月台", "慢速風暴", "海岸線以南", "昨日旅館", "長夜將明", "玻璃花園", "夏末回聲", "沒有名字的街"][index], category: index % 2 ? "文藝劇情" : "一般外國片", score: 8.8 - index * .15, imdbScore: 8.6 - index * .1, votesLabel: `${43 + index * 17}k票`, searchUrl: `https://www.google.com/search?q=${index}` }));
+  const liveAction = [
+    { id: "show-1", media: "liveAction", sectionKey: "2025-00", periodLabel: "2025 年全年度", year: 2025, title: "我的出走日記", region: "韓劇", score: 8.2, imdbScore: 8.2, votesLabel: "7,526 票", hasImdbUrl: true, url: "https://www.imdb.com/title/tt1234567/" },
+    { id: "show-2", media: "liveAction", sectionKey: "2025-00", periodLabel: "2025 年全年度", year: 2025, title: "苦盡柑來遇見你", region: "韓劇", score: 8.4, imdbScore: 8.4, votesLabel: "12,345 票", hasImdbUrl: true, url: "https://www.imdb.com/title/tt2345678/" },
+    { id: "show-3", media: "liveAction", sectionKey: "2025-00", periodLabel: "2025 年全年度", year: 2025, title: "重啟人生", region: "日劇", score: 8.3, imdbScore: 8.3, votesLabel: "4,321 票", hasImdbUrl: true, url: "https://www.imdb.com/title/tt3456789/" },
+  ];
   const previewParams = new URLSearchParams(location.search);
   const largeGames = previewParams.has("largeGames")
     ? Array.from({ length: 1000 }, (_, index) => ({
@@ -60,10 +65,11 @@ if (location.protocol.startsWith("http") && !window.catchList) {
       score: 95, reviews: 1000 + index, chineseSupport: index % 11 === 0 ? "unknown" : index % 7 === 0 ? "unsupported" : "supported", genres: ["策略"], tags: ["策略"], url: `https://store.steampowered.com/app/${5000000 + index}`,
     }))
     : games;
-  const payload = { dataDir: "G:\\我的雲端硬碟\\CatchList", canUndo: false, libraries: [
+  const payload = { dataDir: "G:\\我的雲端硬碟\\CatchList", appVersion: "test-version", canUndo: false, libraries: [
     { media: "games", filename: "遊戲.md", exists: true, entries: largeGames, sections: [{ key: "2026-02", label: "2026 年 2 月" }] },
     { media: "anime", filename: "動畫.md", exists: true, entries: anime, sections: [] },
     { media: "movies", filename: "電影.md", exists: true, entries: movies, sections: [] },
+    { media: "liveAction", filename: "真人劇年度.md", exists: true, entries: liveAction, sections: [{ key: "2025-00", label: "2025 年全年度" }] },
   ] };
   window.__catchListOpenUrlCalls = [];
   window.__coverRequests = [];
@@ -74,5 +80,27 @@ if (location.protocol.startsWith("http") && !window.catchList) {
       window.__releasePreviewCovers.push(() => resolve(Object.fromEntries(appids.map((appid) => [appid, `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/header_tchinese.jpg`]))));
     })
     : undefined;
-  window.catchList = { load: async () => payload, chooseDirectory: async () => payload, openUrls: async (urls) => { window.__catchListOpenUrlCalls.push(urls); return true; }, hideEntry: async () => payload, deleteEntry: async () => payload, undoLastOperation: async () => ({ ...payload, restored: { title: "示範作品" } }), resolveGameCovers };
+  const favorites = new Set();
+  const hidden = new Map();
+  let lastHidden;
+  const snapshot = () => ({ ...payload, hiddenEntries: [...hidden.values()], libraries: payload.libraries.map((library) => ({ ...library, entries: library.entries.filter((entry) => !hidden.has(entry.id)).map((entry) => ({ ...entry, favorite: favorites.has(entry.id) })) })) });
+  window.catchList = {
+    load: async () => snapshot(), chooseDirectory: async () => snapshot(),
+    openUrls: async (urls) => { window.__catchListOpenUrlCalls.push(urls); return true; },
+    setFavorite: async (_media, id, favorite) => { if (favorite) favorites.add(id); else favorites.delete(id); return snapshot(); },
+    hideEntry: async (media, id) => {
+      const entry = payload.libraries.find((library) => library.media === media).entries.find((item) => item.id === id);
+      lastHidden = { hideKey: id, media, title: entry.title, periodLabel: entry.periodLabel, available: true, hiddenAt: new Date().toISOString() };
+      hidden.set(id, lastHidden);
+      return snapshot();
+    },
+    restoreHidden: async (key) => { hidden.delete(key); return snapshot(); },
+    deleteEntry: async (media, id) => {
+      const library = payload.libraries.find((item) => item.media === media);
+      library.entries = library.entries.filter((entry) => entry.id !== id);
+      return snapshot();
+    },
+    undoLastOperation: async () => { const restored = lastHidden; hidden.delete(restored.hideKey); return { ...snapshot(), restored }; },
+    resolveGameCovers,
+  };
 }

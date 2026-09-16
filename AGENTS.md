@@ -38,6 +38,11 @@ npm run update:all
 - spiderMAL 的程式碼位於 `.cursor/skills/find-anime/`(三套 IDE skill 共用同一份腳本,單一來源)。
 - 報告檔同時是狀態來源(用區段標題判斷哪些月份／季度／年度已完成),手動編輯報告時不要更動「YYYY  M月」或「YYYY  全年度」標題行與 `------------------------------` 分隔線。
 
+## 閱讀器版本與發行檔
+
+- 每次修改 `catchlist_reader` 後，完成測試時一律遞增 `catchlist_reader/package.json` 的 patch 版本，並重建可攜版 `.exe`。
+- 回報時須附上實際產生的 `.exe` 路徑與版本；若重建失敗，須明確說明原因，不得視為完成。
+
 ## 規劃中的功能
 
 - 真人劇追蹤器的月度版本已完成 A1～A5；現行採年度 AI 編輯清單，規格與決策集中在 `docs/live-action-tracker/`。

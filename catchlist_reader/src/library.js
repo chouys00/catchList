@@ -6,8 +6,10 @@ export const MEDIA_CONFIG = {
   games: { label: "遊戲", filename: "遊戲.md", unit: "款" },
   anime: { label: "動畫", filename: "動畫.md", unit: "部" },
   movies: { label: "電影", filename: "電影.md", unit: "部" },
+  liveAction: { label: "真人劇", filename: "真人劇年度.md", unit: "部" },
 };
 export const HIDDEN_ENTRIES_FILE = ".catchlist-hidden.json";
+export const FAVORITES_FILE = ".catchlist-favorites.json";
 const MISSING_COMMUNITY_TAGS = "尚未補齊社群標籤";
 
 function clean(value) {
@@ -148,6 +150,48 @@ function parseMovies(lines) {
   return entries;
 }
 
+function parseLiveAction(lines) {
+  const entries = [];
+  const occurrences = new Map();
+  let section = null;
+  let region = null;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const heading = line.match(/^(\d{4})\s+全年度(?:\s|$)/);
+    if (heading) {
+      section = { key: `${heading[1]}-00`, label: `${heading[1]} 年全年度`, year: Number(heading[1]) };
+      region = null;
+      continue;
+    }
+    const regionHeading = line.match(/^##\s+(.+)\s*$/);
+    if (section && regionHeading) {
+      region = clean(regionHeading[1]);
+      continue;
+    }
+    if (!section || !region || !line.startsWith("- ")) continue;
+    const linked = line.match(/^- \[(.+?)\]\((https:\/\/www\.imdb\.com\/title\/[^)]+)\)：(?:IMDb：)?([\d.]+)／10（([\d,]+)\s*票）\s*$/);
+    const unavailable = line.match(/^- (.+?)：IMDb：資料不足\s*$/);
+    if (!linked && !unavailable) continue;
+    const title = clean(linked?.[1] ?? unavailable[1]);
+    const occurrenceKey = `${section.key}\0${line}`;
+    const occurrence = occurrences.get(occurrenceKey) ?? 0;
+    occurrences.set(occurrenceKey, occurrence + 1);
+    const imdbScore = linked ? Number(linked[3]) : null;
+    entries.push(finalizeEntry("liveAction", section, line, occurrence, { start: index, end: index + 1 }, {
+      title,
+      region,
+      imdbScore,
+      score: imdbScore ?? 0,
+      votes: linked ? Number(linked[4].replace(/,/g, "")) : null,
+      votesLabel: linked ? `${linked[4]} 票` : "資料不足",
+      url: linked?.[2] ?? `https://www.google.com/search?q=${encodeURIComponent(`${title} 真人劇`)}`,
+      hasImdbUrl: Boolean(linked),
+    }));
+  }
+  return entries;
+}
+
 function parseGames(lines, { legacyInitialization = false } = {}) {
   const entries = [];
   const occurrences = new Map();
@@ -210,7 +254,7 @@ export function parseReport(media, content) {
   const entries = media === "games" ? parseGames(lines, {
     legacyInitialization: /^# Steam 歷史初始化預覽\s*$/m.test(content),
   })
-    : media === "anime" ? parseAnime(lines) : parseMovies(lines);
+    : media === "anime" ? parseAnime(lines) : media === "movies" ? parseMovies(lines) : parseLiveAction(lines);
   const sections = [...new Map(entries.map((entry) => [entry.sectionKey, {
     key: entry.sectionKey,
     label: entry.periodLabel,
@@ -228,7 +272,7 @@ export function resolveReportPath(dataDir, media) {
   return target;
 }
 
-export function loadLibrary(dataDir, media, hiddenKeys) {
+export function loadLibrary(dataDir, media, hiddenKeys, favorites) {
   const filepath = resolveReportPath(dataDir, media);
   if (!fs.existsSync(filepath)) {
     return {
@@ -244,6 +288,7 @@ export function loadLibrary(dataDir, media, hiddenKeys) {
   const parsed = parseReport(media, content);
   const stat = fs.statSync(filepath);
   const effectiveHiddenKeys = hiddenKeys ?? new Set(readHiddenEntries(dataDir).map((entry) => entry.hideKey));
+  const favoriteKeys = favorites ?? new Set(readFavorites(dataDir).map((entry) => entry.key));
   return {
     ...MEDIA_CONFIG[media],
     media,
@@ -252,14 +297,61 @@ export function loadLibrary(dataDir, media, hiddenKeys) {
     updatedAt: stat.mtime.toISOString(),
     entries: parsed.entries
       .filter((entry) => !effectiveHiddenKeys.has(entry.hideKey))
-      .map(({ lineStart, lineEnd, ...entry }) => entry),
+      .map(({ lineStart, lineEnd, ...entry }) => ({ ...entry, favorite: favoriteKeys.has(entry.hideKey) })),
     sections: parsed.sections,
   };
 }
 
 export function loadAllLibraries(dataDir) {
   const hiddenKeys = new Set(readHiddenEntries(dataDir).map((entry) => entry.hideKey));
-  return Object.keys(MEDIA_CONFIG).map((media) => loadLibrary(dataDir, media, hiddenKeys));
+  const favorites = new Set(readFavorites(dataDir).map((entry) => entry.key));
+  return Object.keys(MEDIA_CONFIG).map((media) => loadLibrary(dataDir, media, hiddenKeys, favorites));
+}
+
+export function readFavorites(dataDir) {
+  const filepath = path.join(path.resolve(dataDir), FAVORITES_FILE);
+  if (!fs.existsSync(filepath)) return [];
+  let parsed;
+  try { parsed = JSON.parse(fs.readFileSync(filepath, "utf8")); }
+  catch { throw new Error("收藏紀錄檔格式不正確，請先檢查檔案，原始紀錄尚未改動"); }
+  if (parsed?.version !== 1 || !Array.isArray(parsed.entries)
+    || parsed.entries.some((entry) => !entry || typeof entry.key !== "string" || !Object.hasOwn(MEDIA_CONFIG, entry.media))) {
+    throw new Error("收藏紀錄檔格式不正確，請先檢查檔案，原始紀錄尚未改動");
+  }
+  return parsed.entries;
+}
+
+export function setFavorite(dataDir, media, entryId, favorite) {
+  if (typeof favorite !== "boolean") throw new Error("收藏狀態不正確");
+  const filepath = resolveReportPath(dataDir, media);
+  const entry = parseReport(media, fs.readFileSync(filepath, "utf8")).entries.find((item) => item.id === entryId);
+  if (!entry) throw new Error("作品已變更或不存在，請重新載入清單");
+  const records = readFavorites(dataDir);
+  const exists = records.some((record) => record.key === entry.hideKey);
+  if (exists === favorite) return;
+  const entries = favorite
+    ? [...records, { key: entry.hideKey, media, title: entry.title, savedAt: new Date().toISOString() }]
+    : records.filter((record) => record.key !== entry.hideKey);
+  atomicWrite(path.join(path.resolve(dataDir), FAVORITES_FILE), `${JSON.stringify({ version: 1, entries }, null, 2)}\n`);
+}
+
+export function loadHiddenEntries(dataDir) {
+  const records = readHiddenEntries(dataDir);
+  const byMedia = new Map();
+  return records.map((record) => {
+    if (!byMedia.has(record.media)) {
+      const filepath = resolveReportPath(dataDir, record.media);
+      const entries = fs.existsSync(filepath) ? parseReport(record.media, fs.readFileSync(filepath, "utf8")).entries : [];
+      byMedia.set(record.media, new Map(entries.map((entry) => [entry.hideKey, entry])));
+    }
+    const entry = byMedia.get(record.media).get(record.hideKey);
+    return { ...record, title: entry?.title ?? record.title, periodLabel: entry?.periodLabel ?? "", available: Boolean(entry) };
+  }).sort((a, b) => String(b.hiddenAt).localeCompare(String(a.hiddenAt)));
+}
+
+export function restoreHiddenEntry(dataDir, hideKey) {
+  if (typeof hideKey !== "string") throw new Error("隱藏紀錄不正確");
+  return undoHide(dataDir, { hideKey });
 }
 
 function atomicWrite(filepath, content) {
@@ -286,7 +378,7 @@ export function readHiddenEntries(dataDir) {
     throw new Error("隱藏紀錄檔格式不正確");
   }
   return parsed.entries.filter((entry) =>
-    entry && typeof entry.hideKey === "string" && MEDIA_CONFIG[entry.media]
+    entry && typeof entry.hideKey === "string" && Object.hasOwn(MEDIA_CONFIG, entry.media)
   );
 }
 

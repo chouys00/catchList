@@ -52,7 +52,7 @@ button { color: inherit; }
 .field:focus { border-color: var(--lime); box-shadow: 0 0 0 2px color-mix(in srgb, var(--lime) 18%, transparent); }
 .button { min-height: 38px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); padding: 0 14px; cursor: pointer; }
 .button:hover { border-color: var(--muted); }
-.button:focus-visible, .game-tag:focus-visible, .tab:focus-visible, .brand:focus-visible, .folder-button:focus-visible, .game-cover:focus-visible, .game-title-link:focus-visible, .icon-button:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
+.button:focus-visible, .game-tag:focus-visible, .tab:focus-visible, .brand:focus-visible, .folder-button:focus-visible, .game-cover:focus-visible, .game-title-link:focus-visible, .icon-button:focus-visible, .back-to-top:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
 .button.primary { border-color: var(--lime); background: var(--lime); color: var(--lime-ink); font-weight: 800; }
 .button.subtle { color: var(--muted); }
 .button.danger { color: var(--danger); }
@@ -91,12 +91,13 @@ button.game-tag:hover { border-color: var(--muted); color: var(--ink); }
 
 .list { border-top: 1px solid var(--line); }
 .game-column-header,
-.item.games { grid-template-columns: 140px minmax(210px, 1.45fr) 92px 44px 112px minmax(180px, 1.25fr) 76px; }
+.item.games { grid-template-columns: 140px minmax(180px, 1.45fr) 112px 92px 44px minmax(160px, 1.25fr) 110px; }
 .game-column-header { display: grid; gap: 14px; align-items: end; padding: 10px 8px 8px; color: var(--dim); font-size: 10px; font-weight: 700; letter-spacing: .1em; }
 .game-column-header .center { text-align: center; }
 .game-load-sentinel { display: flex; justify-content: center; align-items: center; gap: 12px; min-height: 88px; color: var(--muted); font-size: 12px; }
 .item { display: grid; gap: 14px; align-items: center; padding: 12px 4px; border-bottom: 1px solid var(--line); }
 .item.anime { grid-template-columns: 76px minmax(240px, 2fr) 120px 96px auto; }
+.item.live-action { grid-template-columns: minmax(180px, 2fr) 120px 70px minmax(150px, 1fr) auto; }
 .item.movies { grid-template-columns: 76px minmax(220px, 2fr) 112px 154px minmax(96px, .6fr) auto; }
 .item.games { position: relative; padding: 12px 8px; transition: background-color 140ms ease; }
 .item.games::before { content: ""; position: absolute; inset: 7px auto 7px 0; width: 2px; background: var(--lime); opacity: 0; transform: scaleY(.45); transition: opacity 140ms ease, transform 140ms ease; }
@@ -139,6 +140,38 @@ button.game-cover:hover { border-color: var(--lime); }
 .icon-button { display: grid; width: 34px; height: 34px; padding: 0; place-items: center; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--dim); cursor: pointer; }
 .icon-button svg { width: 18px; height: 18px; }
 .icon-button:hover { border-color: color-mix(in srgb, var(--danger) 38%, var(--line)); background: color-mix(in srgb, var(--danger) 8%, transparent); color: var(--danger); }
+.favorite-button { flex: 0 0 auto; }
+.favorite-button:hover, .favorite-button.saved { color: var(--lime); border-color: color-mix(in srgb, var(--lime) 40%, var(--line)); background: color-mix(in srgb, var(--lime) 7%, var(--surface)); }
+.favorite-button.saved svg { fill: color-mix(in srgb, var(--lime) 18%, transparent); }
+.library-views { display: flex; align-items: center; gap: 18px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+.view-button { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 8px 0; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.view-button span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.view-button.active { border-bottom-color: var(--lime); color: var(--lime); }
+.view-button:focus-visible, .update-panel summary:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
+.reload-button { margin-left: auto; min-height: 32px; font-size: 12px; }
+.update-panel { margin-bottom: 20px; border: 1px solid var(--line); background: var(--surface-2); font-size: 12px; }
+.update-panel summary { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 18px; min-height: 44px; padding: 10px 14px; cursor: pointer; list-style: none; }
+.update-panel summary::-webkit-details-marker { display: none; }
+.update-summary-state, .update-note { color: var(--muted); }
+.update-details-label { margin-left: auto; color: var(--lime); }
+.update-details-label::after { content: " ＋"; }
+.update-panel[open] .update-details-label::after { content: " －"; }
+.update-details { padding: 0 14px 12px; }
+.update-row { display: grid; grid-template-columns: 72px minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); line-height: 1.6; }
+.update-row small { display: block; color: var(--muted); overflow-wrap: anywhere; }
+.update-result.failed > span, .failed, .status-warning { color: var(--danger); }
+.update-note { border-top: 1px solid var(--line); margin: 0; padding-top: 12px; line-height: 1.7; }
+.view-note { color: var(--muted); font-size: 12px; line-height: 1.7; margin: 12px 0; }
+.hidden-search { max-width: 480px; margin-bottom: 16px; }
+.hidden-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 24px; padding: 18px 4px; border-bottom: 1px solid var(--line); }
+.hidden-row small { display: block; margin-top: 4px; }
+
+@media (min-width: 901px) and (max-width: 1200px) {
+  .item.anime, .item.movies, .item.live-action { grid-template-columns: minmax(0, 1fr) auto; }
+  .item .actions { grid-column: 1 / -1; }
+  .toolbar.games { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .game-column-header, .item.games { grid-template-columns: 140px minmax(130px, 1fr) 100px 82px 32px minmax(90px, 1fr) 106px; gap: 8px; }
+}
 .empty { padding: 70px 20px; border: 1px dashed var(--line); color: var(--muted); text-align: center; line-height: 1.7; }
 .missing { min-height: calc(100vh - 74px); display: grid; place-items: center; padding: 30px; }
 .missing-card { max-width: 560px; padding: 42px; border: 1px solid var(--line); background: var(--surface-2); text-align: center; }
@@ -153,6 +186,11 @@ button.game-cover:hover { border-color: var(--lime); }
 .toast { position: fixed; right: 22px; bottom: 22px; z-index: 30; display: none; align-items: center; gap: 14px; max-width: calc(100vw - 44px); padding: 13px 15px; border: 1px solid #48503a; border-radius: 4px; background: #20251b; box-shadow: 0 12px 40px #0008; }
 .toast.show { display: flex; }
 .toast button { border: 0; background: none; color: var(--lime); font-weight: 800; cursor: pointer; }
+.back-to-top { position: fixed; right: 22px; bottom: 22px; z-index: 25; display: grid; width: 50px; height: 50px; padding: 0; place-items: center; border: 1px solid #596144; border-radius: 4px; background: color-mix(in srgb, var(--surface-3) 94%, transparent); color: var(--lime); box-shadow: 0 12px 32px #0009; opacity: 0; visibility: hidden; pointer-events: none; cursor: pointer; transform: translateY(10px); transition: opacity 150ms ease, transform 150ms ease, visibility 150ms ease, border-color 150ms ease, background-color 150ms ease; backdrop-filter: blur(12px); }
+.back-to-top.show { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
+.back-to-top:hover { border-color: var(--lime); background: #29301f; }
+.back-to-top svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.back-to-top.show + .toast { bottom: 84px; }
 
 @media (max-width: 900px) {
   .topbar { grid-template-columns: auto 1fr auto; padding: 0 16px; }
@@ -164,7 +202,7 @@ button.game-cover:hover { border-color: var(--lime); }
   .toolbar.games { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .toolbar .search { grid-column: 1 / -1; }
   .game-column-header { display: none; }
-  .item, .item.anime, .item.movies, .item.games { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; }
+  .item, .item.anime, .item.movies, .item.games, .item.live-action { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; }
   .item > .meta, .item > .score, .item > .rating { grid-column: auto; }
   .item .actions { grid-column: 1 / -1; justify-content: start; }
   .item.games { grid-template-columns: 118px minmax(180px, 1fr) auto; }
@@ -177,6 +215,19 @@ button.game-cover:hover { border-color: var(--lime); }
 }
 
 @media (max-width: 560px) {
+  .back-to-top { right: 14px; bottom: 14px; width: 48px; height: 48px; }
+  .back-to-top.show + .toast { right: 14px; bottom: 76px; max-width: calc(100vw - 28px); }
+  .library-views { gap: 14px; flex-wrap: wrap; }
+  .view-button { font-size: 14px; min-height: 44px; }
+  .reload-button { margin: 0 0 8px auto; min-height: 36px; }
+  .update-panel summary { gap: 6px 10px; }
+  .update-summary-state { flex-basis: 100%; order: 3; }
+  .update-row { grid-template-columns: 48px minmax(0, 1fr); gap: 8px; }
+  .update-result { grid-column: 2; }
+  .hidden-row { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+  .hidden-row > .meta { grid-row: 2; grid-column: 1 / -1; }
+  .hidden-row .button { min-height: 44px; }
+  .actions { flex-wrap: wrap; }
   .topbar { min-height: 104px; grid-template-columns: 1fr auto; grid-template-rows: 52px 46px; }
   .tabs { grid-column: 1 / -1; grid-row: 2; width: 100%; }
   .tab { flex: 1; }
