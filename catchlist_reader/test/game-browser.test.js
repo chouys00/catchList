@@ -3,6 +3,19 @@ import test from "node:test";
 
 import { collectTagOptions, collectTagOptionsFromIndex, createTagIndex, filterAndSortGames, visibleGameTags } from "../src/renderer/game-browser.js";
 
+test("三種排序保留篩選與新收錄條件，不修改來源陣列", () => {
+  const source = [
+    { title: "最新", releaseDate: "2026-02-01", score: 90, reviews: 500, isNew: true },
+    { title: "最高分", releaseDate: "2025-02-01", score: 99, reviews: 1000, isNew: true },
+    { title: "最多票", releaseDate: "2024-02-01", score: 95, reviews: 10000, isNew: false },
+  ];
+  assert.equal(filterAndSortGames(source, { sort: "date" })[0].title, "最新");
+  assert.equal(filterAndSortGames(source, { sort: "score" })[0].title, "最高分");
+  assert.equal(filterAndSortGames(source, { sort: "reviews" })[0].title, "最多票");
+  assert.deepEqual(filterAndSortGames(source, { sort: "reviews", newOnly: true, min: 95 }).map((entry) => entry.title), ["最高分"]);
+  assert.deepEqual(source.map((entry) => entry.title), ["最新", "最高分", "最多票"]);
+});
+
 const entries = [
   {
     appid: "newer",

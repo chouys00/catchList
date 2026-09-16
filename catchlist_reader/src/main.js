@@ -7,6 +7,7 @@ import { deleteEntry, hasReportFiles, hideEntry, loadAllLibraries, undoHide, set
 import { loadUpdateStatus } from "./update-status.js";
 import { GameCoverCache, GameCoverService } from "./game-cover-cache.js";
 import { resolveSteamCover } from "./steam-covers.js";
+import { VisitHistory } from "./visit-history.js";
 
 const sourceDir = path.dirname(fileURLToPath(import.meta.url));
 const isolatedUserDataDir = process.env.CATCHLIST_USER_DATA_DIR?.trim();
@@ -15,6 +16,8 @@ let mainWindow;
 let dataDir;
 let lastOperation;
 let gameCoverService;
+const visits = new VisitHistory();
+let activeMedia = "games";
 
 function settingsPath() {
   return path.join(app.getPath("userData"), "settings.json");
@@ -48,11 +51,12 @@ function initialDirectory() {
 }
 
 function snapshot() {
+  const visit = dataDir ? visits.annotate(dataDir, loadAllLibraries(dataDir), activeMedia) : { libraries: [] };
   return {
     dataDir,
     appVersion: app.getVersion(),
     canUndo: Boolean(lastOperation),
-    libraries: dataDir ? loadAllLibraries(dataDir) : [],
+    ...visit,
     hiddenEntries: dataDir ? loadHiddenEntries(dataDir) : [],
     updateStatus: dataDir ? loadUpdateStatus(dataDir) : null,
   };
@@ -73,7 +77,10 @@ function validExternalUrl(raw) {
 }
 
 function registerIpc() {
-  ipcMain.handle("library:load", () => snapshot());
+  ipcMain.handle("library:load", (_event, media) => {
+    if (["games", "anime", "movies", "liveAction"].includes(media)) activeMedia = media;
+    return snapshot();
+  });
   ipcMain.handle("library:set-favorite", (_event, media, entryId, favorite) => {
     if (!dataDir) throw new Error("尚未選擇資料夾");
     setFavorite(dataDir, media, entryId, favorite);

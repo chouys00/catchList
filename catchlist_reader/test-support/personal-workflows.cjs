@@ -13,6 +13,9 @@ const deadline = setTimeout(() => { console.error("互動測試逾時"); app.exi
 app.whenReady().then(async () => {
   const lib = await import(pathToFileURL(path.join(readerRoot, "src/library.js")).href);
   const { loadUpdateStatus } = await import(pathToFileURL(path.join(readerRoot, "src/update-status.js")).href);
+  const { VisitHistory } = await import(pathToFileURL(path.join(readerRoot, "src/visit-history.js")).href);
+  let visits = new VisitHistory();
+  let activeMedia = "games";
   const fixtures = {
     "遊戲.md": fs.readFileSync(path.join(__dirname, "../test-data/steam-tags-2026-02/遊戲.md"), "utf8"),
     "動畫.md": "2026  春  >7.70\n\n- 星海郵差  **8.20**  (12 · TV)\n------------------------------\n",
@@ -27,8 +30,8 @@ app.whenReady().then(async () => {
   } }));
   const version = JSON.parse(fs.readFileSync(path.join(readerRoot, "package.json"))).version;
   let operation;
-  const snapshot = () => ({ dataDir: temp, appVersion: version, libraries: lib.loadAllLibraries(temp), hiddenEntries: lib.loadHiddenEntries(temp), updateStatus: loadUpdateStatus(temp) });
-  ipcMain.handle("library:load", snapshot);
+  const snapshot = () => ({ dataDir: temp, appVersion: version, ...visits.annotate(temp, lib.loadAllLibraries(temp), activeMedia), hiddenEntries: lib.loadHiddenEntries(temp), updateStatus: loadUpdateStatus(temp) });
+  ipcMain.handle("library:load", (_, media) => { activeMedia = media ?? activeMedia; return snapshot(); });
   ipcMain.handle("library:set-favorite", (_, media, id, favorite) => { lib.setFavorite(temp, media, id, favorite); return snapshot(); });
   ipcMain.handle("library:restore-hidden", (_, key) => { lib.restoreHiddenEntry(temp, key); return snapshot(); });
   ipcMain.handle("library:hide-entry", (_, media, id) => { operation = lib.hideEntry(temp, media, id); return snapshot(); });
@@ -45,7 +48,11 @@ app.whenReady().then(async () => {
     }
     throw new Error(`等待畫面逾時：${condition}`);
   };
-  const click = (selector) => js(`document.querySelector(${JSON.stringify(selector)}).click()`);
+  const click = async (selector) => {
+    await js(`document.querySelector(${JSON.stringify(selector)}).click()`);
+    // 分類切換與讀取走正式非同步橋接。
+    if (selector.includes("data-media") || selector.includes('data-action="reload"')) await new Promise((resolve) => setTimeout(resolve, 100));
+  };
   const fill = (selector, value) => js(`(() => { const input = document.querySelector(${JSON.stringify(selector)}); input.value = ${JSON.stringify(value)}; input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
   const capture = async (name) => {
     if (!process.env.CATCHLIST_QA_DIR) return null;
@@ -58,10 +65,50 @@ app.whenReady().then(async () => {
   };
   await win.loadFile(path.join(readerRoot, "src/renderer/index.html"));
   await until("document.querySelectorAll('.item.games').length === 7");
+  assert.equal(await js("document.querySelector('#advancedFilters').hidden"), true);
+  assert.ok(await js("document.querySelector('.list').getBoundingClientRect().top < 210"), "桌面首筆結果應位於 210px 內");
+  await capture("compact-desktop");
+  const select = (key, value) => js(`(() => { const el = document.querySelector('[data-filter="${key}"]'); el.value = '${value}'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  await select("sort", "score");
+  assert.equal(await js("document.querySelector('.item .rating strong').textContent"), "99%");
+  await select("sort", "reviews");
+  assert.equal(await js("document.querySelector('.item .rating small').textContent"), "(2,721)");
+  await select("sort", "date");
+  await click('[data-action="toggle-new"]');
+  assert.equal(await js("document.querySelectorAll('.item').length"), 0);
+  await click('[data-action="toggle-new"]');
+  // 上次已看過六筆，最後一筆模擬本次新加入；既有 Markdown 全程保持不變。
+  const historyPath = path.join(temp, ".catchlist-visits.json");
+  const visitFixture = JSON.parse(fs.readFileSync(historyPath, "utf8"));
+  visitFixture.media.games.keys.pop();
+  fs.writeFileSync(historyPath, JSON.stringify(visitFixture));
+  visits = new VisitHistory();
+  await click('[data-action="reload"]');
+  await until("document.querySelector('.new-filter span').textContent === '1'");
+  await click('[data-action="toggle-new"]');
+  assert.equal(await js("document.querySelectorAll('.item').length"), 1);
+  await click('[data-action="reload"]');
+  assert.equal(await js("document.querySelectorAll('.item').length"), 1);
+  await click('[data-media="anime"]');
+  await click('[data-media="games"]');
+  assert.equal(await js("document.querySelectorAll('.item').length"), 1);
+  await capture("new-arrivals-desktop");
+  await click('[data-action="toggle-new"]');
+  await click('[data-action="toggle-filters"]');
+  await select("min", "97");
+  assert.equal(await js("document.querySelectorAll('.item').length"), 4);
+  await click('[data-action="toggle-filters"]');
+  assert.match(await js("document.querySelector('[data-action=\"toggle-filters\"]').textContent"), /1/);
+  assert.equal(await js("document.querySelectorAll('.item').length"), 4);
+  await click('[data-action="toggle-filters"]');
+  await click('[data-action="toggle-tags"]');
+  await capture("filters-desktop");
+  await click('[data-action="clear-filters"]');
+  await click('[data-action="toggle-filters"]');
   assert.deepEqual(await js("[...document.querySelectorAll('.game-column-header > span')].map((item) => item.textContent)"), ["封面", "遊戲名稱", "好評率", "發售日", "中文", "社群標籤", "管理"]);
   assert.deepEqual(await js("[...document.querySelector('.item.games .game-facts').children].map((item) => item.classList[0])"), ["rating", "meta", "language-status"]);
   assert.deepEqual(await js("(() => { const button = document.querySelector('#backToTop'); return { hidden: button.getAttribute('aria-hidden'), tabIndex: button.tabIndex }; })()"), { hidden: "true", tabIndex: -1 });
-  win.setContentSize(1440, 400);
+  win.setContentSize(1440, 280);
   await new Promise((resolve) => setTimeout(resolve, 100));
   await js("window.scrollTo(0, document.documentElement.scrollHeight)");
   await until("document.querySelector('#backToTop').getAttribute('aria-hidden') === 'false'");
@@ -87,7 +134,9 @@ app.whenReady().then(async () => {
   await click(".update-panel summary");
   assert.equal(await js("document.querySelectorAll('.update-row').length"), 4);
   assert.match(await js("document.querySelector('.update-details').textContent"), /新增 7 筆/);
-  await click(".update-panel summary");
+  assert.ok(await js("document.querySelector('.list').getBoundingClientRect().top < 210"), "更新詳情不可推擠列表");
+  await js("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))");
+  assert.equal(await js("document.querySelector('.update-panel').open"), false);
 
   const flows = [];
   for (const media of ["games", "anime", "movies", "liveAction"]) {
@@ -117,8 +166,10 @@ app.whenReady().then(async () => {
   // 重新載入整個畫面，收藏及舊隱藏紀錄均由磁碟讀取。
   const game = lib.loadLibrary(temp, "games").entries.find((entry) => entry.favorite);
   lib.hideEntry(temp, "games", game.id);
+  visits = new VisitHistory();
   await win.loadFile(path.join(readerRoot, "src/renderer/index.html"));
   await until("document.querySelector('[data-view=\"hidden\"]') !== null");
+  assert.equal(await js("document.querySelector('.new-filter span').textContent"), "0");
   await click('[data-view="hidden"]');
   assert.equal(await js("document.querySelectorAll('.hidden-row').length"), 1);
   await click("[data-restore]");
@@ -150,11 +201,25 @@ app.whenReady().then(async () => {
       await until("window.scrollY < 2");
     }
     if (process.env.CATCHLIST_QA_DIR) screenshots.push(await capture(`personal-${name}`));
+    if (name === "mobile") {
+      await click('[data-action="toggle-filters"]');
+      assert.ok(await js("document.documentElement.scrollWidth <= innerWidth"));
+      await capture("filters-mobile");
+      await click('[data-action="toggle-filters"]');
+    }
     await click(".update-panel summary");
     assert.ok(await js("document.documentElement.scrollWidth <= innerWidth"));
     if (process.env.CATCHLIST_QA_DIR) screenshots.push(await capture(`status-${name}`));
     await click(".update-panel summary");
   }
+  await click('[data-action="toggle-new"]');
+  fs.writeFileSync(historyPath, "broken");
+  await click('[data-action="reload"]');
+  await until("document.querySelector('.new-filter').disabled");
+  assert.equal(await js("document.querySelectorAll('.item.games').length"), 7);
+  assert.equal(await js("document.querySelector('.new-filter').getAttribute('aria-pressed')"), "false");
+  assert.match(await js("document.querySelector('[role=alert]').textContent"), /新收錄紀錄/);
+  assert.equal(fs.readFileSync(historyPath, "utf8"), "broken");
   for (const [filename, content] of Object.entries(fixtures)) assert.equal(fs.readFileSync(path.join(temp, filename), "utf8"), content);
   clearTimeout(deadline);
   console.log(JSON.stringify({ version, flows, restoredAfterReload: true, cancelFavorite: true, reportBytesUnchanged: true, responsiveWidths: sizes.map((size) => size[1]), screenshots }));

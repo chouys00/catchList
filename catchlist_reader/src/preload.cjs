@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("catchList", {
-  load: () => ipcRenderer.invoke("library:load"),
+  load: (media) => ipcRenderer.invoke("library:load", media),
   setFavorite: (media, entryId, favorite) => ipcRenderer.invoke("library:set-favorite", media, entryId, favorite),
   restoreHidden: (hideKey) => ipcRenderer.invoke("library:restore-hidden", hideKey),
   chooseDirectory: () => ipcRenderer.invoke("library:choose-directory"),

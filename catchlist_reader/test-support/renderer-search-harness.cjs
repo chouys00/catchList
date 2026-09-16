@@ -36,7 +36,7 @@ async function searchState(window) {
       focused: document.activeElement === input,
       selectionStart: input?.selectionStart ?? null,
       selectionEnd: input?.selectionEnd ?? null,
-      resultCount: document.querySelector('.section-status span')?.textContent ?? null,
+      resultCount: document.querySelector('[data-result-count]')?.textContent ?? null,
     };
   })()`);
 }
@@ -324,6 +324,7 @@ async function run() {
     const gameBrowser = await window.webContents.executeJavaScript(`(async () => {
       const tick = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
       const nameInput = document.querySelector('[data-filter="query"]');
+      document.querySelector('[data-action="toggle-filters"]').click();
       const toggle = document.querySelector('[data-action="toggle-tags"]');
       toggle?.click();
       await tick();

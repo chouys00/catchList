@@ -295,6 +295,7 @@ export function loadLibrary(dataDir, media, hiddenKeys, favorites) {
     filepath,
     exists: true,
     updatedAt: stat.mtime.toISOString(),
+    knownKeys: [...new Set(parsed.entries.map((entry) => entry.hideKey))],
     entries: parsed.entries
       .filter((entry) => !effectiveHiddenKeys.has(entry.hideKey))
       .map(({ lineStart, lineEnd, ...entry }) => ({ ...entry, favorite: favoriteKeys.has(entry.hideKey) })),

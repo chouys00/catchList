@@ -17,6 +17,7 @@ const state = {
   view: "all",
   hiddenQuery: "",
   statusOpen: false,
+  filtersOpen: false,
   mutationPending: false,
   payload: null,
   filters: {
@@ -66,13 +67,18 @@ function filteredEntries() {
   if (state.active === "games") return filterAndSortGames(entries, filter);
   const query = filter.query.trim().toLocaleLowerCase("zh-Hant");
   return entries.filter((entry) => {
+    if (filter.newOnly && !entry.isNew) return false;
     if (query && !`${entry.title} ${entry.originalTitle ?? ""}`.toLocaleLowerCase("zh-Hant").includes(query)) return false;
     if (filter.year !== "all" && entry.year !== Number(filter.year)) return false;
     if (state.active === "anime" && filter.season !== "all" && entry.season !== filter.season) return false;
     if (state.active === "movies" && filter.category !== "all" && entry.category !== filter.category) return false;
     if (state.active === "liveAction" && filter.region !== "all" && entry.region !== filter.region) return false;
     return state.active === "liveAction" || entry.score >= Number(filter.min || 0);
-  }).sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, "zh-Hant"));
+  }).sort((a, b) => {
+    if (filter.sort === "date") return b.year - a.year || (b.month ?? 0) - (a.month ?? 0) || b.score - a.score || a.title.localeCompare(b.title, "zh-Hant");
+    if (filter.sort === "reviews") return Number(b.votes ?? 0) - Number(a.votes ?? 0) || b.score - a.score || a.title.localeCompare(b.title, "zh-Hant");
+    return b.score - a.score || a.title.localeCompare(b.title, "zh-Hant");
+  });
 }
 
 async function hydrateGameCovers(entries) {
@@ -135,9 +141,9 @@ function reviewOptions(selected) {
   return `<option value="0">評論：不限</option>${values.map((reviews) => `<option value="${reviews}" ${Number(selected) === reviews ? "selected" : ""}>${reviews.toLocaleString()}+</option>`).join("")}`;
 }
 
-function toolbar(data) {
+function advancedToolbar(data) {
   const filter = state.filters[state.active];
-  const search = `<input class="field search" data-filter="query" value="${escapeHtml(filter.query)}" placeholder="${mediaCopy[state.active].search}" aria-label="搜尋名稱">`;
+  const search = "";
   if (state.active === "games") {
     const years = [...new Set(data.entries.map((entry) => entry.year))].filter(Number.isFinite).sort((a, b) => b - a);
     const months = [...new Set(data.entries.map((entry) => entry.month))].filter(Number.isFinite).sort((a, b) => a - b);
@@ -152,6 +158,26 @@ function toolbar(data) {
     ? `<select class="field" data-filter="season" aria-label="季度">${options(["春", "夏", "秋", "冬"], filter.season, "所有季度")}</select>`
     : `<select class="field" data-filter="category" aria-label="影片類別">${options([...new Set(data.entries.map((entry) => entry.category))].sort((a, b) => a.localeCompare(b, "zh-Hant")), filter.category, "所有類別")}</select>`;
   return `<div class="toolbar">${search}<select class="field" data-filter="year" aria-label="年份">${options(years, filter.year, "所有年份")}</select>${third}<select class="field" data-filter="min" aria-label="最低評分">${scoreOptions(filter.min)}</select></div>`;
+}
+
+function activeFilterCount() {
+  const filter = state.filters[state.active];
+  return ["year", "month", "season", "category", "region", "min", "minReviews", "chinese"]
+    .filter((key) => filter[key] && !["all", "0"].includes(filter[key])).length + (filter.tags?.length ?? 0);
+}
+
+function toolbar(data, count, openLabel) {
+  const filter = state.filters[state.active];
+  const sorts = state.active === "games" ? [["date", "發售日最新"], ["score", "好評率最高"], ["reviews", "評論數最多"]]
+    : [["score", "評分最高"], ["date", "年份最新"], ...(state.active === "anime" ? [] : [["reviews", "票數最多"]])];
+  const selected = filter.sort ?? (state.active === "games" ? "date" : "score");
+  const newCount = data.entries.filter((entry) => entry.isNew && (state.view !== "favorites" || entry.favorite)).length;
+  return `<div class="browse-toolbar"><input class="field search" data-filter="query" value="${escapeHtml(filter.query)}" placeholder="${mediaCopy[state.active].search}" aria-label="搜尋名稱"><select class="field sort-field" data-filter="sort" aria-label="排序方式">${sorts.map(([key, label]) => `<option value="${key}" ${key === selected ? "selected" : ""}>${label}</option>`).join("")}</select><button class="button new-filter" type="button" data-action="toggle-new" aria-pressed="${Boolean(filter.newOnly)}" ${state.payload.visitWarning ? "disabled" : ""} title="本次來訪新增的作品；第一次使用先建立基準">新收錄 <span>${newCount}</span></button><button class="button filter-toggle" type="button" data-action="toggle-filters" aria-controls="advancedFilters" aria-expanded="${state.filtersOpen}">篩選${activeFilterCount() ? ` · ${activeFilterCount()}` : ""}</button><span class="result-count" data-result-count>${count} 筆結果</span><button class="button subtle batch-open" data-action="open-filtered" ${count ? "" : "disabled"}>${openLabel}</button></div><section id="advancedFilters" aria-label="進階篩選" ${state.filtersOpen ? "" : "hidden"}>${advancedToolbar(data)}${state.active === "games" ? gameTagPanel() : '<button class="button subtle" type="button" data-action="clear-filters">清除篩選</button>'}</section>`;
+}
+
+function syncFilterSummary() {
+  const button = app.querySelector('[data-action="toggle-filters"]');
+  if (button) button.textContent = `篩選${activeFilterCount() ? ` · ${activeFilterCount()}` : ""}`;
 }
 
 function tagOptionMarkup({ tag, count, selected }) {
@@ -278,6 +304,7 @@ function appendNextGameBatch() {
 }
 
 function refreshResults({ hydrateCovers = true, resetGames = true } = {}) {
+  syncFilterSummary();
   if (state.view === "hidden") return;
   const entries = filteredEntries();
   const count = app.querySelector("[data-result-count]");
@@ -345,8 +372,8 @@ function syncTagOptionsOverflow() {
 }
 
 function syncGameControls() {
-  const filter = state.filters.games;
-  for (const key of ["query", "year", "month", "min", "minReviews", "chinese", "tagQuery"]) {
+  const filter = state.filters[state.active];
+  for (const key of ["query", "year", "month", "season", "category", "region", "min", "minReviews", "chinese", "tagQuery"]) {
     const control = app.querySelector(`[data-filter="${key}"]`);
     if (control) control.value = filter[key];
   }
@@ -358,6 +385,9 @@ function refreshGameBrowser(options) {
 }
 
 function render() {
+  if (state.payload?.visitWarning) {
+    for (const filter of Object.values(state.filters)) filter.newOnly = false;
+  }
   if (state.payload?.appVersion) {
     document.title = `CatchList 閱讀器 ${state.payload.appVersion}`;
     document.querySelector('.brand strong').textContent = `CatchList ${state.payload.appVersion}`;
@@ -372,10 +402,11 @@ function render() {
   const hidden = (state.payload.hiddenEntries ?? []).filter((entry) => entry.media === state.active);
   const navigation = viewNavigation(state.view, state.active, data.entries, hidden.length);
   const update = updateStatusMarkup(state.payload, state.active, state.statusOpen);
+  const heading = `<div class="browse-heading">${navigation}${update}<button class="button subtle reload-button" type="button" data-action="reload">重新讀取</button></div>`;
   stopGameAutoLoad();
   if (state.view === "hidden") {
     const result = hiddenListMarkup(hidden, state.hiddenQuery);
-    app.innerHTML = `<div class="layout"><section class="content">${navigation}${update}<div class="section-status"><div class="section-summary"><strong>隱藏管理</strong><span data-hidden-count>${result.count} 筆紀錄</span></div></div><p class="view-note">恢復後會回到全部清單，原有收藏也會保留。清除失效紀錄不會重建已刪除的作品。</p><input class="field hidden-search" data-hidden-query value="${escapeHtml(state.hiddenQuery)}" placeholder="搜尋隱藏作品名稱…" aria-label="搜尋隱藏作品名稱"><div class="hidden-list">${result.markup}</div></section></div>`;
+    app.innerHTML = `<div class="layout"><section class="content">${heading}<div class="section-status"><div class="section-summary"><strong>隱藏管理</strong><span data-hidden-count>${result.count} 筆紀錄</span></div></div><p class="view-note">恢復後會回到全部清單，原有收藏也會保留。清除失效紀錄不會重建已刪除的作品。</p><input class="field hidden-search" data-hidden-query value="${escapeHtml(state.hiddenQuery)}" placeholder="搜尋隱藏作品名稱…" aria-label="搜尋隱藏作品名稱"><div class="hidden-list">${result.markup}</div></section></div>`;
     return;
   }
   const entries = filteredEntries();
@@ -383,9 +414,7 @@ function render() {
   if (isGames) syncGameTagViewport();
   const openLabel = isGames ? "開啟目前結果" : state.active === "liveAction" ? `開啟目前結果 ${entries.length}` : `搜尋目前結果 ${entries.length}`;
   stopGameAutoLoad();
-  app.innerHTML = `<div class="layout"><section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1><div class="section-status"><div class="section-summary"><strong>${isGames ? "全部月份" : "全部年代"}</strong><span data-result-count>${entries.length} 筆結果</span></div><div class="section-actions"><button class="button primary" data-action="open-filtered" ${entries.length ? "" : "disabled"}>${openLabel}</button></div></div>${toolbar(data)}${isGames ? gameTagPanel() : ""}${isGames ? gameColumnHeader() : ""}<div class="list">${isGames ? gameListMarkup(entries) : entriesMarkup(entries)}</div></section></div>`;
-  app.querySelector(".content").insertAdjacentHTML("afterbegin", `${navigation}${update}${state.view === "favorites" ? '<p class="view-note">收藏有興趣的作品，下次從這裡接著挑。隱藏中的收藏請先到隱藏管理恢復。</p>' : ""}`);
-  if (state.view === "favorites") app.querySelector(".section-summary strong").textContent = isGames ? "待玩收藏" : "待看收藏";
+  app.innerHTML = `<div class="layout"><section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1>${heading}${toolbar(data, entries.length, openLabel)}${state.payload.visitWarning ? `<p class="status-warning" role="alert">${escapeHtml(state.payload.visitWarning)}</p>` : ""}${state.filters[state.active].newOnly ? '<p class="new-note">顯示本次來訪新增的作品。首次使用先建立基準；重新讀取不會清除本次標記。</p>' : ""}${isGames ? gameColumnHeader() : ""}<div class="list">${isGames ? gameListMarkup(entries) : entriesMarkup(entries)}</div></section></div>`;
   if (isGames) {
     syncTagOptionsOverflow();
     setupGameAutoLoad();
@@ -426,7 +455,8 @@ function syncBackToTop() {
 }
 
 async function load() {
-  try { state.payload = await window.catchList.load(); render(); return true; } catch (error) { showToast(error.message); return false; }
+  const media = state.active;
+  try { const payload = await window.catchList.load(media); if (state.active !== media) return false; state.payload = payload; render(); return true; } catch (error) { showToast(error.message); return false; }
 }
 
 async function openBatch(urls, label) {
@@ -453,7 +483,7 @@ document.addEventListener("click", async (event) => {
   if (media) {
     state.active = media;
     if (media === "games") state.visibleGameCount = GAME_BATCH_SIZE;
-    render();
+    await load();
     return;
   }
   const tag = event.target.closest("[data-game-tag]")?.dataset.gameTag;
@@ -472,6 +502,13 @@ document.addEventListener("click", async (event) => {
   }
   const action = event.target.closest("[data-action]")?.dataset.action;
   try {
+    if (action === "toggle-filters") {
+      state.filtersOpen = !state.filtersOpen;
+      app.querySelector("#advancedFilters").hidden = !state.filtersOpen;
+      app.querySelector('[data-action="toggle-filters"]').setAttribute("aria-expanded", String(state.filtersOpen));
+      if (state.filtersOpen && state.active === "games") syncTagOptionsOverflow();
+    }
+    if (action === "toggle-new") { state.filters[state.active].newOnly = !state.filters[state.active].newOnly; render(); }
     if (action === "reload" && await load()) showToast("已重新讀取資料");
     const favoriteId = event.target.closest("[data-favorite]")?.dataset.favorite;
     const restoreKey = event.target.closest("[data-restore]")?.dataset.restore;
@@ -501,10 +538,11 @@ document.addEventListener("click", async (event) => {
     if (action === "close-tag-panel") { state.filters.games.tagsOpen = false; refreshTagPanel(); }
     if (action === "toggle-tag-options") { state.filters.games.tagOptionsExpanded = !state.filters.games.tagOptionsExpanded; refreshTagPanel(); }
     if (action === "clear-filters") {
-      state.filters.games = { query: "", year: "all", month: "all", min: "0", minReviews: "0", chinese: "all", tags: [], tagsOpen: state.filters.games.tagsOpen, tagQuery: "", tagOptionsExpanded: false };
+      const filter = state.filters[state.active];
+      Object.assign(filter, { query: "", year: "all", month: "all", season: "all", category: "all", region: "all", min: "0", minReviews: "0", chinese: "all", tags: [], tagQuery: "", tagOptionsExpanded: false });
       state.expandedGameTags.clear();
       syncGameControls();
-      refreshGameBrowser();
+      if (state.active === "games") refreshGameBrowser(); else refreshResults();
       app.querySelector('[data-filter="query"]')?.focus();
     }
     if (action === "open-filtered") {
@@ -579,6 +617,19 @@ window.addEventListener("scroll", () => {
 document.addEventListener("toggle", (event) => {
   if (event.target.matches?.(".update-panel")) state.statusOpen = event.target.open;
 }, true);
+
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".update-panel")) {
+    const panel = app.querySelector(".update-panel");
+    if (panel) panel.open = false;
+    state.statusOpen = false;
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  const panel = app.querySelector(".update-panel");
+  if (panel?.open) { panel.open = false; state.statusOpen = false; panel.querySelector("summary").focus(); }
+});
 
 syncBackToTop();
 load();

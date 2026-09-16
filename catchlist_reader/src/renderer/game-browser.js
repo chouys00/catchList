@@ -43,6 +43,7 @@ export function filterAndSortGames(entries, filters = {}) {
   return entries
     .filter((entry) => {
       if (query && !gameTitle(entry).includes(query)) return false;
+      if (filters.newOnly && !entry.isNew) return false;
       if (filters.year && filters.year !== "all" && entry.year !== Number(filters.year)) return false;
       if (filters.month && filters.month !== "all" && entry.month !== Number(filters.month)) return false;
       if (filters.chinese && filters.chinese !== "all" && entry.chineseSupport !== filters.chinese) return false;
@@ -52,6 +53,10 @@ export function filterAndSortGames(entries, filters = {}) {
       return selectedTags.every((tag) => tags.includes(tag));
     })
     .sort((left, right) => {
+      const scoreDifference = Number(right.score ?? 0) - Number(left.score ?? 0);
+      const reviewDifference = Number(right.reviews ?? 0) - Number(left.reviews ?? 0);
+      if (filters.sort === "score" && scoreDifference) return scoreDifference;
+      if (filters.sort === "reviews" && reviewDifference) return reviewDifference;
       return String(right.releaseDate ?? "").localeCompare(String(left.releaseDate ?? ""))
         || Number(right.score ?? 0) - Number(left.score ?? 0)
         || Number(right.reviews ?? 0) - Number(left.reviews ?? 0)

@@ -10,7 +10,7 @@ export function dateLabel(value) {
 export function viewNavigation(view, media, entries, hiddenCount) {
   const favoriteCount = entries.filter((entry) => entry.favorite).length;
   const tabs = [["all", "全部", entries.length], ["favorites", media === "games" ? "待玩收藏" : "待看收藏", favoriteCount], ["hidden", "隱藏管理", hiddenCount]];
-  return `<nav class="library-views" aria-label="清單檢視">${tabs.map(([key, label, count]) => `<button type="button" class="view-button${view === key ? " active" : ""}" data-view="${key}" aria-pressed="${view === key}">${label}<span>${count}</span></button>`).join("")}<button class="button subtle reload-button" type="button" data-action="reload">重新讀取</button></nav>`;
+  return `<nav class="library-views" aria-label="清單檢視">${tabs.map(([key, label, count]) => `<button type="button" class="view-button${view === key ? " active" : ""}" data-view="${key}" aria-pressed="${view === key}">${label}<span>${count}</span></button>`).join("")}</nav>`;
 }
 
 export function hiddenListMarkup(records, query) {

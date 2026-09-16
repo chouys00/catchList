@@ -264,6 +264,57 @@ button.game-cover:hover { border-color: var(--lime); }
   .actions .button { flex: 1; }
 }
 
+/* 緊湊閱讀工具：常用操作兩列，更新細節浮層、篩選按需展開。 */
+.content { padding-top: 10px; }
+.browse-heading { position: relative; display: flex; align-items: center; gap: 14px; border-bottom: 1px solid var(--line); }
+.browse-heading .library-views { flex: 1; margin: 0; border: 0; gap: 20px; flex-wrap: nowrap; }
+.browse-heading .view-button { min-height: 42px; font-size: 14px; }
+.browse-heading .reload-button { margin: 0; min-height: 32px; white-space: nowrap; }
+.browse-heading .update-panel { margin: 0; border: 0; background: none; }
+.browse-heading .update-panel summary { min-height: 34px; padding: 4px 0; gap: 12px; font-size: 12px; }
+.browse-heading .update-summary-state:not(.failed) { display: none; }
+.browse-heading .update-summary-state { flex-basis: auto; order: 0; }
+.browse-heading .update-details { position: absolute; right: 0; top: calc(100% + 6px); width: min(760px, 100%); max-height: min(520px, 65vh); overflow-y: auto; padding: 18px; z-index: 15; border: 1px solid var(--line); background: var(--surface-2); box-shadow: 0 16px 40px #0009; }
+.browse-toolbar { display: grid; grid-template-columns: minmax(180px, 1fr) 156px auto auto auto auto; align-items: center; gap: 8px; margin: 10px 0 0; }
+.browse-toolbar .field, .browse-toolbar .button { font-size: 14px; }
+.browse-toolbar .button { white-space: nowrap; }
+.result-count { padding-inline: 6px; color: var(--muted); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.new-filter span { font-variant-numeric: tabular-nums; margin-left: 4px; }
+.new-filter[aria-pressed="true"], .filter-toggle[aria-expanded="true"] { color: var(--lime); border-color: var(--lime); background: color-mix(in srgb, var(--lime) 8%, var(--surface)); }
+#advancedFilters { padding: 12px 0; border-bottom: 1px solid var(--line); }
+#advancedFilters[hidden] { display: none; }
+#advancedFilters .toolbar { margin: 0; grid-template-columns: repeat(3, minmax(110px, 1fr)); }
+#advancedFilters .toolbar.games { grid-template-columns: repeat(5, minmax(95px, 1fr)) auto auto; }
+#advancedFilters .tag-panel { margin: 10px 0 0; }
+.new-note { color: var(--muted); font-size: 12px; margin: 10px 0; line-height: 1.6; }
+.browse-toolbar + #advancedFilters + .list { margin-top: 10px; }
+@media (max-width: 1100px) {
+  .browse-heading .update-panel summary > span:first-child { display: none; }
+  #advancedFilters .toolbar.games { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .browse-heading { flex-wrap: wrap; gap: 4px 12px; padding-bottom: 6px; }
+  .browse-heading .library-views { flex-basis: 100%; }
+  .browse-heading .update-panel { margin-right: auto; }
+  .browse-heading .update-panel summary > span:first-child { display: inline; }
+  .browse-toolbar { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .browse-toolbar .search { grid-column: 1 / -1; }
+  .browse-toolbar .sort-field { min-width: 0; }
+  .browse-toolbar .result-count { grid-column: 1; padding: 0; }
+  .browse-toolbar .batch-open { grid-column: 2 / -1; }
+  #advancedFilters .toolbar.games, #advancedFilters .toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .content { padding-top: 6px; }
+  .browse-heading .library-views { gap: 18px; }
+  .browse-heading .update-panel summary { gap: 8px; }
+  .browse-heading .update-summary-state.failed { font-size: 11px; }
+  .browse-heading .update-panel summary > span:first-child { display: none; }
+  .browse-toolbar .field, .browse-toolbar .button, #advancedFilters .field, #advancedFilters .button { min-height: 44px; }
+  .browse-toolbar .button { padding-inline: 10px; }
+  .browse-heading .reload-button, .browse-heading .update-panel summary { min-height: 44px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
