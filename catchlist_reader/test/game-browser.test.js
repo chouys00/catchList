@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { collectTagOptions, collectTagOptionsFromIndex, createTagIndex, filterAndSortGames, visibleGameTags } from "../src/renderer/game-browser.js";
+import { createGameQuery, collectTagOptions, collectTagOptionsFromIndex, createTagIndex, filterAndSortGames, visibleGameTags } from "../src/renderer/game-browser.js";
 
 test("三種排序保留篩選與新收錄條件，不修改來源陣列", () => {
   const source = [
@@ -165,4 +165,20 @@ test("已選社群標籤優先，缺漏時才顯示官方類型", () => {
     fallback: false,
   });
   assert.equal(visibleGameTags({ tags: [], genres: ["動作"] }, [], false, 3).fallback, true);
+});
+
+test("篩選結果跨續載重用，條件、收藏與新快照變更後重新計算", () => {
+  const query = createGameQuery();
+  const source = entries.map((entry, i) => ({ ...entry, favorite: i === 0, isNew: i === 1 }));
+  const filters = { sort: "score", tags: [] };
+  const first = query(source, filters);
+  assert.deepEqual(first, filterAndSortGames(source, filters));
+  assert.equal(query(source, { ...filters, tagsOpen: true }), first);
+  assert.deepEqual(query(source, filters, "favorites"), filterAndSortGames(source.filter(e => e.favorite), filters));
+  for (const change of [{ query: "牌組" }, { tags: ["策略"] }, { year: "2026" }, { minReviews: "20000" }, { newOnly: true }, { chinese: "supported" }, { sort: "reviews" }, { manualOnly: "manual" }]) {
+    const next = { ...filters, ...change };
+    assert.deepEqual(query(source, next), filterAndSortGames(source, next));
+  }
+  const nextSource = source.map(e => ({ ...e, title: "更名", favorite: !e.favorite }));
+  assert.deepEqual(query(nextSource, { query: "更名" }), filterAndSortGames(nextSource, { query: "更名" }));
 });

@@ -14,7 +14,7 @@ function setup(t) {
   return { dir, project };
 }
 
-test("紀錄開始、成功、新增數與失敗，失敗保留上次成功時間", (t) => {
+test("紀錄開始、成功、新增數與失敗，失敗保留上次成功時間", async (t) => {
   const { dir, project } = setup(t);
   const recorder = createUpdateRecorder({ now: () => new Date("2026-09-16T00:00:00Z") });
   let context = recorder.start(project);
@@ -33,20 +33,20 @@ test("紀錄開始、成功、新增數與失敗，失敗保留上次成功時�
   assert.equal(status.lastSuccessAt, "2026-09-16T00:00:00.000Z");
 });
 
-test("整合執行僅寫入注入的報告資料夾，無新增也是成功", (t) => {
+test("整合執行僅寫入注入的報告資料夾，無新增也是成功", async (t) => {
   const { dir, project } = setup(t);
-  const result = runAllUpdates({ projects: [project], rootDir: dir, platform: "linux", log() {}, error() {}, spawn() { return { status: 0 }; } });
+  const result = await runAllUpdates({ projects: [project], rootDir: dir, platform: "linux", log() {}, error() {}, spawn() { return { status: 0 }; } });
   assert.equal(result.exitCode, 0);
   assert.equal(loadUpdateStatus(dir).media.anime.addedCount, 0);
   assert.equal(fs.existsSync(path.join(dir, UPDATE_STATUS_FILE)), true);
 });
 
-test("紀錄無法寫入與更新程式拋錯都不阻止後續類別，毀損檔保留", (t) => {
+test("紀錄無法寫入與更新程式拋錯都不阻止後續類別，毀損檔保留", async (t) => {
   const { dir, project } = setup(t);
   const filepath = path.join(dir, UPDATE_STATUS_FILE);
   fs.writeFileSync(filepath, "{broken");
   let calls = 0;
-  const result = runAllUpdates({
+  const result = await runAllUpdates({
     projects: [project, { ...project, name: "第二類" }], rootDir: dir, platform: "linux", log() {}, error() {},
     spawn() { calls += 1; if (calls === 1) throw new Error("啟動失敗"); return { status: 0 }; },
   });
@@ -57,7 +57,7 @@ test("紀錄無法寫入與更新程式拋錯都不阻止後續類別，毀損�
   assert.equal(fs.readFileSync(filepath, "utf8"), "{broken");
 });
 
-test("不同輸出資料夾分別保存，同資料夾的各類紀錄不互相覆蓋", (t) => {
+test("不同輸出資料夾分別保存，同資料夾的各類紀錄不互相覆蓋", async (t) => {
   const { dir, project } = setup(t);
   const gameDir = path.join(dir, "games-output");
   let calls = 0;
@@ -65,7 +65,7 @@ test("不同輸出資料夾分別保存，同資料夾的各類紀錄不互相�
     { name: "電影", dir: ".", media: "movies", outputFile: path.join(dir, "電影.md") },
     { name: "遊戲", dir: ".", media: "games", outputFile: path.join(gameDir, "遊戲.md") },
   ];
-  const result = runAllUpdates({ projects, rootDir: dir, platform: "linux", log() {}, error() {},
+  const result = await runAllUpdates({ projects, rootDir: dir, platform: "linux", log() {}, error() {},
     spawn() { calls += 1; return { status: calls === 2 ? 1 : 0 }; },
   });
   assert.deepEqual(result.failures, ["電影"]);

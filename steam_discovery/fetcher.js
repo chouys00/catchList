@@ -4,12 +4,14 @@
 // ============================================================
 
 import path from "node:path";
-import { getWithRetry, loadJson, saveJson } from "@catchlist/core";
+import { delay, getWithRetry, JsonJournal } from "@catchlist/core";
 import { parseCommunityTags } from "./community-tags.js";
 import { CONFIG, EXCLUDED_COMPETITIVE_TAGS, EXCLUDED_SOFTWARE_GENRES } from "./config.js";
 
 const DETAILS_CACHE_FILE = path.resolve(".appdetails_cache.json");
-const detailsCache = loadJson(DETAILS_CACHE_FILE, {});
+let detailsStore;
+function defaultDetailsStore() { return detailsStore ??= new JsonJournal(DETAILS_CACHE_FILE); }
+export function flushDetailsCache() { detailsStore?.flush(); }
 const DETAILS_CACHE_VERSION = 2;
 const STEAM_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -157,8 +159,9 @@ export async function fetchSearchPage(start = 0, {
  */
 export async function fetchAppDetails(appid, {
   requester = getWithRetry,
-  cache = detailsCache,
-  saveCache = () => saveJson(DETAILS_CACHE_FILE, cache)
+  cache = defaultDetailsStore().data,
+  wait = delay,
+  saveCache = () => defaultDetailsStore().set(appid, cache[appid])
 } = {}) {
   const cached = cache[appid];
   if (cached?._cacheVersion === DETAILS_CACHE_VERSION) {
@@ -168,6 +171,7 @@ export async function fetchAppDetails(appid, {
 
   const url = "https://store.steampowered.com/api/appdetails";
   try {
+    await wait(1500);
     const response = await requester(url, {
       params: {
         appids: appid,

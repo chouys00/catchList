@@ -61,13 +61,13 @@ async function streamTsvGz(url, onRow) {
  * @param {Set<number>} targetYears
  * @returns {Promise<Map<number, Array>>} year → 過濾後的電影清單
  */
-async function fetchFromDataset(targetYears) {
+export async function fetchFromDataset(targetYears, { stream = streamTsvGz, minVotes = CONFIG.MIN_VOTES_ABSOLUTE } = {}) {
   // ── Step 1: 下載所有評分 ─────────────────────────────────────
   const ratingsMap = new Map(); // tconst → { score, votes }
-  await streamTsvGz(IMDB_RATINGS_URL, (row) => {
+  await stream(IMDB_RATINGS_URL, (row) => {
     const votes = parseInt(row.numVotes);
     const score = parseFloat(row.averageRating);
-    if (!isNaN(votes) && !isNaN(score)) {
+    if (!isNaN(votes) && !isNaN(score) && votes >= minVotes) {
       ratingsMap.set(row.tconst, { score, votes });
     }
   });
@@ -76,7 +76,7 @@ async function fetchFromDataset(targetYears) {
   const byYear = new Map(); // year → movies[]
   for (const y of targetYears) byYear.set(y, []);
 
-  await streamTsvGz(IMDB_BASICS_URL, (row) => {
+  await stream(IMDB_BASICS_URL, (row) => {
     if (row.titleType !== "movie") return;
     const year = parseInt(row.startYear);
     if (isNaN(year) || !byYear.has(year)) return;
@@ -99,9 +99,9 @@ async function fetchFromDataset(targetYears) {
 
   // ── Step 3: 逐年過濾投票門檻 ─────────────────────────────────
   for (const [year, movies] of byYear) {
-    const filtered = movies.filter((m) => m.votes >= CONFIG.MIN_VOTES_ABSOLUTE);
+    const filtered = movies;
     console.log(
-      `  🎬 ${year} 年:共 ${movies.length.toLocaleString()} 部有評分電影,` +
+      `  🎬 ${year} 年:共 ${movies.length.toLocaleString()} 部達投票門檻電影,` +
       `過濾後剩餘 ${filtered.length} 部(門檻 ≥ ${CONFIG.MIN_VOTES_ABSOLUTE.toLocaleString()} 票)`
     );
     byYear.set(year, filtered);

@@ -8,6 +8,9 @@ Thumbs.db
 .npm-cache/
 catchlist_reader/dist/
 catchlist_reader/.cache/
+.playwright-cli/
+catchlist_reader/src-tauri/target/
+output/
 
 # 各專案執行期快取
 .title_cache.json
@@ -17,3 +20,7 @@ live_action_tracker/.cache/
 live_action_tracker/.env
 steam_discovery/preview/
 steam_discovery/.local-backups/
+
+# 效能快取的中斷復原日誌
+.appdetails_cache.json.journal
+anime-cache.json.journal

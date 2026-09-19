@@ -110,3 +110,17 @@ test("成人確認後仍出現年齡頁時不會重複請求", async () => {
   assert.equal(requests, 1);
   assert.equal(cache.loadProgress().entries["1196590"].state, "success");
 });
+
+test("進度沿用舊格式，未合併日誌重啟後可恢復成功與重試狀態", () => {
+  const root = tempCache();
+  fs.writeFileSync(path.join(root, "progress.json"), JSON.stringify({ version: 1, entries: { 1: { state: "success" } } }));
+  const first = createInitializationCache(root);
+  first.recordProgress(2, { state: "retry", attempts: 1 });
+  first.recordProgress(3, { state: "success", attempts: 1 });
+  assert.equal(Object.keys(JSON.parse(fs.readFileSync(path.join(root, "progress.json"))).entries).length, 1);
+  const resumed = createInitializationCache(root);
+  assert.deepEqual(resumed.pendingAppids([1, 2, 3, 4]), ["2", "4"]);
+  resumed.flush();
+  assert.equal(JSON.parse(fs.readFileSync(path.join(root, "progress.json"))).entries[3].state, "success");
+  assert.equal(fs.existsSync(path.join(root, "progress.json.journal")), false);
+});

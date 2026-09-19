@@ -1,6 +1,6 @@
 @echo off
 rem ============================================================
-rem run_monthly.bat — 每月排程入口，依序更新動畫、電影與遊戲
+rem run_monthly.bat — 每月排程入口，最多同時更新兩個專案
 rem 供 Antigravity Scheduled Tasks 或 Windows 工作排程器呼叫
 rem 輸出完整記錄到 logs\update-<日期時間>.log
 rem ============================================================

@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { JsonJournal } from "@catchlist/core";
 
 export const RAW_CACHE_VERSION = 1;
 export const STRUCTURED_CACHE_VERSION = 1;
@@ -42,6 +43,14 @@ function validStructured(record) {
 export function createInitializationCache(root) {
   const cacheRoot = path.resolve(root);
   const progressPath = path.join(cacheRoot, "progress.json");
+  let progressStore;
+  function progressJournal() {
+    return progressStore ??= new JsonJournal(progressPath, {
+      decode: stored => stored?.version === PROGRESS_VERSION ? stored.entries : {},
+      encode: entries => ({ version: PROGRESS_VERSION, entries }),
+    });
+  }
+
 
   function loadRaw(appid) {
     const record = readJson(appPath(cacheRoot, "raw", appid));
@@ -80,24 +89,25 @@ export function createInitializationCache(root) {
   }
 
   function loadProgress() {
-    const stored = readJson(progressPath);
-    if (!stored || stored.version !== PROGRESS_VERSION || typeof stored.entries !== "object" || Array.isArray(stored.entries)) {
-      return { version: PROGRESS_VERSION, entries: {} };
-    }
-    return stored;
+    return { version: PROGRESS_VERSION, entries: progressJournal().data };
   }
 
   function saveProgress(progress) {
+    // 相容舊有完整寫入介面，正式逐筆流程改走日誌。
     const normalized = { version: PROGRESS_VERSION, entries: progress.entries ?? {} };
+    progressJournal().flush();
     writeJson(progressPath, normalized);
+    progressStore = null;
     return normalized;
   }
 
   function recordProgress(appid, entry) {
-    const progress = loadProgress();
-    progress.entries[String(appid)] = { ...entry, updatedAt: entry.updatedAt ?? new Date().toISOString() };
-    return saveProgress(progress);
+    if (!validAppid(appid)) throw new Error(`無效 AppID：${appid}`);
+    progressJournal().set(String(appid), { ...entry, updatedAt: entry.updatedAt ?? new Date().toISOString() });
+    return loadProgress();
   }
+
+  function flush() { progressStore?.flush(); }
 
   function pendingAppids(appids) {
     const entries = loadProgress().entries;
@@ -107,6 +117,7 @@ export function createInitializationCache(root) {
 
   return {
     root: cacheRoot,
+    flush,
     loadRaw,
     saveRaw,
     loadStructured,

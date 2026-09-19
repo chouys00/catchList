@@ -3,10 +3,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { deleteEntry, hasReportFiles, hideEntry, loadAllLibraries, undoHide, setFavorite, loadHiddenEntries, restoreHiddenEntry } from "./library.js";
+import { parseReport, deleteEntry, hasReportFiles, hideEntry, loadAllLibraries, undoHide, setFavorite, loadHiddenEntries, restoreHiddenEntry } from "./library.js";
 import { loadUpdateStatus } from "./update-status.js";
 import { GameCoverCache, GameCoverService } from "./game-cover-cache.js";
 import { resolveSteamCover } from "./steam-covers.js";
+import { ReportCache } from "./report-cache.js";
 import { VisitHistory } from "./visit-history.js";
 import { ManualGameService } from "./manual-game-service.js";
 
@@ -18,6 +19,7 @@ let dataDir;
 let lastOperation;
 let gameCoverService;
 const visits = new VisitHistory();
+const reportCache = new ReportCache(parseReport);
 const manualGames = new ManualGameService();
 let activeMedia = "games";
 
@@ -53,13 +55,13 @@ function initialDirectory() {
 }
 
 function snapshot() {
-  const visit = dataDir ? visits.annotate(dataDir, loadAllLibraries(dataDir), activeMedia) : { libraries: [] };
+  const visit = dataDir ? visits.annotate(dataDir, loadAllLibraries(dataDir, reportCache), activeMedia) : { libraries: [] };
   return {
     dataDir,
     appVersion: app.getVersion(),
     canUndo: Boolean(lastOperation),
     ...visit,
-    hiddenEntries: dataDir ? loadHiddenEntries(dataDir) : [],
+    hiddenEntries: dataDir ? loadHiddenEntries(dataDir, reportCache) : [],
     updateStatus: dataDir ? loadUpdateStatus(dataDir) : null,
   };
 }

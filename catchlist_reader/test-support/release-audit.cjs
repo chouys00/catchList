@@ -45,7 +45,17 @@ app.whenReady().then(async () => {
   assert.equal(await js(`document.querySelectorAll('.item.live-action').length`), 10);
   await js(`const input = document.querySelector('[data-filter="query"]'); input.value = '我的出走日記'; input.dispatchEvent(new Event('input', {bubbles:true}));`);
   assert.equal(await js(`document.querySelectorAll('.item.live-action').length`), 1);
+  await js(`document.querySelector('[data-media="anime"]').click()`);
+  await until('!!document.querySelector(".item.anime")');
+  const anime = await js(`(() => ({ count: document.querySelector('[data-result-count]').textContent, years: [...document.querySelector('[data-filter="year"]').options].map(x => x.value), seasons: [...document.querySelector('[data-filter="season"]').options].map(x => x.value) }))()`);
+  assert.equal(anime.count, '200 筆結果');
+  assert.deepEqual(anime.years, ['all', ...Array.from({ length: 15 }, (_, index) => String(2026 - index))]);
+  assert.deepEqual(anime.seasons, ['all', '春', '夏', '秋', '冬', '劇場版']);
+  await js(`const seasonSelect = document.querySelector('[data-filter="season"]'); seasonSelect.value = '劇場版'; seasonSelect.dispatchEvent(new Event('change', {bubbles:true}));`);
+  assert.equal(await js(`document.querySelector('[data-result-count]').textContent`), '18 筆結果');
+  assert.equal(await js(`document.querySelectorAll('.item.anime .score').length`), 18);
+  assert.equal(await js(`[...document.querySelectorAll('.item.anime .score')].filter(x => x.textContent === '—').length`), 17);
   for (const [filename, bytes] of originals) assert.deepEqual(fs.readFileSync(path.join(temp, filename)), bytes);
-  console.log(JSON.stringify({ version, games, shows, hideUndo: 'PASS', regionSearch: 'PASS', reportsUnchanged: true }));
+  console.log(JSON.stringify({ version, games, shows, anime, hideUndo: 'PASS', regionSearch: 'PASS', animeCompatibility: 'PASS', reportsUnchanged: true }));
   win.destroy(); app.quit();
 }).catch(error => { console.error(error); app.exit(1); });

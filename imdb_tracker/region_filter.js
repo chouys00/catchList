@@ -32,6 +32,8 @@ const MARKET_GROUPS = {
   other:    new Set(["MX", "BR", "SG", "MY", "TH", "TR", "AR", "ZA"]),
 };
 
+const MARKET_GROUP_ENTRIES = Object.entries(MARKET_GROUPS);
+
 // 印度地區語言（英語市場的這些語言版本屬僑民發行，不計入英語群組）
 const DIASPORA_LANGUAGES = new Set([
   "ta", "te", "kn", "ml", "bn", "mr", "pa", "gu", "or", "ur", "si",
@@ -41,13 +43,14 @@ const DIASPORA_LANGUAGES = new Set([
  * 下載並串流解析 title.akas.tsv，建立「具國際發行資格」的 IMDb ID Set。
  * @returns {Promise<Set<string>>}
  */
-export async function buildInternationalIdSet() {
+export async function buildInternationalIdSet(candidateIds = null, { requester = axios.get } = {}) {
+  if (candidateIds?.size === 0) return new Set();
   console.log("  [地區過濾] 下載 IMDb 地區發行數據 (title.akas.tsv.gz)...");
 
   const autoQualified = new Set();   // 在強制資格區域有發行
   const movieGroups   = new Map();   // imdbId → Set<groupName>
 
-  const response = await axios.get(IMDB_AKAS_URL, {
+  const response = await requester(IMDB_AKAS_URL, {
     responseType: "stream",
     timeout: 180_000,
     headers: { "User-Agent": "Mozilla/5.0" },
@@ -68,6 +71,9 @@ export async function buildInternationalIdSet() {
         headers = line.split("\t");
         return;
       }
+      const firstTab = line.indexOf("\t");
+      const id = line.slice(0, firstTab);
+      if (candidateIds && !candidateIds.has(id)) return;
       const vals = line.split("\t");
       if (vals.length < 5) return;
 
@@ -83,7 +89,7 @@ export async function buildInternationalIdSet() {
       }
 
       // 條件 B：計算市場群組
-      for (const [groupName, regions] of Object.entries(MARKET_GROUPS)) {
+      for (const [groupName, regions] of MARKET_GROUP_ENTRIES) {
         if (!regions.has(region)) continue;
 
         // 英語市場需確認不是僑民語言版本

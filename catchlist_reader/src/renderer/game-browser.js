@@ -34,7 +34,7 @@ function normalizeList(values) {
   return Array.isArray(values) ? values.map((value) => cleanText(value)).filter(Boolean) : [];
 }
 
-export function filterAndSortGames(entries, filters = {}) {
+export function filterAndSortGames(entries, filters = {}, prepared = null) {
   const query = normalizedQuery(filters.query);
   const min = Number(filters.min || 0);
   const minReviews = Number(filters.minReviews || 0);
@@ -43,14 +43,14 @@ export function filterAndSortGames(entries, filters = {}) {
   return entries
     .filter((entry) => {
       if (filters.manualOnly === "manual" && !entry.manualAdded) return false;
-      if (query && !gameTitle(entry).includes(query)) return false;
+      if (query && !(prepared?.get(entry)?.title ?? gameTitle(entry)).includes(query)) return false;
       if (filters.newOnly && !entry.isNew) return false;
       if (filters.year && filters.year !== "all" && entry.year !== Number(filters.year)) return false;
       if (filters.month && filters.month !== "all" && entry.month !== Number(filters.month)) return false;
       if (filters.chinese && filters.chinese !== "all" && entry.chineseSupport !== filters.chinese) return false;
       if (min > 0 && (entry.score == null || entry.score < min)) return false;
       if (minReviews > 0 && (entry.reviews == null || entry.reviews < minReviews)) return false;
-      const tags = normalizeList(entry.tags);
+      const tags = prepared?.get(entry)?.tags ?? normalizeList(entry.tags);
       return selectedTags.every((tag) => tags.includes(tag));
     })
     .sort((left, right) => {
@@ -124,5 +124,23 @@ export function visibleGameTags(entry, selectedTags = [], expanded = false, limi
     visible: ordered.slice(0, limit),
     hiddenCount: Math.max(ordered.length - limit, 0),
     fallback,
+  };
+}
+
+/** 每份 IPC 清單視為不可變快照；新清單或篩選條件才重新計算。 */
+export function createGameQuery() {
+  let source, prepared, previousKey, result;
+  return (entries, filters = {}, view = "all") => {
+    if (source !== entries) {
+      source = entries;
+      prepared = new Map(entries.map(entry => [entry, { title: gameTitle(entry), tags: normalizeList(entry.tags) }]));
+      previousKey = null;
+    }
+    const key = JSON.stringify([view, filters.query, filters.year, filters.month, filters.min, filters.minReviews, filters.chinese, filters.manualOnly, filters.newOnly, filters.sort, filters.tags]);
+    if (key !== previousKey) {
+      result = filterAndSortGames(view === "favorites" ? entries.filter(entry => entry.favorite) : entries, filters, prepared);
+      previousKey = key;
+    }
+    return result;
   };
 }

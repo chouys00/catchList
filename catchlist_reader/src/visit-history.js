@@ -40,7 +40,10 @@ export class VisitHistory {
       }
       return { libraries: libraries.map((item) => {
         const baseline = this.baselines.get(`${filepath}\0${item.media}`);
-        return { ...item, entries: item.entries.map((entry) => ({ ...entry, isNew: baseline ? !baseline.has(entry.hideKey) : false })) };
+        return { ...item, entries: item.entries.map((entry) => ({
+          ...entry,
+          isNew: baseline ? [entry.hideKey, ...(entry.legacyHideKeys ?? [])].every((key) => !baseline.has(key)) : false,
+        })) };
       }), visitWarning: null };
     } catch {
       return { libraries, visitWarning: "新收錄紀錄無法讀取或儲存，暫停新收錄判斷。請檢查資料夾權限與 .catchlist-visits.json。" };

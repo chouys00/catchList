@@ -207,6 +207,7 @@ export async function runInitialization({
     }
     if (processed % 100 === 0 || processed === limited.length) logger.log(`第二輪已處理 ${processed}/${limited.length} 筆候選。`);
   }
+  cache.flush?.();
   const excluded = [...first.excluded.map((record) => ({ ...record, finalStatus: "first_round_excluded" })), ...secondExcluded]
     .sort(compareAppid);
   const missing = first.missing.map((record) => ({ ...record, finalStatus: "review_missing" })).sort(compareAppid);

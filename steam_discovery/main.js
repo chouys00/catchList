@@ -15,7 +15,7 @@ import { Command } from "commander";
 import { delay, getMonthsBetween, monthKey } from "@catchlist/core";
 import { CONFIG } from "./config.js";
 import { backfillCommunityTags, normalizeCommunityTags } from "./community-tags.js";
-import { fetchSearchPage, fetchAppDetails, fetchCommunityTags } from "./fetcher.js";
+import { fetchSearchPage, fetchAppDetails, fetchCommunityTags, flushDetailsCache } from "./fetcher.js";
 import { loadExistingSections, updateReport } from "./writer.js";
 
 /**
@@ -254,7 +254,7 @@ function parseOptions(argv = process.argv) {
   return program.opts();
 }
 
-export async function runSteamDiscovery({
+async function discover({
   argv = process.argv,
   config = CONFIG,
   logger = console,
@@ -435,8 +435,7 @@ export async function runSteamDiscovery({
     for (const item of candidates) {
       const { appid, englishName, releaseDate, reviewScore, reviewLabel, totalReviews, positivePct } = item;
 
-      await waitFn(1500);
-      const details = await fetchAppDetailsFn(appid);
+      const details = await fetchAppDetailsFn(appid, { wait: waitFn });
       if (!details) {
         continue;
       }
@@ -481,6 +480,11 @@ export async function runSteamDiscovery({
   }
 
   logger.log("\n✅ 本次回補全部完成!");
+}
+
+export async function runSteamDiscovery(options = {}) {
+  try { return await discover(options); }
+  finally { flushDetailsCache(); }
 }
 
 async function main(argv = process.argv) {

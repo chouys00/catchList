@@ -1,4 +1,4 @@
-import { collectTagOptionsFromIndex, createTagIndex, filterAndSortGames } from "./game-browser.js";
+import { collectTagOptionsFromIndex, createTagIndex, createGameQuery } from "./game-browser.js";
 import { openManualGamePanel } from "./manual-game-panel.js";
 import { renderItemTemplate } from "./item-template.js";
 import { viewNavigation, hiddenListMarkup, updateStatusMarkup } from "./personal-ui.js";
@@ -61,11 +61,13 @@ function options(values, selected, allLabel) {
   return [`<option value="all">${allLabel}</option>`, ...values.map((value) => `<option value="${escapeHtml(value)}" ${String(value) === String(selected) ? "selected" : ""}>${escapeHtml(value)}</option>`)].join("");
 }
 
+const queryGames = createGameQuery();
+
 function filteredEntries() {
   const data = library();
-  const entries = state.view === "favorites" ? data.entries.filter((entry) => entry.favorite) : data.entries;
   const filter = state.filters[state.active];
-  if (state.active === "games") return filterAndSortGames(entries, filter);
+  if (state.active === "games") return queryGames(data.entries, filter, state.view);
+  const entries = state.view === "favorites" ? data.entries.filter((entry) => entry.favorite) : data.entries;
   const query = filter.query.trim().toLocaleLowerCase("zh-Hant");
   return entries.filter((entry) => {
     if (filter.newOnly && !entry.isNew) return false;
@@ -150,13 +152,13 @@ function advancedToolbar(data) {
     const months = [...new Set(data.entries.map((entry) => entry.month))].filter(Number.isFinite).sort((a, b) => a - b);
     return `<div class="toolbar games">${search}<select class="field" data-filter="year" aria-label="遊戲年份">${options(years, filter.year, "所有年份")}</select><select class="field" data-filter="month" aria-label="遊戲月份">${options(months, filter.month, "所有月份")}</select><select class="field" data-filter="min" aria-label="最低好評率">${scoreOptions(filter.min, true)}</select><select class="field reviews-filter" data-filter="minReviews" aria-label="最低評論數">${reviewOptions(filter.minReviews)}</select><select class="field chinese-filter" data-filter="chinese" aria-label="中文支援"><option value="all" ${filter.chinese === "all" ? "selected" : ""}>中文：全部</option><option value="supported" ${filter.chinese === "supported" ? "selected" : ""}>✓ 支援</option><option value="unsupported" ${filter.chinese === "unsupported" ? "selected" : ""}>× 不支援</option><option value="unknown" ${filter.chinese === "unknown" ? "selected" : ""}>— 待確認</option></select><select class="field" data-filter="manualOnly" aria-label="收錄來源"><option value="all" ${filter.manualOnly !== "manual" ? "selected" : ""}>來源：全部</option><option value="manual" ${filter.manualOnly === "manual" ? "selected" : ""}>只看手動加入</option></select><button class="button tag-toggle" type="button" data-action="toggle-tags" aria-controls="gameTagPanel" aria-expanded="${filter.tagsOpen}">標籤 ${filter.tags.length}</button><button class="button subtle" type="button" data-action="clear-filters">清除篩選</button></div>`;
   }
-  const years = [...new Set(data.entries.map((entry) => entry.year))].sort((a, b) => b - a);
+  const years = [...new Set(data.entries.map((entry) => entry.year))].filter(Number.isFinite).sort((a, b) => b - a);
   if (state.active === "liveAction") {
     const regions = [...new Set(data.entries.map((entry) => entry.region))].sort((a, b) => a.localeCompare(b, "zh-Hant"));
     return `<div class="toolbar">${search}<select class="field" data-filter="year" aria-label="年份">${options(years, filter.year, "所有年份")}</select><select class="field" data-filter="region" aria-label="地區">${options(regions, filter.region, "所有地區")}</select></div>`;
   }
   const third = state.active === "anime"
-    ? `<select class="field" data-filter="season" aria-label="季度">${options(["春", "夏", "秋", "冬"], filter.season, "所有季度")}</select>`
+    ? `<select class="field" data-filter="season" aria-label="季度">${options(["春", "夏", "秋", "冬", "劇場版"], filter.season, "所有季度")}</select>`
     : `<select class="field" data-filter="category" aria-label="影片類別">${options([...new Set(data.entries.map((entry) => entry.category))].sort((a, b) => a.localeCompare(b, "zh-Hant")), filter.category, "所有類別")}</select>`;
   return `<div class="toolbar">${search}<select class="field" data-filter="year" aria-label="年份">${options(years, filter.year, "所有年份")}</select>${third}<select class="field" data-filter="min" aria-label="最低評分">${scoreOptions(filter.min)}</select></div>`;
 }
@@ -406,7 +408,7 @@ function render() {
   const navigation = viewNavigation(state.view, state.active, data.entries, hidden.length);
   const update = updateStatusMarkup(state.payload, state.active, state.statusOpen);
   const operations = state.active === "games" ? `<button class="button add-game-button" type="button" data-action="add-game" ${data.warning ? "disabled" : ""}><span aria-hidden="true">＋</span>新增遊戲</button>` : "";
-  const heading = `<div class="browse-heading">${navigation}<div class="browse-tools">${update}${operations}</div></div>${data.warning ? `<p class="status-warning" role="alert">${escapeHtml(data.warning)}</p>` : ""}`;
+  const heading = `<div class="browse-heading">${navigation}<div class="browse-tools">${update}${operations}</div></div>${data.warning ? `<p class="status-warning" role="alert">${escapeHtml(data.warning)}</p>` : ""}${data.integrityWarning ? `<p class="status-warning" role="alert">${escapeHtml(data.integrityWarning)}</p>` : ""}`;
   stopGameAutoLoad();
   if (state.view === "hidden") {
     const result = hiddenListMarkup(hidden, state.hiddenQuery);

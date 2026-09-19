@@ -67,6 +67,20 @@ test("電影列先顯示評分與名稱，再顯示年份、IMDb 與類別", () 
   assert.ok(markup.indexOf("IMDb 7.8 · 12 萬票") < markup.indexOf("劇情"));
 });
 
+test("動畫缺少評分、集數與類型時顯示明確替代文字", () => {
+  const markup = renderItemTemplate({
+    ...anime,
+    score: null,
+    episodes: null,
+    format: null,
+    periodLabel: "劇場版",
+  }, "anime");
+
+  assert.match(markup, /<span class="score">—<\/span>/);
+  assert.match(markup, /劇場版/);
+  assert.match(markup, /集數與類型未提供/);
+});
+
 test("真人劇列顯示年度、地區與 IMDb 資訊", () => {
   const markup = renderItemTemplate(liveAction, "liveAction");
 

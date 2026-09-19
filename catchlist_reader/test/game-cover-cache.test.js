@@ -48,3 +48,15 @@ test("損壞快取與失敗封面不阻斷，下一次成功結果會重建快�
     fs.rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test("每批封面只寫一次，批次結束後新實例可讀取全部結果", async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "cover-batch-"));
+  try {
+    const file = path.join(directory, "cache.json"); let writes = 0;
+    const cache = new GameCoverCache(file, { ...fs, writeFileSync(...args) { writes++; return fs.writeFileSync(...args); } });
+    const service = new GameCoverService({ cache, resolveCover: async () => coverUrl });
+    await service.resolve([1, 2, 3, 4, 5, 6, 7, 8]); assert.equal(writes, 2);
+    const reopened = new GameCoverCache(file); for (let i = 1; i <= 8; i++) assert.equal(reopened.get(i), coverUrl);
+    await service.resolve([1, 2]); assert.equal(writes, 2);
+  } finally { fs.rmSync(directory, { recursive: true, force: true }); }
+});

@@ -1,12 +1,12 @@
 // ============================================================
-// update-all.mjs — 依序執行三個專案的每月更新
+// update-all.mjs — 有限度同時執行三個專案的每月更新
 //
 // 特性(為排程執行設計):
 //   - 任一專案失敗不會中斷其他專案,全部跑完後統一回報
 //   - 只要有任何專案失敗,整體以非零 exit code 結束
 // ============================================================
 
-import { spawnSync } from "node:child_process";
+import { spawn as spawnChild } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { npmInvocation } from "./npm-invocation.mjs";
@@ -27,9 +27,18 @@ export const PROJECTS = Object.freeze([
  * 每個更新器都會嘗試執行；單一失敗只會記錄，絕不阻止後續項目。
  * 可注入 spawn 供離線測試，避免測試誤觸發實際網路更新。
  */
-export function runAllUpdates({
+export function spawnUpdate(command, args, options) {
+  return new Promise(resolve => {
+    const child = spawnChild(command, args, { ...options, windowsHide: true });
+    child.once("error", error => resolve({ status: null, error }));
+    child.once("close", (status, signal) => resolve({ status, signal }));
+  });
+}
+
+export async function runAllUpdates({
   projects = PROJECTS,
-  spawn = spawnSync,
+  spawn = spawnUpdate,
+  concurrency = 2,
   rootDir = root,
   platform = process.platform,
   npmExecPath = process.env.npm_execpath,
@@ -38,10 +47,11 @@ export function runAllUpdates({
   error = console.error,
   recorder = createUpdateRecorder(),
 } = {}) {
+  if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 3) throw new Error("更新同時執行數必須介於 1 到 3");
   const failures = [];
   const statusWarnings = [];
 
-  for (const project of projects) {
+  async function runProject(project) {
     log("\n" + "█".repeat(60));
     log(`█  開始更新:${project.name}`);
     log("█".repeat(60) + "\n");
@@ -62,7 +72,7 @@ export function runAllUpdates({
     let result;
     try {
       const invocation = npmInvocation(platform, npmExecPath, nodePath);
-      result = spawn(invocation.command, invocation.args, {
+      result = await spawn(invocation.command, invocation.args, {
         cwd: path.join(rootDir, project.dir),
         stdio: "inherit",
         shell: false,
@@ -79,6 +89,12 @@ export function runAllUpdates({
     }
   }
 
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(concurrency, projects.length) }, async () => {
+    while (next < projects.length) await runProject(projects[next++]);
+  }));
+  failures.sort((a, b) => projects.findIndex(p => p.name === a) - projects.findIndex(p => p.name === b));
+
   log("\n" + "=".repeat(60));
   if (failures.length > 0) {
     error(`❌ 本次更新有 ${failures.length} 個專案失敗:${failures.join("、")}`);
@@ -91,5 +107,5 @@ export function runAllUpdates({
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  process.exitCode = runAllUpdates().exitCode;
+  process.exitCode = (await runAllUpdates()).exitCode;
 }

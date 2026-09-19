@@ -46,6 +46,10 @@ function createId(media, sectionKey, raw, occurrence) {
     .slice(0, 24);
 }
 
+function createHideKey(media, sectionKey, title, occurrence) {
+  return JSON.stringify([media, sectionKey, title, occurrence]);
+}
+
 function parseVoteCount(raw) {
   const match = clean(raw).match(/([\d,.]+)\s*([kKmM萬]?)票/);
   if (!match) return null;
@@ -58,14 +62,15 @@ function parseVoteCount(raw) {
 }
 
 function finalizeEntry(media, section, raw, occurrence, range, fields) {
+  const hideKey = media === "games"
+    ? JSON.stringify([media, fields.appid, "", 0])
+    : createHideKey(media, section.key, fields.title, occurrence);
+  const legacyHideKeys = media === "games" ? [] : (section.legacyKeys ?? [])
+    .map((sectionKey) => createHideKey(media, sectionKey, fields.title, occurrence));
   return {
     id: createId(media, section.key, raw, occurrence),
-    hideKey: JSON.stringify([
-      media,
-      media === "games" ? fields.appid : section.key,
-      media === "games" ? "" : fields.title,
-      media === "games" ? 0 : occurrence,
-    ]),
+    hideKey,
+    ...(legacyHideKeys.length ? { legacyHideKeys } : {}),
     media,
     sectionKey: section.key,
     periodLabel: section.label,
@@ -78,8 +83,10 @@ function finalizeEntry(media, section, raw, occurrence, range, fields) {
 
 function parseAnime(lines) {
   const entries = [];
+  const diagnostics = [];
   const occurrences = new Map();
   let section = null;
+  let lastDatedSection = null;
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
@@ -92,28 +99,48 @@ function parseAnime(lines) {
         season: heading[2],
         threshold: Number(heading[3]),
       };
+      lastDatedSection = section;
+      continue;
+    }
+    if (/^劇場版(?:\s|$)/.test(line)) {
+      section = {
+        key: "theatrical",
+        label: "劇場版",
+        year: null,
+        season: "劇場版",
+        legacyKeys: lastDatedSection ? [lastDatedSection.key] : [],
+      };
+      continue;
+    }
+    if (/\((?:更新|整理)時間[:：]/.test(line)) {
+      diagnostics.push({ line: index + 1, reason: "動畫區段標題無法辨識", text: line });
+      section = null;
       continue;
     }
     if (!section || !line.startsWith("- ")) continue;
-    const match = line.match(/^- (.+?)\s+\*\*(\d+(?:\.\d+)?)\*\*\s+\(([^·)]+)\s*·\s*([^)]+)\)\s*$/);
-    if (!match) continue;
+    const match = line.match(/^- (.+?)\s+\*\*((?:\d+(?:\.\d+)?)|--|—)\*\*(?:\s+\(([^·)]+)\s*·\s*([^)]+)\))?\s*$/);
+    if (!match) {
+      diagnostics.push({ line: index + 1, reason: "動畫作品格式無法辨識", text: line });
+      continue;
+    }
     const occurrenceKey = `${section.key}\0${line}`;
     const occurrence = occurrences.get(occurrenceKey) ?? 0;
     occurrences.set(occurrenceKey, occurrence + 1);
     entries.push(finalizeEntry("anime", section, line, occurrence, { start: index, end: index + 1 }, {
       title: clean(match[1]),
-      score: Number(match[2]),
-      episodes: clean(match[3]),
-      format: clean(match[4]),
+      score: /^\d/.test(match[2]) ? Number(match[2]) : null,
+      episodes: clean(match[3]) || null,
+      format: clean(match[4]) || null,
       season: section.season,
       searchUrl: `https://www.google.com/search?q=${encodeURIComponent(`${clean(match[1])} 動畫`)}`,
     }));
   }
-  return entries;
+  return { entries, diagnostics };
 }
 
 function parseMovies(lines) {
   const entries = [];
+  const diagnostics = [];
   const occurrences = new Map();
   let section = null;
 
@@ -130,9 +157,17 @@ function parseMovies(lines) {
       };
       continue;
     }
+    if (/\((?:更新|整理)時間[:：]/.test(line)) {
+      diagnostics.push({ line: index + 1, reason: "電影區段標題無法辨識", text: line });
+      section = null;
+      continue;
+    }
     if (!section || !line.startsWith("- ")) continue;
     const match = line.match(/^- (.+?)\s+\*\*(\d+(?:\.\d+)?)\*\*\s+`\(IMDb:\s*([\d.]+)\s*\|\s*(.+?)\s+\(([+-]\d+(?:\.\d+)?)\)\s*\|\s*([^)]+)\)`\s*$/);
-    if (!match) continue;
+    if (!match) {
+      diagnostics.push({ line: index + 1, reason: "電影作品格式無法辨識", text: line });
+      continue;
+    }
     const occurrenceKey = `${section.key}\0${line}`;
     const occurrence = occurrences.get(occurrenceKey) ?? 0;
     occurrences.set(occurrenceKey, occurrence + 1);
@@ -148,11 +183,12 @@ function parseMovies(lines) {
       searchUrl: `https://www.google.com/search?q=${encodeURIComponent(`${clean(match[1])} 電影`)}`,
     }));
   }
-  return entries;
+  return { entries, diagnostics };
 }
 
 function parseLiveAction(lines) {
   const entries = [];
+  const diagnostics = [];
   const occurrences = new Map();
   let section = null;
   let region = null;
@@ -165,6 +201,12 @@ function parseLiveAction(lines) {
       region = null;
       continue;
     }
+    if (/\((?:更新|整理)時間[:：]/.test(line)) {
+      diagnostics.push({ line: index + 1, reason: "真人劇區段標題無法辨識", text: line });
+      section = null;
+      region = null;
+      continue;
+    }
     const regionHeading = line.match(/^##\s+(.+)\s*$/);
     if (section && regionHeading) {
       region = clean(regionHeading[1]);
@@ -173,7 +215,10 @@ function parseLiveAction(lines) {
     if (!section || !region || !line.startsWith("- ")) continue;
     const linked = line.match(/^- \[(.+?)\]\((https:\/\/www\.imdb\.com\/title\/[^)]+)\)：(?:IMDb：)?([\d.]+)／10（([\d,]+)\s*票）\s*$/);
     const unavailable = line.match(/^- (.+?)：IMDb：資料不足\s*$/);
-    if (!linked && !unavailable) continue;
+    if (!linked && !unavailable) {
+      diagnostics.push({ line: index + 1, reason: "真人劇作品格式無法辨識", text: line });
+      continue;
+    }
     const title = clean(linked?.[1] ?? unavailable[1]);
     const occurrenceKey = `${section.key}\0${line}`;
     const occurrence = occurrences.get(occurrenceKey) ?? 0;
@@ -190,11 +235,12 @@ function parseLiveAction(lines) {
       hasImdbUrl: Boolean(linked),
     }));
   }
-  return entries;
+  return { entries, diagnostics };
 }
 
 function parseGames(lines, { legacyInitialization = false } = {}) {
   const entries = [];
+  const diagnostics = [];
   const occurrences = new Map();
   let section = null;
 
@@ -210,6 +256,11 @@ function parseGames(lines, { legacyInitialization = false } = {}) {
       };
       continue;
     }
+    if (/\((?:更新|整理)時間[:：]/.test(line)) {
+      diagnostics.push({ line: index + 1, reason: "遊戲區段標題無法辨識", text: line });
+      section = null;
+      continue;
+    }
     if (!section || !line.startsWith("- **")) continue;
     const titleMatch = line.match(/^- \*\*(.+?)\*\* \((.*)\)(?: \[(.*)\])?\s*$/);
     const detailLine = lines[index + 1] ?? "";
@@ -218,7 +269,10 @@ function parseGames(lines, { legacyInitialization = false } = {}) {
     const urlLine = lines[urlIndex] ?? "";
     const detailMatch = detailLine.match(/^\s+(\d{4}-\d{2}-\d{2}) \| (\d+)% \(([\d,]+)\) \| (.+)\s*$/);
     const urlMatch = urlLine.match(/^\s+(https:\/\/store\.steampowered\.com\/app\/(\d+))\s*$/);
-    if (!titleMatch || !detailMatch || !urlMatch) continue;
+    if (!titleMatch || !detailMatch || !urlMatch) {
+      diagnostics.push({ line: index + 1, reason: "遊戲作品格式無法辨識", text: line });
+      continue;
+    }
     const rawLines = tagLine ? [line, detailLine, lines[index + 2], urlLine] : [line, detailLine, urlLine];
     const raw = rawLines.join("\n");
     const occurrenceKey = `${section.key}\0${raw}`;
@@ -245,17 +299,18 @@ function parseGames(lines, { legacyInitialization = false } = {}) {
     }));
     index = end - 1;
   }
-  return entries;
+  return { entries, diagnostics };
 }
 
 export function parseReport(media, content) {
   if (!MEDIA_CONFIG[media]) throw new Error(`不支援的清單類型：${media}`);
   const eol = content.includes("\r\n") ? "\r\n" : "\n";
   const lines = content.split(/\r?\n/);
-  const entries = media === "games" ? parseGames(lines, {
+  const parsed = media === "games" ? parseGames(lines, {
     legacyInitialization: /^# Steam 歷史初始化預覽\s*$/m.test(content),
   })
     : media === "anime" ? parseAnime(lines) : media === "movies" ? parseMovies(lines) : parseLiveAction(lines);
+  const { entries, diagnostics } = parsed;
   const sections = [...new Map(entries.map((entry) => [entry.sectionKey, {
     key: entry.sectionKey,
     label: entry.periodLabel,
@@ -263,7 +318,18 @@ export function parseReport(media, content) {
     month: entry.month ?? null,
     season: entry.season ?? null,
   }])).values()];
-  return { media, entries, sections, eol, lines };
+  const integrityWarning = diagnostics.length
+    ? `報告有 ${diagnostics.length} 處格式無法辨識（行號：${diagnostics.slice(0, 5).map((item) => item.line).join("、")}${diagnostics.length > 5 ? "…" : ""}），部分作品可能未顯示。`
+    : null;
+  return {
+    media,
+    entries,
+    sections,
+    eol,
+    lines,
+    integrity: { parsedCount: entries.length, issueCount: diagnostics.length, issues: diagnostics },
+    integrityWarning,
+  };
 }
 
 export function resolveReportPath(dataDir, media) {
@@ -273,12 +339,12 @@ export function resolveReportPath(dataDir, media) {
   return target;
 }
 
-export function sourceEntries(dataDir, media, { strict = false } = {}) {
+export function sourceEntries(dataDir, media, { strict = false, reportCache = null } = {}) {
   if (media === "games") recoverGameTransaction(dataDir);
   const filepath = resolveReportPath(dataDir, media);
-  const content = readOptional(filepath);
-  const parsed = parseReport(media, content ?? "");
-  if (media !== "games") return { ...parsed, exists: content !== null };
+  const content = reportCache ? null : readOptional(filepath);
+  const parsed = reportCache ? reportCache.read(media, filepath) : { ...parseReport(media, content ?? ""), exists: content !== null };
+  if (media !== "games") return parsed;
   let manual = [];
   let warning = null;
   try { manual = readManualGames(dataDir).entries; } catch (error) { if (strict) throw error; warning = error.message; }
@@ -289,12 +355,16 @@ export function sourceEntries(dataDir, media, { strict = false } = {}) {
     if (previous?.reportSource) continue;
     merged.set(entry.appid, { ...entry, reportSource: true, manualAdded: Boolean(previous?.manualAdded), addedAt: previous?.addedAt });
   }
-  return { ...parsed, entries: [...merged.values()], warning, exists: content !== null || manual.length > 0 };
+  return { ...parsed, entries: [...merged.values()], warning, exists: parsed.exists || manual.length > 0 };
 }
 
-export function loadLibrary(dataDir, media, hiddenKeys, favorites) {
+function stateKeys(entry) {
+  return [entry.hideKey, ...(entry.legacyHideKeys ?? [])];
+}
+
+export function loadLibrary(dataDir, media, hiddenKeys, favorites, reportCache = null) {
   const filepath = resolveReportPath(dataDir, media);
-  const parsed = sourceEntries(dataDir, media);
+  const parsed = sourceEntries(dataDir, media, { reportCache });
   if (!parsed.exists && !parsed.warning) {
     return {
       ...MEDIA_CONFIG[media],
@@ -316,18 +386,18 @@ export function loadLibrary(dataDir, media, hiddenKeys, favorites) {
     exists: parsed.exists,
     warning: parsed.warning,
     updatedAt: stat?.mtime.toISOString() ?? null,
-    knownKeys: [...new Set(parsed.entries.map((entry) => entry.hideKey))],
+    knownKeys: [...new Set(parsed.entries.flatMap(stateKeys))],
     entries: parsed.entries
-      .filter((entry) => !effectiveHiddenKeys.has(entry.hideKey))
-      .map(({ lineStart, lineEnd, ...entry }) => ({ ...entry, favorite: favoriteKeys.has(entry.hideKey) })),
+      .filter((entry) => stateKeys(entry).every((key) => !effectiveHiddenKeys.has(key)))
+      .map(({ lineStart, lineEnd, ...entry }) => ({ ...entry, favorite: stateKeys(entry).some((key) => favoriteKeys.has(key)) })),
     sections: parsed.sections,
   };
 }
 
-export function loadAllLibraries(dataDir) {
+export function loadAllLibraries(dataDir, reportCache = null) {
   const hiddenKeys = new Set(readHiddenEntries(dataDir).map((entry) => entry.hideKey));
   const favorites = new Set(readFavorites(dataDir).map((entry) => entry.key));
-  return Object.keys(MEDIA_CONFIG).map((media) => loadLibrary(dataDir, media, hiddenKeys, favorites));
+  return Object.keys(MEDIA_CONFIG).map((media) => loadLibrary(dataDir, media, hiddenKeys, favorites, reportCache));
 }
 
 export function readFavorites(dataDir) {
@@ -348,21 +418,22 @@ export function setFavorite(dataDir, media, entryId, favorite) {
   const entry = sourceEntries(dataDir, media).entries.find((item) => item.id === entryId);
   if (!entry) throw new Error("作品已變更或不存在，請重新載入清單");
   const records = readFavorites(dataDir);
-  const exists = records.some((record) => record.key === entry.hideKey);
+  const keys = new Set(stateKeys(entry));
+  const exists = records.some((record) => keys.has(record.key));
   if (exists === favorite) return;
   const entries = favorite
     ? [...records, { key: entry.hideKey, media, title: entry.title, savedAt: new Date().toISOString() }]
-    : records.filter((record) => record.key !== entry.hideKey);
+    : records.filter((record) => !keys.has(record.key));
   atomicWrite(path.join(path.resolve(dataDir), FAVORITES_FILE), `${JSON.stringify({ version: 1, entries }, null, 2)}\n`);
 }
 
-export function loadHiddenEntries(dataDir) {
+export function loadHiddenEntries(dataDir, reportCache = null) {
   const records = readHiddenEntries(dataDir);
   const byMedia = new Map();
   return records.map((record) => {
     if (!byMedia.has(record.media)) {
-      const entries = sourceEntries(dataDir, record.media).entries;
-      byMedia.set(record.media, new Map(entries.map((entry) => [entry.hideKey, entry])));
+      const entries = sourceEntries(dataDir, record.media, { reportCache }).entries;
+      byMedia.set(record.media, new Map(entries.flatMap((entry) => stateKeys(entry).map((key) => [key, entry]))));
     }
     const entry = byMedia.get(record.media).get(record.hideKey);
     return { ...record, title: entry?.title ?? record.title, periodLabel: entry?.periodLabel ?? "", available: Boolean(entry) };
@@ -414,7 +485,8 @@ export function hideEntry(dataDir, media, entryId) {
   if (!entry) throw new Error("作品已變更或不存在，請重新載入清單");
 
   const entries = readHiddenEntries(dataDir);
-  if (entries.some((item) => item.hideKey === entry.hideKey)) {
+  const keys = new Set(stateKeys(entry));
+  if (entries.some((item) => keys.has(item.hideKey))) {
     throw new Error("這部作品已隱藏");
   }
   const hiddenAt = new Date().toISOString();

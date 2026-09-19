@@ -12,6 +12,8 @@ const deadline = setTimeout(() => { console.error("互動測試逾時"); app.exi
 
 app.whenReady().then(async () => {
   const lib = await import(pathToFileURL(path.join(readerRoot, "src/library.js")).href);
+  const { ReportCache } = await import(pathToFileURL(path.join(readerRoot, "src/report-cache.js")).href);
+  const reportCache = new ReportCache(lib.parseReport);
   const { loadUpdateStatus } = await import(pathToFileURL(path.join(readerRoot, "src/update-status.js")).href);
   const { VisitHistory } = await import(pathToFileURL(path.join(readerRoot, "src/visit-history.js")).href);
   let visits = new VisitHistory();
@@ -30,7 +32,7 @@ app.whenReady().then(async () => {
   } }));
   const version = JSON.parse(fs.readFileSync(path.join(readerRoot, "package.json"))).version;
   let operation;
-  const snapshot = () => ({ dataDir: temp, appVersion: version, ...visits.annotate(temp, lib.loadAllLibraries(temp), activeMedia), hiddenEntries: lib.loadHiddenEntries(temp), updateStatus: loadUpdateStatus(temp) });
+  const snapshot = () => ({ dataDir: temp, appVersion: version, ...visits.annotate(temp, lib.loadAllLibraries(temp, reportCache), activeMedia), hiddenEntries: lib.loadHiddenEntries(temp, reportCache), updateStatus: loadUpdateStatus(temp) });
   ipcMain.handle("library:load", (_, media) => { activeMedia = media ?? activeMedia; return snapshot(); });
   ipcMain.handle("library:set-favorite", (_, media, id, favorite) => { lib.setFavorite(temp, media, id, favorite); return snapshot(); });
   ipcMain.handle("library:restore-hidden", (_, key) => { lib.restoreHiddenEntry(temp, key); return snapshot(); });

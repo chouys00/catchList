@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { deleteEntry, hideEntry, loadLibrary, parseReport, readHiddenEntries, undoHide, setFavorite, readFavorites, loadHiddenEntries, restoreHiddenEntry } from "../src/library.js";
 
 const anime = `2025  春  >7.70    (更新時間: 2025-07-01)\n\n- 測試動畫  **8.20**  (12 · TV)\n- 測試動畫  **8.20**  (12 · TV)\n------------------------------\n`;
+const mixedAnime = `2024  春  >7.70    (更新時間: 2025-07-01)\n\n- 完整動畫  **8.20**  (12 · TV)\n- 舊格式動畫  **8.10**\n\n------------------------------\n\n劇場版  (更新時間: 2025-07-01)\n\n- 無評分劇場版  **--**  (1 · Movie)\n- 有評分劇場版  **7.44**  (1 · Movie)\n`;
 const movies = `2025  9月  >7.00    (更新時間: 2026-07-01  最低投票門檻: 30,000 票)\n\n- 測試電影  **8.15**  \`(IMDb: 8.3 | 一般外國片 (-0.15) | 144k票)\`\n------------------------------\n`;
 const games = `2025  9月  (更新時間: 2026-03-01)\n\n- **測試遊戲** (Test Game) [AppID: 123456 | 中文支援: 支援中文 | 🎮]\n  2025-09-02 | 97% (12,345) | 動作, 獨立製作\n  社群標籤: 牌組製作, 策略, 輕度 Rogue\n  https://store.steampowered.com/app/123456\n\n------------------------------\n`;
 const liveAction = `# 真人劇年度必看\n\n2025  全年度  (整理時間: 2026-09-15)\n\n## 韓劇\n- [測試韓劇](https://www.imdb.com/title/tt1234567/)：8.2／10（7,526 票）\n- 資料不足劇：IMDb：資料不足\n\n## 日劇\n- [測試日劇](https://www.imdb.com/title/tt7654321/)：7.9／10（907 票）\n\n------------------------------\n`;
@@ -36,6 +37,60 @@ test("解析四種報告與外部連結", () => {
   ]);
   assert.equal(new URL(shows[0].url).hostname, "www.imdb.com");
   assert.equal(new URL(shows[1].url).searchParams.get("q"), "資料不足劇 真人劇");
+});
+
+test("動畫相容舊格式、無評分與獨立劇場版區段", () => {
+  const result = parseReport("anime", mixedAnime);
+  assert.equal(result.entries.length, 4);
+  assert.equal(result.integrity.issueCount, 0);
+  assert.equal(result.integrityWarning, null);
+  assert.deepEqual(result.entries.map(({ title, score, episodes, format, year, season }) => ({
+    title, score, episodes, format, year, season,
+  })), [
+    { title: "完整動畫", score: 8.2, episodes: "12", format: "TV", year: 2024, season: "春" },
+    { title: "舊格式動畫", score: 8.1, episodes: null, format: null, year: 2024, season: "春" },
+    { title: "無評分劇場版", score: null, episodes: "1", format: "Movie", year: null, season: "劇場版" },
+    { title: "有評分劇場版", score: 7.44, episodes: "1", format: "Movie", year: null, season: "劇場版" },
+  ]);
+  assert.deepEqual(result.sections.map(({ key, label, year }) => ({ key, label, year })), [
+    { key: "2024-春", label: "2024 年春季", year: 2024 },
+    { key: "theatrical", label: "劇場版", year: null },
+  ]);
+});
+
+test("報告格式無法辨識時回傳行號與完整性警告", () => {
+  const malformed = `2025  春  >7.70    (更新時間: 2025-07-01)\n- 缺少評分格式\n`;
+  const result = parseReport("anime", malformed);
+  assert.equal(result.entries.length, 0);
+  assert.equal(result.integrity.issueCount, 1);
+  assert.deepEqual(result.integrity.issues[0], {
+    line: 2,
+    reason: "動畫作品格式無法辨識",
+    text: "- 缺少評分格式",
+  });
+  assert.match(result.integrityWarning, /行號：2/);
+});
+
+test("劇場版改為獨立區段後仍辨識舊版收藏與隱藏紀錄", () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "catchlist-anime-state-"));
+  fs.writeFileSync(path.join(directory, "動畫.md"), mixedAnime);
+  const legacyKey = JSON.stringify(["anime", "2024-春", "有評分劇場版", 0]);
+  fs.writeFileSync(path.join(directory, ".catchlist-favorites.json"), JSON.stringify({
+    version: 1,
+    entries: [{ key: legacyKey, media: "anime", title: "有評分劇場版", savedAt: "2026-01-01T00:00:00.000Z" }],
+  }));
+  const theater = loadLibrary(directory, "anime").entries.find((entry) => entry.title === "有評分劇場版");
+  assert.equal(theater.favorite, true);
+  setFavorite(directory, "anime", theater.id, false);
+  assert.deepEqual(readFavorites(directory), []);
+
+  fs.writeFileSync(path.join(directory, ".catchlist-hidden.json"), JSON.stringify({
+    version: 1,
+    entries: [{ hideKey: legacyKey, media: "anime", title: "有評分劇場版", hiddenAt: "2026-01-01T00:00:00.000Z" }],
+  }));
+  assert.equal(loadLibrary(directory, "anime").entries.some((entry) => entry.title === "有評分劇場版"), false);
+  assert.equal(loadHiddenEntries(directory)[0].periodLabel, "劇場版");
+  assert.throws(() => hideEntry(directory, "anime", theater.id), /已隱藏/);
 });
 
 test("中文支援徽章解析支援、不支援與待確認三種狀態", () => {

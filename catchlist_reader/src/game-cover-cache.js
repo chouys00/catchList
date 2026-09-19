@@ -15,6 +15,7 @@ export class GameCoverCache {
     this.fs = fileSystem;
     this.covers = new Map();
     this.loaded = false;
+    this.dirty = false;
   }
 
   load() {
@@ -36,15 +37,18 @@ export class GameCoverCache {
     return this.covers.get(String(appid)) ?? null;
   }
 
-  set(appid, coverUrl) {
+  set(appid, coverUrl, { persist = true } = {}) {
     this.load();
     const key = String(appid);
     if (!validAppid(key) || !isSteamStaticUrl(coverUrl)) return false;
+    if (this.covers.get(key) === coverUrl) return true;
     this.covers.set(key, coverUrl);
-    return this.persist();
+    this.dirty = true;
+    return persist ? this.persist() : true;
   }
 
   persist() {
+    if (!this.dirty) return true;
     const directory = path.dirname(this.filePath);
     const temporaryPath = path.join(directory, `.${path.basename(this.filePath)}.${process.pid}.tmp`);
     try {
@@ -54,6 +58,7 @@ export class GameCoverCache {
         covers: Object.fromEntries(this.covers),
       }), "utf8");
       this.fs.renameSync(temporaryPath, this.filePath);
+      this.dirty = false;
       return true;
     } catch {
       try { this.fs.unlinkSync(temporaryPath); } catch {}
@@ -76,6 +81,7 @@ export class GameCoverService {
       await Promise.all(uniqueAppids.slice(index, index + 4).map(async (appid) => {
         covers[appid] = await this.resolveOne(appid);
       }));
+      this.cache.persist();
     }
     return covers;
   }
@@ -87,7 +93,7 @@ export class GameCoverService {
       const pending = Promise.resolve()
         .then(() => this.resolveCover(appid))
         .then((coverUrl) => {
-          if (coverUrl) this.cache.set(appid, coverUrl);
+          if (coverUrl) this.cache.set(appid, coverUrl, { persist: false });
           return coverUrl ?? null;
         })
         .catch(() => null)

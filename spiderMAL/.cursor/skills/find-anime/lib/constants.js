@@ -10,3 +10,5 @@ export const TARGET_PATH = 'G:/我的雲端硬碟/CatchList/動畫.md';
 export const SEASONS = ['winter', 'spring', 'summer', 'fall'];
 export const ZH_TO_EN = { 冬: 'winter', 春: 'spring', 夏: 'summer', 秋: 'fall' };
 export const EN_TO_ZH = { winter: '冬', spring: '春', summer: '夏', fall: '秋' };
+
+export const REQUEST_TIMEOUT_MS = 15000;

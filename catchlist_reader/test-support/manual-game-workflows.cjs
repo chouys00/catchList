@@ -11,6 +11,8 @@ app.setPath("userData", path.join(temp, "profile"));
 const deadline = setTimeout(() => { console.error("手動收錄互動測試逾時"); app.exit(1); }, 55000);
 app.whenReady().then(async () => {
   const lib = await import(pathToFileURL(path.join(root, "src/library.js")));
+  const { ReportCache } = await import(pathToFileURL(path.join(root, "src/report-cache.js")).href);
+  const reportCache = new ReportCache(lib.parseReport);
   const { ManualGameService } = await import(pathToFileURL(path.join(root, "src/manual-game-service.js")));
   const { VisitHistory } = await import(pathToFileURL(path.join(root, "src/visit-history.js")));
   const visits = new VisitHistory(); let active = "games"; let now = Date.now();
@@ -22,7 +24,7 @@ app.whenReady().then(async () => {
   } });
   const fixture = fs.readFileSync(path.join(__dirname, "../test-data/steam-tags-2026-02/遊戲.md"), "utf8");
   fs.writeFileSync(path.join(temp, "遊戲.md"), fixture);
-  const snapshot = () => ({ dataDir: temp, appVersion: JSON.parse(fs.readFileSync(path.join(root, "package.json"))).version, ...visits.annotate(temp, lib.loadAllLibraries(temp), active), hiddenEntries: lib.loadHiddenEntries(temp) });
+  const snapshot = () => ({ dataDir: temp, appVersion: JSON.parse(fs.readFileSync(path.join(root, "package.json"))).version, ...visits.annotate(temp, lib.loadAllLibraries(temp, reportCache), active), hiddenEntries: lib.loadHiddenEntries(temp, reportCache) });
   ipcMain.handle("library:load", (_, media) => { active = media; return snapshot(); });
   ipcMain.handle("games:preview", (_, input) => service.prepare(temp, input));
   ipcMain.handle("games:cancel-preview", () => service.cancel());

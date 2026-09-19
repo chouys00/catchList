@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { JIKAN_BASE, JIKAN_REQUEST_DELAY_MS, MAX_RETRIES } from './constants.js';
+import { JIKAN_BASE, JIKAN_REQUEST_DELAY_MS, MAX_RETRIES, REQUEST_TIMEOUT_MS } from './constants.js';
 
-export async function getSeasonAnime(year, season) {
+export async function getSeasonAnime(year, season, { get = axios.get, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) } = {}) {
   const results = [];
   let page = 1;
   let hasNextPage = true;
@@ -16,8 +16,9 @@ export async function getSeasonAnime(year, season) {
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
-        const { data } = await axios.get(url, {
+        const { data } = await get(url, {
           params: { page, limit: 25 },
+          timeout: REQUEST_TIMEOUT_MS,
         });
         results.push(...data.data);
         hasNextPage = data.pagination?.has_next_page ?? false;
@@ -27,7 +28,7 @@ export async function getSeasonAnime(year, season) {
         lastErr = err;
         console.warn(`   ⚠️ 第 ${page} 頁取得失敗 (嘗試 ${attempt + 1}/${MAX_RETRIES + 1}): ${err.message}`);
         if (attempt < MAX_RETRIES) {
-          await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+          await wait(1500 * (attempt + 1));
         }
       }
     }
@@ -36,14 +37,14 @@ export async function getSeasonAnime(year, season) {
     page++;
 
     if (hasNextPage) {
-      await new Promise((r) => setTimeout(r, JIKAN_REQUEST_DELAY_MS));
+      await wait(JIKAN_REQUEST_DELAY_MS);
     }
   }
 
   return results;
 }
 
-export async function getSeasonAnimeFromAniList(year, season) {
+export async function getSeasonAnimeFromAniList(year, season, { get = axios.get, post = axios.post, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) } = {}) {
   const query = `
     query ($year: Int, $season: MediaSeason, $page: Int) {
       Page(page: $page, perPage: 50) {
@@ -77,10 +78,10 @@ export async function getSeasonAnimeFromAniList(year, season) {
     let success = false;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
-        const response = await axios.post('https://graphql.anilist.co', {
+        const response = await post('https://graphql.anilist.co', {
           query,
           variables: { year, season: alSeason, page }
-        });
+        }, { timeout: REQUEST_TIMEOUT_MS });
         const pageData = response.data.data.Page;
         results.push(...pageData.media);
         hasNext = pageData.pageInfo.hasNextPage;
@@ -90,13 +91,13 @@ export async function getSeasonAnimeFromAniList(year, season) {
         lastErr = err;
         console.warn(`   [AniList Fallback] 第 ${page} 頁獲取失敗 (${attempt + 1}/${MAX_RETRIES + 1}): ${err.message}`);
         if (attempt < MAX_RETRIES) {
-          await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+          await wait(1500 * (attempt + 1));
         }
       }
     }
     if (!success) throw lastErr;
     page++;
-    await new Promise((r) => setTimeout(r, 500));
+    await wait(500);
   }
 
   // 篩選 averageScore >= 70
@@ -115,7 +116,7 @@ export async function getSeasonAnimeFromAniList(year, season) {
     let success = false;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
-        const jikanRes = await axios.get(`${JIKAN_BASE}/anime/${idMal}`);
+        const jikanRes = await get(`${JIKAN_BASE}/anime/${idMal}`, { timeout: REQUEST_TIMEOUT_MS });
         const animeData = jikanRes.data.data;
         if (animeData) {
           enrichedAnime.push({
@@ -134,12 +135,12 @@ export async function getSeasonAnimeFromAniList(year, season) {
           break;
         }
         if (attempt < MAX_RETRIES) {
-          await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+          await wait(1000 * (attempt + 1));
         }
       }
     }
     if (!success) failCount++;
-    await new Promise((r) => setTimeout(r, 700));
+    await wait(700);
   }
 
   process.stdout.write('\r' + ' '.repeat(80) + '\r');

@@ -70,7 +70,9 @@ function renderGameTags(entry, view = {}) {
 
 export function renderItemTemplate(entry, media, view) {
   if (media === "anime") {
-    return `<article class="item anime"><span class="score">${entry.score.toFixed(2)}</span><div class="title"><strong>${escapeHtml(entry.title)}</strong></div><span class="meta">${escapeHtml(entry.periodLabel)}</span><span class="meta">${escapeHtml(entry.episodes)} · ${escapeHtml(entry.format)}</span>${actions(entry, "Google 搜尋", entry.searchUrl)}</article>`;
+    const score = entry.score == null ? "—" : entry.score.toFixed(2);
+    const details = entry.episodes && entry.format ? `${entry.episodes} · ${entry.format}` : "集數與類型未提供";
+    return `<article class="item anime"><span class="score">${score}</span><div class="title"><strong>${escapeHtml(entry.title)}</strong></div><span class="meta">${escapeHtml(entry.periodLabel)}</span><span class="meta">${escapeHtml(details)}</span>${actions(entry, "Google 搜尋", entry.searchUrl)}</article>`;
   }
 
   if (media === "movies") {
