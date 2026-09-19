@@ -22,7 +22,7 @@ const state = {
   mutationPending: false,
   payload: null,
   filters: {
-    games: { manualOnly: "all", query: "", year: "all", month: "all", min: "0", minReviews: "0", chinese: "all", tags: [], tagsOpen: false, tagQuery: "", tagOptionsExpanded: false },
+    games: { manualOnly: "all", query: "", year: "all", month: "all", min: "0", minReviews: "0", chinese: "all", playerMode: "all", tags: [], tagsOpen: false, tagQuery: "", tagOptionsExpanded: false },
     anime: { query: "", year: "all", season: "all", min: "0" },
     movies: { query: "", year: "all", category: "all", min: "0" },
     liveAction: { query: "", year: "all", region: "all" },
@@ -150,7 +150,18 @@ function advancedToolbar(data) {
   if (state.active === "games") {
     const years = [...new Set(data.entries.map((entry) => entry.year))].filter(Number.isFinite).sort((a, b) => b - a);
     const months = [...new Set(data.entries.map((entry) => entry.month))].filter(Number.isFinite).sort((a, b) => a - b);
-    return `<div class="toolbar games">${search}<select class="field" data-filter="year" aria-label="遊戲年份">${options(years, filter.year, "所有年份")}</select><select class="field" data-filter="month" aria-label="遊戲月份">${options(months, filter.month, "所有月份")}</select><select class="field" data-filter="min" aria-label="最低好評率">${scoreOptions(filter.min, true)}</select><select class="field reviews-filter" data-filter="minReviews" aria-label="最低評論數">${reviewOptions(filter.minReviews)}</select><select class="field chinese-filter" data-filter="chinese" aria-label="中文支援"><option value="all" ${filter.chinese === "all" ? "selected" : ""}>中文：全部</option><option value="supported" ${filter.chinese === "supported" ? "selected" : ""}>✓ 支援</option><option value="unsupported" ${filter.chinese === "unsupported" ? "selected" : ""}>× 不支援</option><option value="unknown" ${filter.chinese === "unknown" ? "selected" : ""}>— 待確認</option></select><select class="field" data-filter="manualOnly" aria-label="收錄來源"><option value="all" ${filter.manualOnly !== "manual" ? "selected" : ""}>來源：全部</option><option value="manual" ${filter.manualOnly === "manual" ? "selected" : ""}>只看手動加入</option></select><button class="button tag-toggle" type="button" data-action="toggle-tags" aria-controls="gameTagPanel" aria-expanded="${filter.tagsOpen}">標籤 ${filter.tags.length}</button><button class="button subtle" type="button" data-action="clear-filters">清除篩選</button></div>`;
+    return `<div class="game-filter-layout">
+      <div class="game-filter-primary"><div class="mode-filter-group"><span class="filter-label">遊玩模式</span><div class="mode-segments" role="group" aria-label="遊玩模式">${[["all", "全部"], ["single", "單人"], ["multi", "多人"], ["unknown", "未確認"]].map(([value, label]) => `<button class="button mode-option" type="button" data-player-mode="${value}" aria-pressed="${filter.playerMode === value}">${label}</button>`).join("")}</div></div>
+      <span class="filter-note">含任一多人功能即歸為多人</span><div class="game-filter-actions"><button class="button tag-toggle" type="button" data-action="toggle-tags" aria-controls="gameTagPanel" aria-expanded="${filter.tagsOpen}">標籤 ${filter.tags.length}</button><button class="button subtle" type="button" data-action="clear-filters">清除篩選</button></div></div>
+      <div class="toolbar games game-filter-fields">
+        <label class="filter-field"><span>發售年份</span><select class="field" data-filter="year" aria-label="遊戲年份">${options(years, filter.year, "所有年份")}</select></label>
+        <label class="filter-field"><span>發售月份</span><select class="field" data-filter="month" aria-label="遊戲月份">${options(months, filter.month, "所有月份")}</select></label>
+        <label class="filter-field"><span>好評率</span><select class="field" data-filter="min" aria-label="最低好評率">${scoreOptions(filter.min, true)}</select></label>
+        <label class="filter-field"><span>評論數</span><select class="field reviews-filter" data-filter="minReviews" aria-label="最低評論數">${reviewOptions(filter.minReviews)}</select></label>
+        <label class="filter-field"><span>中文支援</span><select class="field chinese-filter" data-filter="chinese" aria-label="中文支援"><option value="all" ${filter.chinese === "all" ? "selected" : ""}>中文：全部</option><option value="supported" ${filter.chinese === "supported" ? "selected" : ""}>✓ 支援</option><option value="unsupported" ${filter.chinese === "unsupported" ? "selected" : ""}>× 不支援</option><option value="unknown" ${filter.chinese === "unknown" ? "selected" : ""}>— 待確認</option></select></label>
+        <label class="filter-field"><span>收錄來源</span><select class="field" data-filter="manualOnly" aria-label="收錄來源"><option value="all" ${filter.manualOnly !== "manual" ? "selected" : ""}>來源：全部</option><option value="manual" ${filter.manualOnly === "manual" ? "selected" : ""}>只看手動加入</option></select></label>
+      </div>
+    </div>`;
   }
   const years = [...new Set(data.entries.map((entry) => entry.year))].filter(Number.isFinite).sort((a, b) => b - a);
   if (state.active === "liveAction") {
@@ -165,7 +176,7 @@ function advancedToolbar(data) {
 
 function activeFilterCount() {
   const filter = state.filters[state.active];
-  return ["year", "month", "season", "category", "region", "min", "minReviews", "chinese", "manualOnly"]
+  return ["year", "month", "season", "category", "region", "min", "minReviews", "chinese", "playerMode", "manualOnly"]
     .filter((key) => filter[key] && !["all", "0"].includes(filter[key])).length + (filter.tags?.length ?? 0);
 }
 
@@ -258,7 +269,7 @@ function gameListMarkup(entries) {
 }
 
 function gameColumnHeader() {
-  return `<div class="game-column-header" aria-hidden="true"><span>封面</span><span>遊戲名稱</span><span>好評率</span><span>發售日</span><span class="center">中文</span><span>社群標籤</span><span class="center">管理</span></div>`;
+  return `<div class="game-column-header" aria-hidden="true"><span>封面</span><span>遊戲名稱</span><span>好評率</span><span>發售日</span><span class="center">中文</span><span class="center" title="一人圖示：單人；群像圖示：多人；問號：未確認">模式</span><span>社群標籤</span><span class="center">管理</span></div>`;
 }
 
 function stopGameAutoLoad() {
@@ -376,9 +387,16 @@ function syncTagOptionsOverflow() {
   more.hidden = optionsRoot.scrollHeight <= optionsRoot.clientHeight + 1;
 }
 
+function syncModeControls() {
+  for (const button of app.querySelectorAll("[data-player-mode]")) {
+    button.setAttribute("aria-pressed", String(button.dataset.playerMode === state.filters.games.playerMode));
+  }
+}
+
 function syncGameControls() {
+  syncModeControls();
   const filter = state.filters[state.active];
-  for (const key of ["query", "year", "month", "season", "category", "region", "min", "minReviews", "chinese", "tagQuery", "manualOnly"]) {
+  for (const key of ["query", "year", "month", "season", "category", "region", "min", "minReviews", "chinese", "playerMode", "tagQuery", "manualOnly"]) {
     const control = app.querySelector(`[data-filter="${key}"]`);
     if (control) control.value = filter[key];
   }
@@ -476,6 +494,14 @@ async function openBatch(urls, label) {
 }
 
 document.addEventListener("click", async (event) => {
+  const modeButton = event.target.closest("[data-player-mode]");
+  if (modeButton && state.active === "games") {
+    state.filters.games.playerMode = modeButton.dataset.playerMode;
+    syncModeControls();
+    refreshGameBrowser();
+    return;
+  }
+
   const view = event.target.closest("[data-view]")?.dataset.view;
   if (view) {
     state.view = view;
@@ -547,7 +573,7 @@ document.addEventListener("click", async (event) => {
     if (action === "toggle-tag-options") { state.filters.games.tagOptionsExpanded = !state.filters.games.tagOptionsExpanded; refreshTagPanel(); }
     if (action === "clear-filters") {
       const filter = state.filters[state.active];
-      Object.assign(filter, { manualOnly: "all", query: "", year: "all", month: "all", season: "all", category: "all", region: "all", min: "0", minReviews: "0", chinese: "all", tags: [], tagQuery: "", tagOptionsExpanded: false });
+      Object.assign(filter, { manualOnly: "all", query: "", year: "all", month: "all", season: "all", category: "all", region: "all", min: "0", minReviews: "0", chinese: "all", playerMode: "all", tags: [], tagQuery: "", tagOptionsExpanded: false });
       state.expandedGameTags.clear();
       syncGameControls();
       if (state.active === "games") refreshGameBrowser(); else refreshResults();
@@ -641,7 +667,7 @@ document.addEventListener("keydown", (event) => {
 
 function viewGame(appid) {
   state.view = "all";
-  Object.assign(state.filters.games, { query: "", year: "all", month: "all", min: "0", minReviews: "0", chinese: "all", tags: [], tagQuery: "", manualOnly: "all", newOnly: false });
+  Object.assign(state.filters.games, { query: "", year: "all", month: "all", min: "0", minReviews: "0", chinese: "all", playerMode: "all", tags: [], tagQuery: "", manualOnly: "all", newOnly: false });
   const index = filteredEntries().findIndex((entry) => entry.appid === appid);
   state.visibleGameCount = Math.max(GAME_BATCH_SIZE, Math.ceil((index + 1) / GAME_BATCH_SIZE) * GAME_BATCH_SIZE);
   render();

@@ -42,6 +42,7 @@ export function filterAndSortGames(entries, filters = {}, prepared = null) {
 
   return entries
     .filter((entry) => {
+      if (filters.playerMode && filters.playerMode !== "all" && (entry.playerMode ?? "unknown") !== filters.playerMode) return false;
       if (filters.manualOnly === "manual" && !entry.manualAdded) return false;
       if (query && !(prepared?.get(entry)?.title ?? gameTitle(entry)).includes(query)) return false;
       if (filters.newOnly && !entry.isNew) return false;
@@ -136,7 +137,7 @@ export function createGameQuery() {
       prepared = new Map(entries.map(entry => [entry, { title: gameTitle(entry), tags: normalizeList(entry.tags) }]));
       previousKey = null;
     }
-    const key = JSON.stringify([view, filters.query, filters.year, filters.month, filters.min, filters.minReviews, filters.chinese, filters.manualOnly, filters.newOnly, filters.sort, filters.tags]);
+    const key = JSON.stringify([view, filters.query, filters.year, filters.month, filters.min, filters.minReviews, filters.chinese, filters.playerMode, filters.manualOnly, filters.newOnly, filters.sort, filters.tags]);
     if (key !== previousKey) {
       result = filterAndSortGames(view === "favorites" ? entries.filter(entry => entry.favorite) : entries, filters, prepared);
       previousKey = key;

@@ -30,6 +30,7 @@ export function parseGameDetails(appid, response) {
   return { appid, title: clean(data.name), originalTitle: "", releaseDate: exactReleaseDate(data.release_date?.date),
     releaseLabel: clean(data.release_date?.date) || (data.release_date?.coming_soon ? "尚未發售" : "未公布日期"),
     comingSoon: Boolean(data.release_date?.coming_soon), score: null, reviews: null,
+    officialFeatureIds: (data.categories ?? []).map((category) => category.id).filter((id) => Number.isInteger(id) && id > 0),
     chineseSupport: !languages ? "unknown" : /繁體中文|簡體中文|Traditional Chinese|Simplified Chinese/i.test(languages) ? "supported" : "unsupported",
     genres: (data.genres ?? []).map((g) => clean(g.description)).filter(Boolean), tags: [] };
 }

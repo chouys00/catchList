@@ -107,8 +107,8 @@ app.whenReady().then(async () => {
   await capture("filters-desktop");
   await click('[data-action="clear-filters"]');
   await click('[data-action="toggle-filters"]');
-  assert.deepEqual(await js("[...document.querySelectorAll('.game-column-header > span')].map((item) => item.textContent)"), ["封面", "遊戲名稱", "好評率", "發售日", "中文", "社群標籤", "管理"]);
-  assert.deepEqual(await js("[...document.querySelector('.item.games .game-facts').children].map((item) => item.classList[0])"), ["rating", "meta", "language-status"]);
+  assert.deepEqual(await js("[...document.querySelectorAll('.game-column-header > span')].map((item) => item.textContent)"), ["封面", "遊戲名稱", "好評率", "發售日", "中文", "模式", "社群標籤", "管理"]);
+  assert.deepEqual(await js("[...document.querySelector('.item.games .game-facts').children].map((item) => item.classList[0])"), ["rating", "meta", "language-status", "language-status"]);
   assert.deepEqual(await js("(() => { const button = document.querySelector('#backToTop'); return { hidden: button.getAttribute('aria-hidden'), tabIndex: button.tabIndex }; })()"), { hidden: "true", tabIndex: -1 });
   win.setContentSize(1440, 280);
   await new Promise((resolve) => setTimeout(resolve, 100));

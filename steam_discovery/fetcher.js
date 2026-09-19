@@ -12,7 +12,7 @@ const DETAILS_CACHE_FILE = path.resolve(".appdetails_cache.json");
 let detailsStore;
 function defaultDetailsStore() { return detailsStore ??= new JsonJournal(DETAILS_CACHE_FILE); }
 export function flushDetailsCache() { detailsStore?.flush(); }
-const DETAILS_CACHE_VERSION = 2;
+const DETAILS_CACHE_VERSION = 3;
 const STEAM_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 };
@@ -299,6 +299,7 @@ export function parseAppDetails(appid, data_, config = CONFIG) {
     isAdult,
     supportsController,
     headerImage: data.header_image,
-    categories: data.categories?.map(c => c.description) || []
+    categories: data.categories?.map(c => c.description) || [],
+    officialFeatureIds: data.categories?.map(c => c.id) || []
   };
 }

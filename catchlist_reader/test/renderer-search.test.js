@@ -135,7 +135,7 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
   assert.deepEqual(result.cleared, {
     value: "", focused: true, selectionStart: 0, selectionEnd: 0, resultCount: "7 筆結果",
   });
-  assert.deepEqual(result.responsiveLayout.columnsAt900, { games: 4, anime: 3, movies: 3 });
+  assert.deepEqual(result.responsiveLayout.columnsAt900, { games: 3, anime: 3, movies: 3 });
   assert.deepEqual(result.responsiveLayout.resizeBehavior, {
     sameWidthKeepsRow: true,
     sameWidthKeepsInput: true,

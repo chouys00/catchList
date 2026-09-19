@@ -181,7 +181,7 @@ test("繁體中文或簡體中文任一成立都視為支援中文", () => {
   assert.equal(Object.hasOwn(simplified, "supportSChinese"), false);
 });
 
-test("報告只寫入統一的中文支援狀態", () => {
+test("報告保留統一中文支援與官方功能，閱讀器可完整讀回", () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "steam-selection-rules-"));
   const reportFile = path.join(tempDir, "遊戲.md");
   const game = {
@@ -194,6 +194,7 @@ test("報告只寫入統一的中文支援狀態", () => {
     positivePct: 90,
     genres: ["Indie"],
     supportsChinese: true,
+    officialFeatureIds: [2, 38],
     supportsController: false,
     isAdult: false
   };
@@ -201,11 +202,12 @@ test("報告只寫入統一的中文支援狀態", () => {
   updateReport([{ year: 2026, month: 1, games: [game] }], reportFile);
 
   const report = fs.readFileSync(reportFile, "utf8");
-  assert.match(report, /\[AppID: 123456 \| 中文支援: 支援中文\]/);
+  assert.match(report, /\[AppID: 123456 \| 中文支援: 支援中文 \| 商店功能: 2,38\]/);
   assert.doesNotMatch(report, /繁體中文|簡體中文/);
 
   const parsed = parseReport("games", report).entries;
   assert.equal(parsed.length, 1);
+  assert.deepEqual(parsed[0].officialFeatureIds, [2, 38]);
   assert.deepEqual(
     {
       appid: parsed[0].appid,

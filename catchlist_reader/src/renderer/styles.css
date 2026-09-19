@@ -91,7 +91,7 @@ button.game-tag:hover { border-color: var(--muted); color: var(--ink); }
 
 .list { border-top: 1px solid var(--line); }
 .game-column-header,
-.item.games { grid-template-columns: 140px minmax(180px, 1.45fr) 112px 92px 44px minmax(160px, 1.25fr) 110px; }
+.item.games { grid-template-columns: 140px minmax(180px, 1.45fr) 104px 88px 36px 36px minmax(140px, 1.25fr) 106px; }
 .game-column-header { display: grid; gap: 14px; align-items: end; padding: 10px 8px 8px; color: var(--dim); font-size: 10px; font-weight: 700; letter-spacing: .1em; }
 .game-column-header .center { text-align: center; }
 .game-load-sentinel { display: flex; justify-content: center; align-items: center; gap: 12px; min-height: 88px; color: var(--muted); font-size: 12px; }
@@ -354,3 +354,48 @@ button.game-cover:hover { border-color: var(--lime); }
   html { scroll-behavior: auto; }
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* 遊玩模式與篩選：沿用深色清單與萊姆綠狀態，常用模式先於細部條件。 */
+.player-mode.multiplayer { color: var(--ink); }
+.language-status.player-mode svg { width: 24px; height: 24px; fill: currentColor; stroke: none; }
+.mobile-mode-label { display: none; }
+.game-filter-layout { display: grid; gap: 14px; }
+.game-filter-primary { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; }
+.mode-filter-group { display: flex; align-items: center; gap: 14px; }
+.filter-label, .filter-field > span { color: var(--muted); font-size: 12px; }
+.filter-note { color: var(--muted); font-size: 12px; }
+.mode-segments { display: inline-flex; padding: 3px; gap: 2px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface-2); }
+.mode-option { border: 0; min-height: 32px; padding-inline: 16px; background: transparent; color: var(--muted); font-size: 13px; transition: background-color 140ms, color 140ms; }
+.mode-option[aria-pressed="true"] { background: var(--lime); color: var(--lime-ink); font-weight: 700; }
+.mode-option:hover:not([aria-pressed="true"]) { background: var(--surface-3); color: var(--ink); }
+#advancedFilters .toolbar.game-filter-fields { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+.filter-field { display: grid; min-width: 0; gap: 6px; }
+.filter-field .field { min-width: 0; padding-inline: 10px; font-size: 13px; }
+.game-filter-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.game-filter-actions .button { min-height: 32px; font-size: 13px; }
+@media (max-width: 1200px) and (min-width: 901px) {
+  .game-column-header, .item.games { grid-template-columns: 140px minmax(140px, 1.3fr) 94px 82px 30px 30px minmax(120px, 1fr) 102px; gap: 10px; }
+}
+@media (max-width: 1000px) {
+  #advancedFilters .toolbar.game-filter-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 901px) and (max-width: 1050px) {
+  .game-column-header { display: none; }
+  .item.games { grid-template-columns: 118px minmax(180px, 1fr) auto; gap: 8px 14px; }
+  .item.games .game-cover { width: 118px; }
+  .item.games > .title { grid-column: 2; }
+  .item.games > .game-facts { display: flex; grid-column: 2 / -1; align-items: center; gap: 14px; }
+  .item.games > .game-tags { grid-column: 2 / -1; }
+  .item.games > .game-management { grid-column: 3; grid-row: 1; }
+}
+@media (max-width: 1050px) {
+  .mobile-mode-label { display: inline; font-size: 12px; color: var(--muted); }
+  .item.games .player-mode { display: flex; width: auto; gap: 4px; }
+}
+@media (max-width: 560px) {
+  #advancedFilters .toolbar.game-filter-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mode-filter-group { align-items: flex-start; flex-direction: column; gap: 8px; width: 100%; }
+  .mode-segments { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; }
+  .mode-option { padding-inline: 6px; }
+}
+@media (prefers-reduced-motion: reduce) { .mode-option { transition: none; } }

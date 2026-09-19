@@ -59,6 +59,10 @@ function formatSection(year, month, games, updatedAt, linksFilepath) {
 
     // 將資料欄位放在既有標題行，社群標籤另列以避免和官方類型混用。
     const badges = [`AppID: ${g.appid}`, `中文支援: ${chineseSupport}`];
+    if (Array.isArray(g.officialFeatureIds)) {
+      const ids = [...new Set(g.officialFeatureIds.filter((id) => Number.isInteger(id) && id > 0))];
+      badges.push(`商店功能: ${ids.join(",")}`);
+    }
     if (g.supportsController) badges.push("🎮");
     if (g.isAdult) badges.push("18+");
 

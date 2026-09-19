@@ -49,6 +49,7 @@ function validEntry(entry) {
     && [entry.score, entry.reviews].every((n) => n === null || (Number.isFinite(n) && n >= 0))
     && (entry.score === null || entry.score <= 100) && (entry.reviews === null || Number.isInteger(entry.reviews))
     && ["supported", "unsupported", "unknown"].includes(entry.chineseSupport)
+    && (entry.officialFeatureIds === undefined || (Array.isArray(entry.officialFeatureIds) && entry.officialFeatureIds.every((id) => Number.isInteger(id) && id > 0)))
     && [entry.tags, entry.genres].every((list) => Array.isArray(list) && list.every((x) => typeof x === "string"))
     && (entry.releaseDate === null || /^\d{4}-\d{2}-\d{2}$/.test(entry.releaseDate))
     && typeof entry.releaseLabel === "string";

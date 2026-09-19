@@ -24,6 +24,17 @@ function gameLanguageStatus(value) {
   return `<span class="language-status ${key}" role="img" aria-label="${state.label}" title="${state.label}"><svg aria-hidden="true" viewBox="0 0 24 24">${state.icon}</svg></span>`;
 }
 
+function gamePlayerModeStatus(value) {
+  const states = {
+    single: { style: "supported", name: "單人", label: "單人：官方列單人，未列多人功能", icon: '<circle cx="12" cy="6" r="4"/><path d="M4 20v-2a8 8 0 0 1 16 0v2c-4 2-12 2-16 0Z"/>' },
+    multi: { style: "multiplayer", name: "多人", label: "多人：含官方多人功能，也可能支援單人", icon: '<circle cx="12" cy="5.5" r="3.5"/><circle cx="4" cy="8" r="2.7"/><circle cx="20" cy="8" r="2.7"/><path d="M0 18v-2a4 4 0 0 1 6-3.5A8 8 0 0 0 4 18v1c-1.5-.1-3-.4-4-1Zm24 0v-2a4 4 0 0 0-6-3.5 8 8 0 0 1 2 5.5v1c1.5-.1 3-.4 4-1ZM6 20v-3a6 6 0 0 1 12 0v3c-3 1.8-9 1.8-12 0Z"/>' },
+    unknown: { style: "unknown", name: "未確認", label: "遊玩模式未確認：缺少官方功能資料", icon: '<path d="M10 15v-1c0-2 4-2 4-4a2 2 0 0 0-4 0H8a4 4 0 0 1 8 0c0 3-4 3.5-4 4v1Z"/><circle cx="11" cy="18" r="1.2"/>' },
+  };
+  const key = Object.hasOwn(states, value) ? value : "unknown";
+  const status = states[key];
+  return `<span class="language-status player-mode ${status.style}" data-mode="${key}" role="img" aria-label="${status.label}" title="${status.label}"><svg aria-hidden="true" viewBox="0 0 24 24">${status.icon}</svg><span class="mobile-mode-label">${status.name}</span></span>`;
+}
+
 function externalLinkIcon() {
   return '<svg class="external-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-9 9"/><path d="M18 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';
 }
@@ -88,5 +99,5 @@ export function renderItemTemplate(entry, media, view) {
   const cover = entry.coverUrl
     ? `<button class="game-cover" type="button" data-cover="${escapeHtml(entry.coverUrl)}" data-cover-title="${escapeHtml(entry.title)}" data-game-appid="${appid}"><img src="${escapeHtml(entry.coverUrl)}" alt="遊戲封面：${escapeHtml(entry.title)}"></button>`
     : `<div class="game-cover game-cover-loading" data-game-appid="${appid}" aria-label="遊戲封面載入中"></div>`;
-  return `<article class="item games" data-game-row="${appid}">${cover}<button class="title game-title-link" type="button" data-open="${escapeHtml(entry.url)}" aria-label="在 Steam 開啟 ${escapeHtml(entry.title)}"><strong class="title-primary">${escapeHtml(entry.title)}${externalLinkIcon()}</strong><small>${escapeHtml(entry.originalTitle)}</small>${entry.manualAdded ? `<span class="manual-source" title="${escapeHtml(`手動加入於 ${entry.addedAt?.slice(0, 10) ?? ""}；${entry.reportSource ? "目前顯示每月報告資料" : "保留加入時資料，不自動更新"}`)}">手動加入</span>` : ""}</button><div class="game-facts"><span class="rating"><strong>${entry.score == null ? "—" : `${entry.score}%`}</strong><small>${entry.reviews == null ? "評論讀取失敗" : entry.reviews === 0 ? "尚無評論" : `(${entry.reviews.toLocaleString()})`}</small></span><span class="meta game-date">${escapeHtml(entry.releaseDate ?? entry.releaseLabel ?? "未公布日期")}</span>${gameLanguageStatus(entry.chineseSupport)}</div>${renderGameTags(entry, view)}<div class="game-management">${favoriteButton(entry)}<button class="icon-button" type="button" data-hide="${entry.id}" aria-label="隱藏 ${escapeHtml(entry.title)}" title="隱藏">${hideIcon()}</button><button class="icon-button danger" type="button" data-delete="${entry.id}" aria-label="真正刪除 ${escapeHtml(entry.title)}" title="真正刪除">${deleteIcon()}</button></div></article>`;
+  return `<article class="item games" data-game-row="${appid}">${cover}<button class="title game-title-link" type="button" data-open="${escapeHtml(entry.url)}" aria-label="在 Steam 開啟 ${escapeHtml(entry.title)}"><strong class="title-primary">${escapeHtml(entry.title)}${externalLinkIcon()}</strong><small>${escapeHtml(entry.originalTitle)}</small>${entry.manualAdded ? `<span class="manual-source" title="${escapeHtml(`手動加入於 ${entry.addedAt?.slice(0, 10) ?? ""}；${entry.reportSource ? "目前顯示每月報告資料" : "保留加入時資料，不自動更新"}`)}">手動加入</span>` : ""}</button><div class="game-facts"><span class="rating"><strong>${entry.score == null ? "—" : `${entry.score}%`}</strong><small>${entry.reviews == null ? "評論讀取失敗" : entry.reviews === 0 ? "尚無評論" : `(${entry.reviews.toLocaleString()})`}</small></span><span class="meta game-date">${escapeHtml(entry.releaseDate ?? entry.releaseLabel ?? "未公布日期")}</span>${gameLanguageStatus(entry.chineseSupport)}${gamePlayerModeStatus(entry.playerMode)}</div>${renderGameTags(entry, view)}<div class="game-management">${favoriteButton(entry)}<button class="icon-button" type="button" data-hide="${entry.id}" aria-label="隱藏 ${escapeHtml(entry.title)}" title="隱藏">${hideIcon()}</button><button class="icon-button danger" type="button" data-delete="${entry.id}" aria-label="真正刪除 ${escapeHtml(entry.title)}" title="真正刪除">${deleteIcon()}</button></div></article>`;
 }

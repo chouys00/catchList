@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { classifyPlayerMode } from "./game-features.js";
+import { readGameFeatures } from "./game-feature-store.js";
 import { MANUAL_GAMES_FILE, readManualGames, manualEntry, manualJson, commitGameFiles, recoverGameTransaction, readOptional } from "./manual-games.js";
 
 export const MEDIA_CONFIG = {
@@ -286,6 +288,8 @@ function parseGames(lines, { legacyInitialization = false } = {}) {
       originalTitle: clean(titleMatch[2]),
       badges,
       chineseSupport: parseChineseSupport(badges),
+      officialFeatureIds: badges.some((badge) => badge.startsWith("商店功能:"))
+        ? (badges.find((badge) => badge.startsWith("商店功能:"))?.slice(5).trim().split(",").filter(Boolean).map(Number) ?? []) : undefined,
       releaseDate: detailMatch[1],
       score: Number(detailMatch[2]),
       reviews: Number(detailMatch[3].replace(/,/g, "")),
@@ -349,13 +353,21 @@ export function sourceEntries(dataDir, media, { strict = false, reportCache = nu
   let warning = null;
   try { manual = readManualGames(dataDir).entries; } catch (error) { if (strict) throw error; warning = error.message; }
   const merged = new Map(manual.map((record) => [record.appid, manualEntry(record)]));
+  let features = {};
+  try { features = readGameFeatures(dataDir); }
+  catch { warning = [warning, "商店功能資料無法讀取，缺漏項目顯示未確認；原檔已保留"].filter(Boolean).join("；"); }
   for (const entry of parsed.entries) {
     const previous = merged.get(entry.appid);
     // 報告若重複收錄同款，以第一筆為準，個人狀態仍以 AppID 識別。
     if (previous?.reportSource) continue;
-    merged.set(entry.appid, { ...entry, reportSource: true, manualAdded: Boolean(previous?.manualAdded), addedAt: previous?.addedAt });
+    merged.set(entry.appid, { ...entry, officialFeatureIds: entry.officialFeatureIds ?? previous?.officialFeatureIds,
+      reportSource: true, manualAdded: Boolean(previous?.manualAdded), addedAt: previous?.addedAt });
   }
-  return { ...parsed, entries: [...merged.values()], warning, exists: parsed.exists || manual.length > 0 };
+  const entries = [...merged.values()].map((entry) => {
+    const officialFeatureIds = entry.officialFeatureIds ?? features[entry.appid]?.featureIds;
+    return { ...entry, officialFeatureIds, playerMode: classifyPlayerMode(officialFeatureIds) };
+  });
+  return { ...parsed, entries, warning, exists: parsed.exists || manual.length > 0 };
 }
 
 function stateKeys(entry) {
