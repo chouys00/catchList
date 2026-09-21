@@ -104,6 +104,11 @@ async function measureResponsiveLayout(window) {
   window.setContentSize(390, 844);
   await new Promise((resolve) => setTimeout(resolve, 100));
   await selectMedia("games");
+  await window.webContents.executeJavaScript(`(() => {
+    const input = document.querySelector('[data-filter="query"]');
+    input.value = '女神';
+    input.dispatchEvent(new InputEvent('input', { bubbles: true, data: '女神', inputType: 'insertText' }));
+  })()`);
   resizeBehavior.mobileTagCount = await window.webContents.executeJavaScript(`document.querySelector('.item.games .game-tag-list')?.querySelectorAll('button[data-game-tag]').length ?? null`);
   const tapTargets = await window.webContents.executeJavaScript(`(() => {
     const size = (element) => {
@@ -111,6 +116,7 @@ async function measureResponsiveLayout(window) {
       return rect ? { width: Math.round(rect.width), height: Math.round(rect.height) } : null;
     };
     return {
+      clearSearch: size(document.querySelector('[data-action="clear-search"]')),
       tag: size(document.querySelector('.item.games button.game-tag[data-game-tag]')),
       expand: size(document.querySelector('.item.games button.game-tag[data-expand-tags]')),
       panelClose: size(document.querySelector('[data-action="close-tag-panel"]')),
@@ -125,12 +131,19 @@ async function captureResponsiveQa(window) {
   const outputDir = process.env.CATCHLIST_QA_DIR;
   if (!outputDir) return null;
   fs.mkdirSync(outputDir, { recursive: true });
+  await window.webContents.executeJavaScript(`(() => {
+    const input = document.querySelector('[data-filter="query"]');
+    input.value = '女神';
+    input.dispatchEvent(new InputEvent('input', { bubbles: true, data: '女神', inputType: 'insertText' }));
+  })()`);
+  await new Promise((resolve) => setTimeout(resolve, 600));
   const toggleOpen = await window.webContents.executeJavaScript(`document.querySelector('[data-action="toggle-tags"]')?.getAttribute('aria-expanded') === 'true'`);
   if (!toggleOpen) await window.webContents.executeJavaScript(`document.querySelector('[data-action="toggle-tags"]')?.click()`);
   const results = {};
   for (const [name, width, height] of [["desktop", 1440, 900], ["mid", 900, 700], ["mobile", 390, 844]]) {
     window.setContentSize(width, height);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await window.webContents.executeJavaScript(`document.querySelector('[data-action="clear-search"]')?.classList.add('is-hovered')`);
     const image = await window.webContents.capturePage();
     const filepath = path.join(outputDir, `task-5-${name}.png`);
     fs.writeFileSync(filepath, image.toPNG());
@@ -140,6 +153,7 @@ async function captureResponsiveQa(window) {
       visibleRowTags: document.querySelector('.item.games .game-tag-list')?.querySelectorAll('[data-game-tag], .game-tag.fallback').length ?? 0,
       hasExpand: Boolean(document.querySelector('.item.games [data-expand-tags]')),
       panelVisible: !document.querySelector('#gameTagPanel')?.hidden,
+      clearSearchVisible: !document.querySelector('[data-action="clear-search"]')?.hidden,
     }))()`);
   }
   await window.webContents.executeJavaScript(`document.querySelector('[data-action="toggle-tags"]')?.click()`);
@@ -321,6 +335,25 @@ async function run() {
     await window.webContents.executeJavaScript(`document.querySelector('[data-filter="query"]').select()`);
     await window.webContents.insertText("你有餅嗎？");
     const chinese = await searchState(window);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    await window.webContents.executeJavaScript(`document.querySelector('[data-action="clear-search"]')?.classList.add('is-hovered')`);
+    const clearHover = await window.webContents.executeJavaScript(`(() => {
+      const button = document.querySelector('[data-action="clear-search"]');
+      const buttonStyle = getComputedStyle(button);
+      const halo = getComputedStyle(button, '::before');
+      return { color: buttonStyle.color, background: buttonStyle.backgroundColor, haloOpacity: halo.opacity, haloRadius: halo.borderRadius, haloTransform: halo.transform };
+    })()`);
+    const clearButton = await window.webContents.executeJavaScript(`(() => {
+      const input = document.querySelector('[data-filter="query"]');
+      const button = document.querySelector('[data-action="clear-search"]');
+      const beforeRect = button.getBoundingClientRect();
+      const before = { hidden: button.hidden, label: button.getAttribute('aria-label'), title: button.getAttribute('title'), width: Math.round(beforeRect.width), height: Math.round(beforeRect.height) };
+      button.click();
+      const after = { value: input.value, focused: document.activeElement === input, hidden: button.hidden, resultCount: document.querySelector('[data-result-count]').textContent };
+      input.value = '你有餅嗎？';
+      input.dispatchEvent(new InputEvent('input', { bubbles: true, data: '你有餅嗎？', inputType: 'insertText' }));
+      return { before, after };
+    })()`);
 
     const gameBrowser = await window.webContents.executeJavaScript(`(async () => {
       const tick = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
@@ -480,7 +513,7 @@ async function run() {
     const largeGameBatch = await runLargeGameBatchTest(address);
     const coverUpdate = await runCoverUpdateTest(address);
 
-    process.stdout.write(`${JSON.stringify({ initialGames, typed, backspaced, insertedInMiddle, replacedSelection, chinese, gameBrowser, animeBeforeSearch, animeAfterSearch, animeRailCount, movieRailCount, liveAction, restoredGameSearch, clearInteraction, cleared, responsiveLayout, visualQa, largeGameBatch, coverUpdate })}\n`);
+    process.stdout.write(`${JSON.stringify({ initialGames, typed, backspaced, insertedInMiddle, replacedSelection, chinese, clearHover, clearButton, gameBrowser, animeBeforeSearch, animeAfterSearch, animeRailCount, movieRailCount, liveAction, restoredGameSearch, clearInteraction, cleared, responsiveLayout, visualQa, largeGameBatch, coverUpdate })}\n`);
   } finally {
     window.destroy();
     await new Promise((resolve) => server.close(resolve));

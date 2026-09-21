@@ -276,6 +276,24 @@ button.game-cover:hover { border-color: var(--lime); }
 .browse-toolbar { display: grid; grid-template-columns: minmax(180px, 1fr) 156px auto auto auto auto; align-items: center; gap: 8px; margin: 10px 0 0; }
 .browse-toolbar .field, .browse-toolbar .button { font-size: 14px; }
 .browse-toolbar .button { white-space: nowrap; }
+.search-control { position: relative; min-width: 0; }
+.search-control .search { width: 100%; padding-right: 46px; }
+.search-clear { position: absolute; inset: 0 0 0 auto; isolation: isolate; display: grid; width: 42px; padding: 0; place-items: center; border: 0; border-radius: 0 4px 4px 0; background: transparent; color: color-mix(in srgb, var(--muted) 68%, transparent); cursor: pointer; transition: color 120ms ease, transform 100ms ease; }
+.search-clear[hidden] { display: none; }
+.search-clear::before { content: ""; position: absolute; z-index: -1; width: 26px; height: 26px; border-radius: 50%; background: color-mix(in srgb, var(--ink) 6%, var(--surface-3)); opacity: 0; transform: scale(.92); transition: opacity 120ms ease, transform 120ms ease; }
+.search-clear svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; transition: transform 120ms ease; }
+.search-clear:hover,
+.search-clear.is-hovered { color: color-mix(in srgb, var(--muted) 84%, var(--ink)); }
+.search-clear:hover::before,
+.search-clear.is-hovered::before { opacity: 1; transform: scale(1); }
+.search-clear:hover svg,
+.search-clear.is-hovered svg { transform: scale(1.03); }
+.search-clear.is-hovered,
+.search-clear.is-hovered::before,
+.search-clear.is-hovered svg { transition: none; }
+.search-clear:active { color: color-mix(in srgb, var(--muted) 84%, var(--ink)); transform: scale(.94); }
+.search-clear:focus-visible { color: color-mix(in srgb, var(--muted) 84%, var(--ink)); outline: 1px solid color-mix(in srgb, var(--muted) 56%, transparent); outline-offset: -4px; border-radius: 50%; }
+.search-clear:focus-visible::before { opacity: 1; transform: scale(1); }
 .result-count { padding-inline: 6px; color: var(--muted); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .new-filter span { font-variant-numeric: tabular-nums; margin-left: 4px; }
 .new-filter[aria-pressed="true"], .filter-toggle[aria-expanded="true"] { color: var(--lime); border-color: var(--lime); background: color-mix(in srgb, var(--lime) 8%, var(--surface)); }
@@ -297,7 +315,7 @@ button.game-cover:hover { border-color: var(--lime); }
   .browse-heading .update-panel { margin-right: auto; }
   .browse-heading .update-panel summary > span:first-child { display: inline; }
   .browse-toolbar { grid-template-columns: minmax(0, 1fr) auto auto; }
-  .browse-toolbar .search { grid-column: 1 / -1; }
+  .browse-toolbar .search-control { grid-column: 1 / -1; }
   .browse-toolbar .sort-field { min-width: 0; }
   .browse-toolbar .result-count { grid-column: 1; padding: 0; }
   .browse-toolbar .batch-open { grid-column: 2 / -1; }
@@ -310,6 +328,7 @@ button.game-cover:hover { border-color: var(--lime); }
   .browse-heading .update-summary-state.failed { font-size: 11px; }
   .browse-heading .update-panel summary > span:first-child { display: none; }
   .browse-toolbar .field, .browse-toolbar .button, #advancedFilters .field, #advancedFilters .button { min-height: 44px; }
+  .search-clear { width: 44px; }
   .browse-toolbar .button { padding-inline: 10px; }
 }
 

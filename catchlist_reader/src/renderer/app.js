@@ -195,7 +195,8 @@ function toolbar(data, count, openLabel) {
     : [["score", "評分最高"], ["date", "年份最新"], ...(state.active === "anime" ? [] : [["reviews", "票數最多"]])];
   const selected = filter.sort ?? (state.active === "games" ? "date" : "score");
   const newCount = data.entries.filter((entry) => entry.isNew && (state.view !== "favorites" || entry.favorite)).length;
-  return `<div class="browse-toolbar${state.active === "games" ? " games-toolbar" : ""}"><input class="field search" data-filter="query" value="${escapeHtml(filter.query)}" placeholder="${mediaCopy[state.active].search}" aria-label="搜尋名稱"><select class="field sort-field" data-filter="sort" aria-label="排序方式">${sorts.map(([key, label]) => `<option value="${key}" ${key === selected ? "selected" : ""}>${label}</option>`).join("")}</select><button class="button new-filter" type="button" data-action="toggle-new" aria-pressed="${Boolean(filter.newOnly)}" ${state.payload.visitWarning ? "disabled" : ""} title="本次來訪新增的作品；第一次使用先建立基準">新收錄 <span>${newCount}</span></button><button class="button filter-toggle" type="button" data-action="toggle-filters" aria-controls="advancedFilters" aria-expanded="${state.filtersOpen}">篩選${activeFilterCount() ? ` · ${activeFilterCount()}` : ""}</button><span class="result-count" data-result-count>${count} 筆結果</span>${state.active === "games" ? "" : `<button class="button subtle batch-open" data-action="open-filtered" ${count ? "" : "disabled"}>${openLabel}</button>`}</div><section id="advancedFilters" aria-label="進階篩選" ${state.filtersOpen ? "" : "hidden"}>${advancedToolbar(data)}${state.active === "games" ? gameTagPanel() : '<button class="button subtle" type="button" data-action="clear-filters">清除篩選</button>'}</section>`;
+  const search = `<div class="search-control"><input class="field search" data-filter="query" value="${escapeHtml(filter.query)}" placeholder="${mediaCopy[state.active].search}" aria-label="搜尋名稱"><button class="search-clear" type="button" data-action="clear-search" aria-label="清除搜尋" ${filter.query ? "" : "hidden"}><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`;
+  return `<div class="browse-toolbar${state.active === "games" ? " games-toolbar" : ""}">${search}<select class="field sort-field" data-filter="sort" aria-label="排序方式">${sorts.map(([key, label]) => `<option value="${key}" ${key === selected ? "selected" : ""}>${label}</option>`).join("")}</select><button class="button new-filter" type="button" data-action="toggle-new" aria-pressed="${Boolean(filter.newOnly)}" ${state.payload.visitWarning ? "disabled" : ""} title="本次來訪新增的作品；第一次使用先建立基準">新收錄 <span>${newCount}</span></button><button class="button filter-toggle" type="button" data-action="toggle-filters" aria-controls="advancedFilters" aria-expanded="${state.filtersOpen}">篩選${activeFilterCount() ? ` · ${activeFilterCount()}` : ""}</button><span class="result-count" data-result-count>${count} 筆結果</span>${state.active === "games" ? "" : `<button class="button subtle batch-open" data-action="open-filtered" ${count ? "" : "disabled"}>${openLabel}</button>`}</div><section id="advancedFilters" aria-label="進階篩選" ${state.filtersOpen ? "" : "hidden"}>${advancedToolbar(data)}${state.active === "games" ? gameTagPanel() : '<button class="button subtle" type="button" data-action="clear-filters">清除篩選</button>'}</section>`;
 }
 
 function syncFilterSummary() {
@@ -412,6 +413,8 @@ function syncGameControls() {
     const control = app.querySelector(`[data-filter="${key}"]`);
     if (control) control.value = filter[key];
   }
+  const clearSearch = app.querySelector('[data-action="clear-search"]');
+  if (clearSearch) clearSearch.hidden = !filter.query;
 }
 
 function refreshGameBrowser(options) {
@@ -616,6 +619,15 @@ document.addEventListener("click", async (event) => {
       if (state.filtersOpen && state.active === "games") syncTagOptionsOverflow();
     }
     if (action === "toggle-new") { state.filters[state.active].newOnly = !state.filters[state.active].newOnly; render(); }
+    if (action === "clear-search") {
+      const input = app.querySelector('input[data-filter="query"]');
+      state.filters[state.active].query = "";
+      if (input) input.value = "";
+      event.target.closest("[data-action=\"clear-search\"]").hidden = true;
+      refreshResults();
+      input?.focus({ preventScroll: true });
+      return;
+    }
     const favoriteId = event.target.closest("[data-favorite]")?.dataset.favorite;
     const restoreKey = event.target.closest("[data-restore]")?.dataset.restore;
     if (favoriteId || restoreKey) {
@@ -688,6 +700,8 @@ document.addEventListener("input", (event) => {
   }
   if (event.target.matches('input[data-filter="query"]')) {
     state.filters[state.active].query = event.target.value;
+    const clear = event.target.closest(".search-control")?.querySelector('[data-action="clear-search"]');
+    if (clear) clear.hidden = event.target.value.length === 0;
     refreshResults();
     return;
   }

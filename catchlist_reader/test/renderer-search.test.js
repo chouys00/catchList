@@ -29,7 +29,7 @@ function runHarness() {
   });
 }
 
-test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後維持正常互動", { timeout: 30_000 }, async () => {
+test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後維持正常互動", { timeout: 60_000 }, async () => {
   const result = await runHarness();
 
   const { communityTagCount, ...initialGames } = result.initialGames;
@@ -131,6 +131,14 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
     koreanCount: 2,
     searchCount: 1,
   });
+  assert.equal(result.clearHover.background, "rgba(0, 0, 0, 0)");
+  assert.equal(result.clearHover.haloOpacity, "1");
+  assert.equal(result.clearHover.haloRadius, "50%");
+  assert.equal(result.clearHover.haloTransform, "matrix(1, 0, 0, 1, 0, 0)");
+  assert.deepEqual(result.clearButton.before, { hidden: false, label: "清除搜尋", title: null, width: 42, height: 38 });
+  assert.deepEqual(result.clearButton.after, {
+    value: "", focused: true, hidden: true, resultCount: "7 筆結果",
+  });
   assert.equal(result.restoredGameSearch.value, "你有餅嗎？");
   assert.deepEqual(result.cleared, {
     value: "", focused: true, selectionStart: 0, selectionEnd: 0, resultCount: "7 筆結果",
@@ -143,6 +151,8 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
     mobileTagCount: 3,
   });
   assert.ok(result.responsiveLayout.tapTargets.tag.width >= 44);
+  assert.ok(result.responsiveLayout.tapTargets.clearSearch.width >= 44);
+  assert.ok(result.responsiveLayout.tapTargets.clearSearch.height >= 44);
   assert.ok(result.responsiveLayout.tapTargets.tag.height >= 44);
   assert.ok(result.responsiveLayout.tapTargets.expand.width >= 44);
   assert.ok(result.responsiveLayout.tapTargets.expand.height >= 44);
