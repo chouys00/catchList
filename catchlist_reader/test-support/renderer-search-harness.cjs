@@ -137,6 +137,7 @@ async function measureResponsiveLayout(window) {
       expand: size(document.querySelector('.item.games button.game-tag[data-expand-tags]')),
       panelClose: size(document.querySelector('[data-action="close-tag-panel"]')),
       tagOptionsToggle: size(document.querySelector('[data-action="toggle-tag-options"]')),
+      copyTitle: size(document.querySelector('.item.games [data-copy-title]')),
     };
   })()`);
 
@@ -173,6 +174,10 @@ async function captureResponsiveQa(window) {
     }))()`);
   }
   await window.webContents.executeJavaScript(`document.querySelector('[data-action="toggle-tags"]')?.click()`);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  await window.webContents.executeJavaScript(`document.querySelector('[data-action="toggle-filters"][aria-expanded="true"]')?.click()`);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  await window.webContents.executeJavaScript(`document.querySelector('.item.games')?.scrollIntoView({ block: 'center' })`);
   await new Promise((resolve) => setTimeout(resolve, 100));
   const mobileList = await window.webContents.capturePage();
   fs.writeFileSync(path.join(outputDir, "task-5-mobile-list.png"), mobileList.toPNG());
@@ -321,6 +326,7 @@ async function run() {
       hasReviewFilter: Boolean(document.querySelector('[data-filter="minReviews"]')),
       scoreOptions: Array.from(document.querySelector('[data-filter="min"]')?.options ?? []).map((option) => option.value),
       communityTagCount: document.querySelectorAll('[data-game-tag]').length,
+      copyButtonCount: document.querySelectorAll('[data-copy-title]').length,
       brand: document.querySelector('.brand strong')?.textContent ?? null,
       fixtureGames: Array.from(document.querySelectorAll('.item.games')).map((item) => ({
         title: item.querySelector('.title strong')?.textContent ?? null,
@@ -329,6 +335,52 @@ async function run() {
         reviews: item.querySelector('.rating small')?.textContent ?? null,
       })),
     }))()`);
+
+    const titleActions = await window.webContents.executeJavaScript(`(async () => {
+      const tick = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
+      const row = document.querySelector('[data-game-row="3129930"]');
+      const copy = row.querySelector('[data-copy-title]');
+      const copyRect = copy.getBoundingClientRect();
+      copy.click();
+      await tick();
+      await tick();
+      const afterCopy = {
+        copyCalls: [...window.__catchListCopyTextCalls],
+        openCalls: window.__catchListOpenUrlCalls.length,
+        toast: document.querySelector('#toast')?.textContent?.trim() ?? null,
+        label: copy.getAttribute('aria-label'),
+        title: copy.getAttribute('title'),
+        width: Math.round(copyRect.width),
+        height: Math.round(copyRect.height),
+      };
+      row.querySelector('.game-title-link').click();
+      await tick();
+      await tick();
+      return { afterCopy, afterOpen: { copyCalls: window.__catchListCopyTextCalls.length, openCalls: window.__catchListOpenUrlCalls } };
+    })()`);
+    await window.webContents.executeJavaScript(`document.querySelector('[data-game-row="3129930"] .game-title-link').focus()`);
+    await press(window, "Tab");
+    titleActions.focus = await window.webContents.executeJavaScript(`(() => {
+      const copy = document.querySelector('[data-game-row="3129930"] [data-copy-title]');
+      const style = getComputedStyle(copy);
+      return { active: document.activeElement === copy, outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth };
+    })()`);
+    window.webContents.debugger.attach("1.3");
+    await window.webContents.debugger.sendCommand("DOM.enable");
+    await window.webContents.debugger.sendCommand("CSS.enable");
+    const documentNode = await window.webContents.debugger.sendCommand("DOM.getDocument");
+    const copyNode = await window.webContents.debugger.sendCommand("DOM.querySelector", {
+      nodeId: documentNode.root.nodeId,
+      selector: '[data-game-row="3129930"] [data-copy-title]',
+    });
+    await window.webContents.debugger.sendCommand("CSS.forcePseudoState", { nodeId: copyNode.nodeId, forcedPseudoClasses: ["hover"] });
+    titleActions.hover = await window.webContents.executeJavaScript(`(() => {
+      const copy = document.querySelector('[data-game-row="3129930"] [data-copy-title]');
+      const style = getComputedStyle(copy);
+      return { hovered: copy.matches(':hover'), color: style.color, borderColor: style.borderColor, backgroundColor: style.backgroundColor };
+    })()`);
+    await window.webContents.debugger.sendCommand("CSS.forcePseudoState", { nodeId: copyNode.nodeId, forcedPseudoClasses: [] });
+    window.webContents.debugger.detach();
 
     await focusSearch(window);
     await window.webContents.insertText("abcdef");
@@ -524,7 +576,7 @@ async function run() {
     const largeGameBatch = await runLargeGameBatchTest(address);
     const coverUpdate = await runCoverUpdateTest(address);
 
-    process.stdout.write(`${JSON.stringify({ initialGames, typed, backspaced, insertedInMiddle, replacedSelection, chinese, clearHover, clearLeave, clearButton, gameBrowser, animeBeforeSearch, animeAfterSearch, animeRailCount, movieRailCount, liveAction, restoredGameSearch, clearInteraction, cleared, responsiveLayout, visualQa, largeGameBatch, coverUpdate })}\n`);
+    process.stdout.write(`${JSON.stringify({ initialGames, titleActions, typed, backspaced, insertedInMiddle, replacedSelection, chinese, clearHover, clearLeave, clearButton, gameBrowser, animeBeforeSearch, animeAfterSearch, animeRailCount, movieRailCount, liveAction, restoredGameSearch, clearInteraction, cleared, responsiveLayout, visualQa, largeGameBatch, coverUpdate })}\n`);
   } finally {
     window.destroy();
     await new Promise((resolve) => server.close(resolve));

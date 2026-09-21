@@ -14,5 +14,6 @@ contextBridge.exposeInMainWorld("catchList", {
   deleteEntry: (media, entryId) => ipcRenderer.invoke("library:delete-entry", media, entryId),
   undoLastOperation: () => ipcRenderer.invoke("library:undo-last-operation"),
   resolveGameCovers: (appids) => ipcRenderer.invoke("library:resolve-game-covers", appids),
+  copyText: (text) => ipcRenderer.invoke("clipboard:write-text", text),
   openUrls: (urls) => ipcRenderer.invoke("external:open-urls", urls),
 });

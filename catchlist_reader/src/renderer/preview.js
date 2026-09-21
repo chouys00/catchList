@@ -72,6 +72,7 @@ if (location.protocol.startsWith("http") && !window.catchList) {
     { media: "liveAction", filename: "真人劇年度.md", exists: true, entries: liveAction, sections: [{ key: "2025-00", label: "2025 年全年度" }] },
   ] };
   window.__catchListOpenUrlCalls = [];
+  window.__catchListCopyTextCalls = [];
   window.__coverRequests = [];
   window.__releasePreviewCovers = [];
   const resolveGameCovers = previewParams.has("coverTest")
@@ -86,6 +87,7 @@ if (location.protocol.startsWith("http") && !window.catchList) {
   const snapshot = () => ({ ...payload, hiddenEntries: [...hidden.values()].map(record => ({ ...record, entry: { ...record.entry, favorite: favorites.has(record.hideKey) } })), libraries: payload.libraries.map((library) => ({ ...library, entries: library.entries.filter((entry) => !hidden.has(entry.id)).map((entry) => ({ ...entry, favorite: favorites.has(entry.id) })) })) });
   window.catchList = {
     load: async () => snapshot(), chooseDirectory: async () => snapshot(),
+    copyText: async (text) => { window.__catchListCopyTextCalls.push(text); return true; },
     openUrls: async (urls) => { window.__catchListOpenUrlCalls.push(urls); return true; },
     setFavorite: async (_media, id, favorite) => { if (favorite) favorites.add(id); else favorites.delete(id); return snapshot(); },
     hideEntry: async (media, id, reason = "played") => {

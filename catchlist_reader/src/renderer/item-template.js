@@ -39,6 +39,15 @@ function externalLinkIcon() {
   return '<svg class="external-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-9 9"/><path d="M18 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';
 }
 
+function copyIcon() {
+  return '<svg aria-hidden="true" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="1"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>';
+}
+
+export function formatGameTitleCopyText(title, originalTitle) {
+  const names = [title, originalTitle].map((value) => String(value ?? "").trim()).filter(Boolean);
+  return [...new Set(names)].join("\n");
+}
+
 function hideIcon() {
   return '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 4.2A10.5 10.5 0 0 1 12 4c5.5 0 9 8 9 8a18 18 0 0 1-2.1 3.2M6.6 6.6C4.2 8.2 3 12 3 12s3.5 8 9 8a9.8 9.8 0 0 0 4.1-.9"/></svg>';
 }
@@ -99,5 +108,5 @@ export function renderItemTemplate(entry, media, view) {
   const cover = entry.coverUrl
     ? `<button class="game-cover" type="button" data-cover="${escapeHtml(entry.coverUrl)}" data-cover-title="${escapeHtml(entry.title)}" data-game-appid="${appid}"><img src="${escapeHtml(entry.coverUrl)}" alt="遊戲封面：${escapeHtml(entry.title)}"></button>`
     : `<div class="game-cover game-cover-loading" data-game-appid="${appid}" aria-label="遊戲封面載入中"></div>`;
-  return `<article class="item games" data-game-row="${appid}">${cover}<button class="title game-title-link" type="button" data-open="${escapeHtml(entry.url)}" aria-label="在 Steam 開啟 ${escapeHtml(entry.title)}"><strong class="title-primary">${escapeHtml(entry.title)}${externalLinkIcon()}</strong><small>${escapeHtml(entry.originalTitle)}</small>${entry.manualAdded ? `<span class="manual-source" title="${escapeHtml(`手動加入於 ${entry.addedAt?.slice(0, 10) ?? ""}；${entry.reportSource ? "目前顯示每月報告資料" : "保留加入時資料，不自動更新"}`)}">手動加入</span>` : ""}</button><div class="game-facts"><span class="rating"><strong>${entry.score == null ? "—" : `${entry.score}%`}</strong><small>${entry.reviews == null ? "評論讀取失敗" : entry.reviews === 0 ? "尚無評論" : `(${entry.reviews.toLocaleString()})`}</small></span><span class="meta game-date">${escapeHtml(entry.releaseDate ?? entry.releaseLabel ?? "未公布日期")}</span>${gameLanguageStatus(entry.chineseSupport)}${gamePlayerModeStatus(entry.playerMode)}</div>${renderGameTags(entry, view)}<div class="game-management">${favoriteButton(view?.backlog ? { ...entry, favorite: false } : entry)}<button class="icon-button" type="button" aria-haspopup="menu" aria-expanded="false" data-hide="${entry.id}" aria-label="隱藏 ${escapeHtml(entry.title)}" title="隱藏">${hideIcon()}</button><button class="icon-button danger" type="button" data-delete="${entry.id}" aria-label="真正刪除 ${escapeHtml(entry.title)}" title="真正刪除">${deleteIcon()}</button></div></article>`;
+  return `<article class="item games" data-game-row="${appid}">${cover}<div class="title game-title-cell"><div class="game-title-actions"><button class="game-title-link" type="button" data-open="${escapeHtml(entry.url)}" aria-label="在 Steam 開啟 ${escapeHtml(entry.title)}"><strong class="title-primary">${escapeHtml(entry.title)}${externalLinkIcon()}</strong></button><button class="copy-title-button" type="button" data-copy-title="${escapeHtml(entry.id)}" aria-label="複製 ${escapeHtml(entry.title)} 的中英文名稱" title="複製中英文名稱">${copyIcon()}</button></div><small>${escapeHtml(entry.originalTitle)}</small>${entry.manualAdded ? `<span class="manual-source" title="${escapeHtml(`手動加入於 ${entry.addedAt?.slice(0, 10) ?? ""}；${entry.reportSource ? "目前顯示每月報告資料" : "保留加入時資料，不自動更新"}`)}">手動加入</span>` : ""}</div><div class="game-facts"><span class="rating"><strong>${entry.score == null ? "—" : `${entry.score}%`}</strong><small>${entry.reviews == null ? "評論讀取失敗" : entry.reviews === 0 ? "尚無評論" : `(${entry.reviews.toLocaleString()})`}</small></span><span class="meta game-date">${escapeHtml(entry.releaseDate ?? entry.releaseLabel ?? "未公布日期")}</span>${gameLanguageStatus(entry.chineseSupport)}${gamePlayerModeStatus(entry.playerMode)}</div>${renderGameTags(entry, view)}<div class="game-management">${favoriteButton(view?.backlog ? { ...entry, favorite: false } : entry)}<button class="icon-button" type="button" aria-haspopup="menu" aria-expanded="false" data-hide="${entry.id}" aria-label="隱藏 ${escapeHtml(entry.title)}" title="隱藏">${hideIcon()}</button><button class="icon-button danger" type="button" data-delete="${entry.id}" aria-label="真正刪除 ${escapeHtml(entry.title)}" title="真正刪除">${deleteIcon()}</button></div></article>`;
 }

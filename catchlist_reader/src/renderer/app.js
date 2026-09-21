@@ -1,6 +1,6 @@
 import { collectTagOptionsFromIndex, createTagIndex, createGameQuery, ratingRangeError } from "./game-browser.js";
 import { openManualGamePanel } from "./manual-game-panel.js";
-import { renderItemTemplate } from "./item-template.js";
+import { formatGameTitleCopyText, renderItemTemplate } from "./item-template.js";
 import { viewNavigation, hiddenListMarkup, updateStatusMarkup, hiddenReasons, reasonOptions } from "./personal-ui.js";
 
 const GAME_BATCH_SIZE = 50;
@@ -670,6 +670,14 @@ document.addEventListener("click", async (event) => {
     }
     if (action === "load-more-games") appendNextGameBatch();
     if (action === "undo") { const result = await window.catchList.undoLastOperation(); state.payload = result; toast.classList.remove("show"); render(); showToast(`已復原「${result.restored.title}」`); }
+    const copyTitleId = event.target.closest("[data-copy-title]")?.dataset.copyTitle;
+    if (copyTitleId) {
+      const entry = library("games").entries.find((item) => item.id === copyTitleId);
+      if (!entry) throw new Error("作品已變更，請重新讀取");
+      await window.catchList.copyText(formatGameTitleCopyText(entry.title, entry.originalTitle));
+      showToast("已複製遊戲名稱");
+      return;
+    }
     const openUrl = event.target.closest("[data-open]")?.dataset.open;
     if (openUrl) await window.catchList.openUrls([openUrl]);
     const entryId = event.target.closest("[data-hide]")?.dataset.hide;

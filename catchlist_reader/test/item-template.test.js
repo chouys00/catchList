@@ -3,7 +3,7 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-import { renderItemTemplate } from "../src/renderer/item-template.js";
+import { formatGameTitleCopyText, renderItemTemplate } from "../src/renderer/item-template.js";
 
 const anime = {
   id: "anime-1",
@@ -97,7 +97,8 @@ test("遊戲列把好評率與評論數組合為同一欄", () => {
   assert.match(markup, /^<article class="item games" data-game-row="123456"><button class="game-cover" type="button" data-cover=/);
   assert.match(markup, /<img src="https:\/\/shared\.akamai\.steamstatic\.com\/store_item_assets\/steam\/apps\/123456\/hash\/header_tchinese\.jpg\?t=1" alt="遊戲封面：測試遊戲">/);
   assert.match(markup, /<span class="rating"><strong>92%<\/strong><small>\(18,452\)<\/small><\/span>/);
-  assert.match(markup, /class="title game-title-link"[^>]+data-open="https:\/\/example\.com\/game"/);
+  assert.match(markup, /class="game-title-link"[^>]+data-open="https:\/\/example\.com\/game"/);
+  assert.match(markup, /class="copy-title-button"[^>]+data-copy-title="game-1"[^>]+aria-label="複製 測試遊戲 的中英文名稱"[^>]+title="複製中英文名稱"/);
   assert.match(markup, /測試遊戲[\s\S]*Test Game/);
   assert.match(markup, /class="language-status supported"[^>]+aria-label="支援中文"/);
   assert.equal(markup.includes(">Steam</button>"), false);
@@ -105,6 +106,13 @@ test("遊戲列把好評率與評論數組合為同一欄", () => {
   assert.match(markup, /class="icon-button danger"[^>]+aria-label="真正刪除 測試遊戲"/);
   assert.ok(markup.indexOf("92%") < markup.indexOf("2026-02-18"));
   assert.ok(markup.indexOf("2026-02-18") < markup.indexOf("策略"));
+});
+
+test("遊戲名稱複製文字以中文在前，並排除空白與重複名稱", () => {
+  assert.equal(formatGameTitleCopyText(" 測試遊戲 ", " Test Game "), "測試遊戲\nTest Game");
+  assert.equal(formatGameTitleCopyText("Tiny Bunny", " Tiny Bunny "), "Tiny Bunny");
+  assert.equal(formatGameTitleCopyText("只有中文", "  "), "只有中文");
+  assert.equal(formatGameTitleCopyText("A&B <遊戲>", "Quote \"Game\""), "A&B <遊戲>\nQuote \"Game\"");
 });
 
 test("中文支援圖示涵蓋不支援與待確認狀態", () => {

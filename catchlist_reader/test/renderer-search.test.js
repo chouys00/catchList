@@ -41,6 +41,7 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
     openLabel: null,
     hideCount: 7,
     hasReviewFilter: true,
+    copyButtonCount: 7,
     scoreOptions: ["0", "85", "90", "95", "97"],
     brand: "CatchList test-version",
     fixtureGames: [
@@ -131,6 +132,23 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
     koreanCount: 2,
     searchCount: 1,
   });
+
+  assert.deepEqual(result.titleActions.afterCopy, {
+    copyCalls: ["銀河灰暗角落\nNonentity Galaxy"],
+    openCalls: 0,
+    toast: "已複製遊戲名稱",
+    label: "複製 銀河灰暗角落 的中英文名稱",
+    title: "複製中英文名稱",
+    width: 28,
+    height: 28,
+  });
+  assert.deepEqual(result.titleActions.focus, { active: true, outlineStyle: "solid", outlineWidth: "2px" });
+  assert.equal(result.titleActions.hover.hovered, true);
+  assert.notEqual(result.titleActions.hover.color, "rgb(122, 128, 125)");
+  assert.notEqual(result.titleActions.hover.borderColor, "rgba(0, 0, 0, 0)");
+  assert.notEqual(result.titleActions.hover.backgroundColor, "rgba(0, 0, 0, 0)");
+  assert.equal(result.titleActions.afterOpen.copyCalls, 1);
+  assert.deepEqual(result.titleActions.afterOpen.openCalls, [["https://store.steampowered.com/app/3129930"]]);
   assert.equal(result.clearHover.background, "rgba(0, 0, 0, 0)");
   assert.equal(result.clearHover.hovered, true);
   assert.equal(result.clearLeave.hovered, false);
@@ -163,6 +181,8 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
   assert.ok(result.responsiveLayout.tapTargets.panelClose.height >= 44);
   assert.ok(result.responsiveLayout.tapTargets.tagOptionsToggle.width >= 44);
   assert.ok(result.responsiveLayout.tapTargets.tagOptionsToggle.height >= 44);
+  assert.ok(result.responsiveLayout.tapTargets.copyTitle.width >= 44);
+  assert.ok(result.responsiveLayout.tapTargets.copyTitle.height >= 44);
   assert.deepEqual(result.largeGameBatch.initial, { itemCount: 50, hasOpenAll: false, hasFallback: true });
   assert.deepEqual(result.largeGameBatch.afterFirstAppend, { itemCount: 100, firstNodePreserved: true, fiftiethNodePreserved: true });
   assert.deepEqual(result.largeGameBatch.afterSecondAppend, { itemCount: 150, firstNodePreserved: true, fiftiethNodePreserved: true });

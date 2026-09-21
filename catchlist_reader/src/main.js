@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
+import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -152,6 +152,11 @@ function registerIpc() {
   ipcMain.handle("library:resolve-game-covers", (_event, appids) => {
     if (!Array.isArray(appids)) throw new Error("遊戲封面請求格式不正確");
     return resolveGameCovers(appids);
+  });
+  ipcMain.handle("clipboard:write-text", (_event, text) => {
+    if (typeof text !== "string" || text.length === 0 || text.length > 10_000) throw new Error("無法複製遊戲名稱");
+    clipboard.writeText(text);
+    return true;
   });
   ipcMain.handle("external:open-urls", async (_event, urls) => {
     if (!Array.isArray(urls) || urls.length > 250 || urls.some((url) => !validExternalUrl(url))) {
