@@ -83,24 +83,26 @@ if (location.protocol.startsWith("http") && !window.catchList) {
   const favorites = new Set();
   const hidden = new Map();
   let lastHidden;
-  const snapshot = () => ({ ...payload, hiddenEntries: [...hidden.values()], libraries: payload.libraries.map((library) => ({ ...library, entries: library.entries.filter((entry) => !hidden.has(entry.id)).map((entry) => ({ ...entry, favorite: favorites.has(entry.id) })) })) });
+  const snapshot = () => ({ ...payload, hiddenEntries: [...hidden.values()].map(record => ({ ...record, entry: { ...record.entry, favorite: favorites.has(record.hideKey) } })), libraries: payload.libraries.map((library) => ({ ...library, entries: library.entries.filter((entry) => !hidden.has(entry.id)).map((entry) => ({ ...entry, favorite: favorites.has(entry.id) })) })) });
   window.catchList = {
     load: async () => snapshot(), chooseDirectory: async () => snapshot(),
     openUrls: async (urls) => { window.__catchListOpenUrlCalls.push(urls); return true; },
     setFavorite: async (_media, id, favorite) => { if (favorite) favorites.add(id); else favorites.delete(id); return snapshot(); },
-    hideEntry: async (media, id) => {
+    hideEntry: async (media, id, reason = "played") => {
       const entry = payload.libraries.find((library) => library.media === media).entries.find((item) => item.id === id);
-      lastHidden = { hideKey: id, media, title: entry.title, periodLabel: entry.periodLabel, available: true, hiddenAt: new Date().toISOString() };
+      lastHidden = { hideKey: id, media, reason, entry: { ...entry, hiddenKey: id }, title: entry.title, periodLabel: entry.periodLabel, available: true, hiddenAt: new Date().toISOString() };
       hidden.set(id, lastHidden);
       return snapshot();
     },
+    setHiddenReason: async (key, reason) => { const record = hidden.get(key); lastHidden = { ...record, previousReason: record.reason, changedReason: reason }; hidden.set(key, { ...record, reason }); return snapshot(); },
+    favoriteBacklog: async (id) => { favorites.add(id); hidden.delete(id); return snapshot(); },
     restoreHidden: async (key) => { hidden.delete(key); return snapshot(); },
     deleteEntry: async (media, id) => {
       const library = payload.libraries.find((item) => item.media === media);
       library.entries = library.entries.filter((entry) => entry.id !== id);
       return snapshot();
     },
-    undoLastOperation: async () => { const restored = lastHidden; hidden.delete(restored.hideKey); return { ...snapshot(), restored }; },
+    undoLastOperation: async () => { const restored = lastHidden; if (restored.changedReason) hidden.set(restored.hideKey, { ...hidden.get(restored.hideKey), reason: restored.previousReason }); else hidden.delete(restored.hideKey); return { ...snapshot(), restored }; },
     resolveGameCovers,
   };
 }

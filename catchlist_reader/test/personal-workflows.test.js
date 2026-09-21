@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 import electronPath from "electron";
 
-test("正式橋接與隔離資料完成四類收藏、隱藏恢復、重新載入及桌面窄螢幕互動", { timeout: 60000 }, async () => {
+test("正式橋接與隔離資料完成四類收藏、隱藏恢復、重新載入及桌面窄螢幕互動", { timeout: 120000 }, async () => {
   const result = await new Promise((resolve, reject) => {
     const child = spawn(electronPath, [fileURLToPath(new URL("../test-support/personal-workflows.cjs", import.meta.url))], { stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
     let stdout = "";

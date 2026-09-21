@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { hiddenListMarkup, updateStatusMarkup } from "../src/renderer/personal-ui.js";
+import { hiddenListMarkup, updateStatusMarkup, viewNavigation } from "../src/renderer/personal-ui.js";
 import { renderItemTemplate } from "../src/renderer/item-template.js";
 
 test("收藏按鈕提供明確的名稱與切換狀態", () => {
@@ -25,4 +25,12 @@ test("無紀錄不宣稱成功，失敗摘要與新增零筆如實顯示", () =>
   assert.match(failed, /1 類更新失敗/);
   assert.match(failed, /新增 0 筆/);
   assert.match(failed, /&lt;network&gt;/);
+});
+
+
+test("遊戲分類導覽提供候補、玩過了與暫不考慮，其他媒體不增加入口", () => {
+  const markup = viewNavigation("played", "games", [], 9, { backlog: 2, played: 4, not_interested: 3 });
+  for (const key of ["backlog", "played", "not_interested"]) assert.ok(markup.includes(`data-view="${key}"`));
+  assert.match(markup, /data-view="played" aria-pressed="true">玩過了<span>4/);
+  assert.doesNotMatch(viewNavigation("all", "anime", [], 0), /data-view="played"|data-view="not_interested"/);
 });

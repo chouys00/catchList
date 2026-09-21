@@ -8,7 +8,7 @@ const { pathToFileURL } = require("node:url");
 const readerRoot = path.resolve(process.env.CATCHLIST_TEST_READER_ROOT || path.join(__dirname, ".."));
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), "catchlist-personal-ui-"));
 app.setPath("userData", path.join(temp, "profile"));
-const deadline = setTimeout(() => { console.error("互動測試逾時"); app.exit(1); }, 45000);
+const deadline = setTimeout(() => { console.error("互動測試逾時"); app.exit(1); }, 90000);
 
 app.whenReady().then(async () => {
   const lib = await import(pathToFileURL(path.join(readerRoot, "src/library.js")).href);
@@ -35,14 +35,17 @@ app.whenReady().then(async () => {
   const snapshot = () => ({ dataDir: temp, appVersion: version, ...visits.annotate(temp, lib.loadAllLibraries(temp, reportCache), activeMedia), hiddenEntries: lib.loadHiddenEntries(temp, reportCache), updateStatus: loadUpdateStatus(temp) });
   ipcMain.handle("library:load", (_, media) => { activeMedia = media ?? activeMedia; return snapshot(); });
   ipcMain.handle("library:set-favorite", (_, media, id, favorite) => { lib.setFavorite(temp, media, id, favorite); return snapshot(); });
+  ipcMain.handle("library:set-hidden-reason", (_, key, reason) => { operation = lib.setHiddenReason(temp, key, reason); return snapshot(); });
+  ipcMain.handle("library:favorite-backlog", (_, id) => { lib.favoriteBacklogEntry(temp, id); return snapshot(); });
   ipcMain.handle("library:restore-hidden", (_, key) => { lib.restoreHiddenEntry(temp, key); return snapshot(); });
-  ipcMain.handle("library:hide-entry", (_, media, id) => { operation = lib.hideEntry(temp, media, id); return snapshot(); });
-  ipcMain.handle("library:undo-last-operation", () => { const restored = lib.undoHide(temp, operation); return { ...snapshot(), restored }; });
-  ipcMain.handle("library:resolve-game-covers", () => ({}));
+  ipcMain.handle("library:hide-entry", (_, media, id, reason) => { operation = lib.hideEntry(temp, media, id, reason); return snapshot(); });
+  ipcMain.handle("library:undo-last-operation", () => { const restored = operation.changedReason ? lib.undoHiddenReason(temp, operation) : lib.undoHide(temp, operation); return { ...snapshot(), restored }; });
+  const coverFixture = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="460" height="215"><rect width="460" height="215" fill="#243329"/><text x="230" y="120" text-anchor="middle" fill="#c8f169" font-size="30">Game cover</text></svg>');
+  ipcMain.handle("library:resolve-game-covers", (_, appids) => Object.fromEntries(appids.map(appid => [appid, coverFixture])));
   ipcMain.handle("external:open-urls", () => { throw new Error("測試不得開啟外部連結"); });
   session.defaultSession.webRequest.onBeforeRequest({ urls: ["http://*/*", "https://*/*"] }, (_, callback) => callback({ cancel: true }));
   const win = new BrowserWindow({ show: false, width: 1440, height: 900, webPreferences: { preload: path.join(readerRoot, "src/preload.cjs"), contextIsolation: true, sandbox: true } });
-  const js = (code) => win.webContents.executeJavaScript(code);
+  const js = async (code) => { try { return await win.webContents.executeJavaScript(code); } catch (error) { throw new Error(`${error.message}\n程式：${code}`); } };
   const until = async (condition) => {
     for (let attempt = 0; attempt < 150; attempt++) {
       if (await js(condition)) return;
@@ -151,8 +154,8 @@ app.whenReady().then(async () => {
     assert.equal(await js("document.querySelectorAll('.item').length"), 1);
     if (media === "games") await capture("favorites-desktop");
     await click('[data-hide]');
-    await until("document.querySelector('#confirmDialog').open");
-    await click("#dialogConfirm");
+    if (media === "games") await click('[data-reason="played"]');
+    else { await until("document.querySelector('#confirmDialog').open"); await click("#dialogConfirm"); }
     await until("document.querySelectorAll('.item').length === 0");
     await click('[data-view="hidden"]');
     await until("document.querySelectorAll('.hidden-row').length === 1");
@@ -183,6 +186,103 @@ app.whenReady().then(async () => {
   await until("document.querySelectorAll('.item').length === 0");
   await click('[data-view="all"]');
 
+  // 真正的 Chromium 鍵盤事件，檢查桌面與窄視窗原因選單、候補與復原。
+  for (const [label, width] of [["desktop", 1440], ["narrow", 390]]) {
+    win.setContentSize(width, 900);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    await click('[data-hide]');
+    assert.equal(await js("document.activeElement.dataset.reason"), "not_interested");
+    const key = async keyCode => { win.focus(); await js("document.activeElement?.focus()"); win.webContents.sendInputEvent({ type: "keyDown", keyCode }); win.webContents.sendInputEvent({ type: "keyUp", keyCode }); await new Promise(resolve => setTimeout(resolve, 60)); };
+    await key("Escape");
+    assert.equal(await js("document.activeElement.hasAttribute('data-hide')"), true);
+    await key("Space");
+    await until("document.querySelector('.hide-menu') !== null");
+    await key("Down");
+    assert.equal(await js("document.activeElement.dataset.reason"), "backlog");
+    await capture(`classification-menu-${label}`);
+    assert.ok(await js("(() => { const r = document.querySelector('.hide-menu').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight; })()"));
+    await key("Space");
+    await until("document.querySelector('[data-action=undo]') !== null");
+    await click('[data-action="undo"]');
+    await until("document.querySelectorAll('.item.games').length === 7");
+    await click('[data-hide]'); await click('[data-reason="backlog"]');
+    await until("document.querySelector('[data-action=undo]') !== null");
+    await click('[data-view="backlog"]');
+    assert.equal(await js("document.querySelectorAll('.item.games').length"), 1);
+    await fill('[data-filter="query"]', '不會找到');
+    assert.equal(await js("document.querySelectorAll('.item.games').length"), 0);
+    await fill('[data-filter="query"]', '');
+    await capture(`classification-backlog-${label}`);
+    await click('[data-hide]'); await click('[data-reason="restore"]');
+    await until("document.querySelectorAll('.item.games').length === 0");
+    await click('[data-view="all"]');
+    await click('[data-hide]'); await click('[data-reason="backlog"]');
+    await until("document.querySelector('[data-action=undo]') !== null");
+    await click('[data-view="backlog"]'); await click('[data-favorite]');
+    await until("document.querySelectorAll('.item.games').length === 0");
+    await click('[data-view="favorites"]');
+    assert.equal(await js("document.querySelectorAll('.item.games').length"), 1);
+    await click('[data-favorite]'); await until("document.querySelectorAll('.item.games').length === 0");
+    await click('[data-view="all"]'); await click('[data-hide]'); await click('[data-reason="not_interested"]');
+    await until("document.querySelector('[data-action=undo]') !== null");
+    await click('[data-view="hidden"]');
+    await js("(() => { const el = document.querySelector('[data-reason-filter]'); el.value = 'all'; el.dispatchEvent(new Event('change', { bubbles: true })); })()");
+    await js("(() => { const el = document.querySelector('[data-hidden-reason]'); el.value = 'played'; el.dispatchEvent(new Event('change', { bubbles: true })); })()");
+    await until("document.querySelector('[data-hidden-reason]').value === 'played' && document.querySelector('#toast').textContent.includes('已修改')");
+    await js("(() => { const el = document.querySelector('[data-reason-filter]'); el.value = 'backlog'; el.dispatchEvent(new Event('change', { bubbles: true })); })()");
+    assert.equal(await js("document.querySelectorAll('.hidden-row').length"), 0);
+    await js("(() => { const el = document.querySelector('[data-reason-filter]'); el.value = 'played'; el.dispatchEvent(new Event('change', { bubbles: true })); })()");
+    assert.equal(await js("document.querySelectorAll('.hidden-row').length"), 1);
+    await capture(`classification-hidden-${label}`);
+    await click('[data-restore]'); await until("document.querySelectorAll('.hidden-row').length === 0");
+    await click('[data-view="all"]'); await click('[data-action="toggle-filters"]');
+    await select('min', '90'); await select('max', '95');
+    assert.ok(await js("[...document.querySelectorAll('.rating strong')].every(el => parseInt(el.textContent) >= 90 && parseInt(el.textContent) < 95)"));
+    await capture(`classification-range-${label}`);
+    await select('min', '95');
+    assert.match(await js("document.querySelector('[data-rating-error]').textContent"), /上限必須大於/);
+    assert.equal(await js("document.querySelectorAll('.item.games').length"), 7);
+    await click('[data-action="clear-filters"]');
+    assert.equal(await js("document.querySelector('[data-filter=max]').value"), '');
+    assert.equal(await js("document.querySelector('[data-rating-error]').textContent"), '');
+    await click('[data-action="toggle-filters"]');
+    assert.ok(await js("document.documentElement.scrollWidth <= innerWidth"));
+  }
+  for (const [label, width] of [["desktop", 1440], ["narrow", 390]]) {
+    win.setContentSize(width, 900);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    for (const reason of ["played", "not_interested"]) {
+      await click('[data-view="all"]');
+      await click('[data-hide]'); await click(`[data-reason="${reason}"]`);
+      await until("document.querySelectorAll('.item.games').length === 6");
+      await click(`[data-view="${reason}"]`);
+      assert.equal(await js("document.querySelectorAll('.item.games').length"), 1);
+      assert.ok(await js("!!document.querySelector('.item .game-cover') && !!document.querySelector('.item .title-primary') && !!document.querySelector('.item .rating') && !!document.querySelector('.item .game-date') && !!document.querySelector('.item .game-tags')"));
+      await until("document.querySelector('.item .game-cover img')?.naturalWidth > 0");
+      assert.equal(await js("document.querySelectorAll('.item .game-management button').length"), 3);
+      await fill('[data-filter="query"]', '不會找到');
+      assert.equal(await js("document.querySelectorAll('.item.games').length"), 0);
+      await fill('[data-filter="query"]', '');
+      await select('sort', 'score');
+      await click('[data-action="toggle-filters"]');
+      await select('min', '97'); await select('max', '97');
+      assert.match(await js("document.querySelector('[data-rating-error]').textContent"), /上限必須大於/);
+      await click('[data-action="clear-filters"]'); await click('[data-action="toggle-filters"]');
+      await click('[data-favorite]');
+      await until("document.querySelector('[data-favorite]').getAttribute('aria-pressed') === 'true'");
+      assert.equal(await js("document.querySelectorAll('.item.games').length"), 1, '收藏切換保留原分類');
+      await capture(`${reason}-${label}`);
+      assert.ok(await js("document.documentElement.scrollWidth <= innerWidth"));
+      await click('[data-hide]'); await click('[data-reason="restore"]');
+      await until("document.querySelectorAll('.item.games').length === 0");
+      await click('[data-view="favorites"]');
+      assert.equal(await js("document.querySelectorAll('.item.games').length"), 1);
+      await click('[data-favorite]'); await until("document.querySelectorAll('.item.games').length === 0");
+      await click(`[data-view="${reason}"]`); await click('[data-media="anime"]');
+      assert.equal(await js("document.querySelector('[data-view=all]').getAttribute('aria-pressed')"), 'true');
+      await click('[data-media="games"]');
+    }
+  }
   const screenshots = [];
   const sizes = [["desktop", 1440, 900], ["medium", 1000, 800], ["mobile", 390, 844]];
   for (const [name, width, height] of sizes) {

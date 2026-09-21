@@ -20,7 +20,7 @@ app.whenReady().then(async () => {
   const snapshot = () => ({ dataDir: temp, appVersion: version, libraries: lib.loadAllLibraries(temp) });
   ipcMain.handle('library:load', snapshot);
   ipcMain.handle('library:resolve-game-covers', () => ({}));
-  ipcMain.handle('library:hide-entry', (_, media, id) => { operation = lib.hideEntry(temp, media, id); return snapshot(); });
+  ipcMain.handle('library:hide-entry', (_, media, id, reason) => { operation = lib.hideEntry(temp, media, id, reason); return snapshot(); });
   ipcMain.handle('library:undo-last-operation', () => ({ ...snapshot(), restored: lib.undoHide(temp, operation), libraries: lib.loadAllLibraries(temp) }));
   const win = new BrowserWindow({ show: false, width: 1440, height: 900, webPreferences: { preload: path.join(root, 'src/preload.cjs'), contextIsolation: true, sandbox: true } });
   const js = (code) => win.webContents.executeJavaScript(code);
@@ -32,8 +32,8 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('[data-game-tag]').click()`);
   assert.ok(await js(`!!document.querySelector('[data-selected-tag]')`));
   await js(`document.querySelector('[data-action="clear-filters"]').click(); document.querySelector('[data-hide]').click()`);
-  await until('document.querySelector("#confirmDialog").open');
-  await js(`document.querySelector('#dialogConfirm').click()`);
+  await until('document.querySelector(".hide-menu") !== null');
+  await js(`document.querySelector('[data-reason=played]').click()`);
   await until(`document.querySelector('[data-result-count]').textContent !== ${JSON.stringify(games.count)}`);
   await js(`document.querySelector('[data-action="undo"]').click()`);
   await until(`document.querySelector('[data-result-count]').textContent === ${JSON.stringify(games.count)}`);

@@ -266,7 +266,7 @@ button.game-cover:hover { border-color: var(--lime); }
 .content { padding-top: 10px; }
 .browse-heading { position: relative; display: flex; align-items: center; gap: 24px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
 .browse-tools { display: flex; align-items: center; justify-content: flex-end; gap: 24px; min-width: 0; }
-.browse-heading .library-views { flex: 1; margin: 0; border: 0; gap: 20px; flex-wrap: nowrap; }
+.browse-heading .library-views { flex: 1; margin: 0; border: 0; gap: 20px; flex-wrap: wrap; }
 .browse-heading .view-button { min-height: 42px; font-size: 14px; }
 .browse-heading .update-panel { margin: 0; border: 0; background: none; }
 .browse-heading .update-panel summary { min-height: 44px; padding: 8px 0; gap: 18px; font-size: 12px; }
@@ -399,3 +399,22 @@ button.game-cover:hover { border-color: var(--lime); }
   .mode-option { padding-inline: 6px; }
 }
 @media (prefers-reduced-motion: reduce) { .mode-option { transition: none; } }
+
+.hidden-row:has(.hidden-reason) { grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 16px; }
+/* 延用清單的深色表面、細框與萊姆綠焦點。 */
+.rating-range { grid-column: span 2; }
+.rating-bounds { display: flex; gap: 8px; }
+.rating-bounds .field { min-width: 0; flex: 1; }
+[data-rating-error]:empty { display: none; }
+[data-rating-error] { color: var(--danger); line-height: 1.5; }
+.hidden-reason-filter { width: auto; min-width: 150px; margin: 0 0 16px 8px; }
+.hide-menu { position: fixed; z-index: 60; min-width: 170px; padding: 6px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 8px 24px #0008; }
+.hide-menu button { display: block; width: 100%; min-height: 44px; padding: 8px 14px; text-align: left; color: var(--ink); background: transparent; border: 0; border-radius: 3px; font: inherit; cursor: pointer; }
+.hide-menu button:hover, .hide-menu button:focus-visible { color: var(--lime); background: var(--surface-3); outline: 1px solid var(--lime); }
+@media (max-width: 560px) {
+  .rating-range { grid-column: 1 / -1; }
+  .hidden-reason-filter { margin-left: 0; width: 100%; }
+  .hidden-row:has(.hidden-reason) { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+  .hidden-reason { grid-column: 1; }
+  .hidden-row > .meta { grid-row: auto; }
+}

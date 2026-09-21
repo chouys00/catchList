@@ -108,6 +108,17 @@ test("名稱、年份、月份與最低好評率可組合篩選", () => {
   assert.deepEqual(result.map(({ appid }) => appid), ["query-only"]);
 });
 
+test("一般搜尋可用 Steam AppID 找到遊戲", () => {
+  const appidEntries = [
+    { ...entries[0], appid: "413150" },
+    { ...entries[1], appid: "105600" },
+  ];
+  assert.deepEqual(filterAndSortGames(appidEntries, { query: "413150" }).map(({ appid }) => appid), ["413150"]);
+
+  const query = createGameQuery();
+  assert.deepEqual(query(appidEntries, { query: "105600" }).map(({ appid }) => appid), ["105600"]);
+});
+
 test("最低評論數可和其他條件組合篩選", () => {
   const result = filterAndSortGames(entries, {
     min: "90",

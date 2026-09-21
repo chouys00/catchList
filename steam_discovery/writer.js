@@ -19,7 +19,11 @@ export function loadExistingSections(filepath) {
   return loadSections(filepath, {
     // 💡 移除頂部一鍵開啟連結與等號分隔線,避免干擾第一個月的標題解析
     preprocess: (content) =>
-      content.replace(/^👉\s+\[點此打開[\s\S]*?={10,}\s*/, "").trim(),
+      content
+        .replace(/^👉\s+\[點此打開[\s\S]*?={10,}\s*/, "")
+        // 初始化報告的說明頁首不是月份區段；保留其後的第一個月份。
+        .replace(/^\uFEFF?# Steam 歷史初始化預覽\s*\r?\n\s*/, "")
+        .trim(),
   });
 }
 

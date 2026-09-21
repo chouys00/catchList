@@ -30,7 +30,7 @@ app.whenReady().then(async () => {
   ipcMain.handle("games:cancel-preview", () => service.cancel());
   ipcMain.handle("games:add", (_, token) => { const addedAppid = service.commit(temp, token); return { ...snapshot(), addedAppid }; });
   ipcMain.handle("library:set-favorite", (_, media, id, value) => { lib.setFavorite(temp, media, id, value); return snapshot(); });
-  ipcMain.handle("library:hide-entry", (_, media, id) => { lib.hideEntry(temp, media, id); return snapshot(); });
+  ipcMain.handle("library:hide-entry", (_, media, id, reason) => { lib.hideEntry(temp, media, id, reason); return snapshot(); });
   ipcMain.handle("library:restore-hidden", (_, key) => { lib.restoreHiddenEntry(temp, key); return snapshot(); });
   ipcMain.handle("library:delete-entry", (_, media, id) => { lib.deleteEntry(temp, media, id); return snapshot(); });
   ipcMain.handle("library:resolve-game-covers", () => ({}));
@@ -84,7 +84,7 @@ app.whenReady().then(async () => {
   assert.ok(await js('!!document.querySelector("[data-game-row=\\"123\\"] .manual-source")'));
   assert.equal(await js('document.querySelector("[data-filter=query]").value'), "");
   await click('[data-game-row="123"] [data-favorite]'); await until('document.querySelector("[data-game-row=\\"123\\"] [data-favorite]").getAttribute("aria-pressed") === "true"');
-  await click('[data-game-row="123"] [data-hide]'); await until('document.querySelector("#confirmDialog").open'); await click('#dialogConfirm');
+  await click('[data-game-row="123"] [data-hide]'); await click('[data-reason="played"]');
   await until('!document.querySelector("[data-game-row=\\"123\\"]")');
   await openPanel(); await preview("123"); assert.equal(await js('document.querySelector("[data-panel-save]").textContent'), "恢復並查看");
   await click('[data-panel-save]'); await until('!document.querySelector("#manualGameDialog")');

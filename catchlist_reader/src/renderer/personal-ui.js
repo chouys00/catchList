@@ -7,18 +7,23 @@ export function dateLabel(value) {
   return new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(value));
 }
 
-export function viewNavigation(view, media, entries, hiddenCount) {
+export const hiddenReasons = { not_interested: "暫不考慮", backlog: "候補", played: "玩過了" };
+
+export function reasonOptions(selected) { return Object.entries(hiddenReasons).map(([key, label]) => `<option value="${key}" ${key === selected ? "selected" : ""}>${label}</option>`).join(""); }
+
+export function viewNavigation(view, media, entries, hiddenCount, reasonCounts = {}) {
   const favoriteCount = entries.filter((entry) => entry.favorite).length;
   const tabs = [["all", "全部", entries.length], ["favorites", media === "games" ? "待玩收藏" : "待看收藏", favoriteCount], ["hidden", "隱藏管理", hiddenCount]];
+  if (media === "games") tabs.splice(2, 0, ...["backlog", "played", "not_interested"].map(reason => [reason, hiddenReasons[reason], reasonCounts[reason] ?? 0]));
   return `<nav class="library-views" aria-label="清單檢視">${tabs.map(([key, label, count]) => `<button type="button" class="view-button${view === key ? " active" : ""}" data-view="${key}" aria-pressed="${view === key}">${label}<span>${count}</span></button>`).join("")}</nav>`;
 }
 
-export function hiddenListMarkup(records, query) {
+export function hiddenListMarkup(records, query, reason = "all") {
   const needle = query.trim().toLocaleLowerCase("zh-Hant");
-  const filtered = records.filter((entry) => String(entry.title).toLocaleLowerCase("zh-Hant").includes(needle));
+  const filtered = records.filter((entry) => (reason === "all" || (entry.reason ?? "played") === reason) && String(entry.title).toLocaleLowerCase("zh-Hant").includes(needle));
   return {
     count: filtered.length,
-    markup: filtered.length ? filtered.map((entry) => `<article class="hidden-row"><div class="title"><strong>${escapeHtml(entry.title)}</strong><small>${entry.available ? escapeHtml(entry.periodLabel) : "原始報告已找不到這部作品"}</small></div><span class="meta">隱藏於 ${escapeHtml(dateLabel(entry.hiddenAt))}</span><button type="button" class="button compact" data-restore="${escapeHtml(entry.hideKey)}">${entry.available ? "恢復顯示" : "清除隱藏紀錄"}</button></article>`).join("") : `<div class="empty">${query.trim() ? "沒有符合名稱的隱藏作品。" : "目前沒有隱藏作品。"}</div>`,
+    markup: filtered.length ? filtered.map((entry) => `<article class="hidden-row"><div class="title"><strong>${escapeHtml(entry.title)}</strong><small>${entry.available ? escapeHtml(entry.periodLabel) : "原始報告已找不到這部作品"}</small></div>${entry.media === "games" ? `<label class="hidden-reason"><span class="sr-only">${escapeHtml(entry.title)}的隱藏原因</span><select class="field" data-hidden-reason="${escapeHtml(entry.hideKey)}" ${entry.available ? "" : "disabled"}>${reasonOptions(entry.reason ?? "played")}</select></label>` : ""}<span class="meta">隱藏於 ${escapeHtml(dateLabel(entry.hiddenAt))}</span><button type="button" class="button compact" data-restore="${escapeHtml(entry.hideKey)}">${entry.available ? "恢復顯示" : "清除隱藏紀錄"}</button></article>`).join("") : `<div class="empty">${query.trim() ? "沒有符合名稱的隱藏作品。" : "目前沒有隱藏作品。"}</div>`,
   };
 }
 

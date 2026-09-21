@@ -441,6 +441,7 @@ export function setFavorite(dataDir, media, entryId, favorite) {
 
 export function loadHiddenEntries(dataDir, reportCache = null) {
   const records = readHiddenEntries(dataDir);
+  const favorites = new Set(readFavorites(dataDir).map(record => record.key));
   const byMedia = new Map();
   return records.map((record) => {
     if (!byMedia.has(record.media)) {
@@ -448,7 +449,7 @@ export function loadHiddenEntries(dataDir, reportCache = null) {
       byMedia.set(record.media, new Map(entries.flatMap((entry) => stateKeys(entry).map((key) => [key, entry]))));
     }
     const entry = byMedia.get(record.media).get(record.hideKey);
-    return { ...record, title: entry?.title ?? record.title, periodLabel: entry?.periodLabel ?? "", available: Boolean(entry) };
+    return { ...record, ...(record.media === "games" ? { reason: record.reason ?? "played" } : {}), title: entry?.title ?? record.title, periodLabel: entry?.periodLabel ?? "", available: Boolean(entry), entry: entry ? { ...entry, hiddenKey: record.hideKey, favorite: stateKeys(entry).some(key => favorites.has(key)) } : null };
   }).sort((a, b) => String(b.hiddenAt).localeCompare(String(a.hiddenAt)));
 }
 
@@ -491,7 +492,38 @@ function writeHiddenEntries(dataDir, entries) {
   return filepath;
 }
 
-export function hideEntry(dataDir, media, entryId) {
+export function setHiddenReason(dataDir, hideKey, reason) {
+  if (!["not_interested", "backlog", "played"].includes(reason)) throw new Error("隱藏原因不正確");
+  const records = readHiddenEntries(dataDir);
+  const record = records.find(item => item.hideKey === hideKey && item.media === "games");
+  if (!record) throw new Error("隱藏紀錄已不存在");
+  writeHiddenEntries(dataDir, records.map(item => item === record ? { ...item, reason } : item));
+  return { ...record, previousReason: record.reason, changedReason: reason };
+}
+
+export function undoHiddenReason(dataDir, operation) {
+  const records = readHiddenEntries(dataDir);
+  const record = records.find(item => item.hideKey === operation.hideKey);
+  if (!record || record.reason !== operation.changedReason) throw new Error("隱藏原因已變更，請至隱藏管理確認");
+  writeHiddenEntries(dataDir, records.map(item => {
+    if (item !== record) return item;
+    const restored = { ...item };
+    if (operation.previousReason === undefined) delete restored.reason;
+    else restored.reason = operation.previousReason;
+    return restored;
+  }));
+  return { media: record.media, title: record.title };
+}
+
+export function favoriteBacklogEntry(dataDir, entryId) {
+  const record = loadHiddenEntries(dataDir).find(item => item.media === "games" && item.reason === "backlog" && item.entry?.id === entryId);
+  if (!record) throw new Error("候補遊戲已變更，請重新讀取");
+  setFavorite(dataDir, "games", entryId, true);
+  restoreHiddenEntry(dataDir, record.hideKey);
+}
+
+export function hideEntry(dataDir, media, entryId, reason = "played") {
+  if (media === "games" && !["not_interested", "backlog", "played"].includes(reason)) throw new Error("隱藏原因不正確");
   const parsed = sourceEntries(dataDir, media);
   const entry = parsed.entries.find((item) => item.id === entryId);
   if (!entry) throw new Error("作品已變更或不存在，請重新載入清單");
@@ -502,7 +534,7 @@ export function hideEntry(dataDir, media, entryId) {
     throw new Error("這部作品已隱藏");
   }
   const hiddenAt = new Date().toISOString();
-  const record = { hideKey: entry.hideKey, media, title: entry.title, hiddenAt };
+  const record = { hideKey: entry.hideKey, media, title: entry.title, hiddenAt, ...(media === "games" ? { reason } : {}) };
   const hiddenFilepath = writeHiddenEntries(dataDir, [...entries, record]);
   return {
     media,

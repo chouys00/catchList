@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { parseReport, deleteEntry, hasReportFiles, hideEntry, loadAllLibraries, undoHide, setFavorite, loadHiddenEntries, restoreHiddenEntry } from "./library.js";
+import { parseReport, deleteEntry, hasReportFiles, hideEntry, loadAllLibraries, undoHide, setFavorite, loadHiddenEntries, restoreHiddenEntry, setHiddenReason, favoriteBacklogEntry, undoHiddenReason } from "./library.js";
 import { loadUpdateStatus } from "./update-status.js";
 import { GameCoverCache, GameCoverService } from "./game-cover-cache.js";
 import { resolveSteamCover } from "./steam-covers.js";
@@ -101,6 +101,17 @@ function registerIpc() {
     setFavorite(dataDir, media, entryId, favorite);
     return snapshot();
   });
+  ipcMain.handle("library:set-hidden-reason", (_event, key, reason) => {
+    if (!dataDir) throw new Error("尚未選擇資料夾");
+    lastOperation = { kind: "reason", operation: setHiddenReason(dataDir, key, reason) };
+    return snapshot();
+  });
+  ipcMain.handle("library:favorite-backlog", (_event, id) => {
+    if (!dataDir) throw new Error("尚未選擇資料夾");
+    favoriteBacklogEntry(dataDir, id);
+    lastOperation = null;
+    return snapshot();
+  });
   ipcMain.handle("library:restore-hidden", (_event, hideKey) => {
     if (!dataDir) throw new Error("尚未選擇資料夾");
     restoreHiddenEntry(dataDir, hideKey);
@@ -121,9 +132,9 @@ function registerIpc() {
     lastOperation = null;
     return snapshot();
   });
-  ipcMain.handle("library:hide-entry", (_event, media, entryId) => {
+  ipcMain.handle("library:hide-entry", (_event, media, entryId, reason) => {
     if (!dataDir) throw new Error("尚未選擇資料夾");
-    lastOperation = { kind: "hide", operation: hideEntry(dataDir, media, entryId) };
+    lastOperation = { kind: "hide", operation: hideEntry(dataDir, media, entryId, reason) };
     return snapshot();
   });
   ipcMain.handle("library:delete-entry", (_event, media, entryId) => {
@@ -134,7 +145,7 @@ function registerIpc() {
   });
   ipcMain.handle("library:undo-last-operation", () => {
     if (!lastOperation) throw new Error("沒有可復原的操作");
-    const restored = undoHide(dataDir, lastOperation.operation);
+    const restored = lastOperation.kind === "reason" ? undoHiddenReason(dataDir, lastOperation.operation) : undoHide(dataDir, lastOperation.operation);
     lastOperation = null;
     return { ...snapshot(), restored };
   });

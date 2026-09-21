@@ -26,8 +26,8 @@ function reorderTags(tags, selectedTags) {
   return [...selected, ...remaining];
 }
 
-function gameTitle(entry) {
-  return `${entry.title ?? ""} ${entry.originalTitle ?? ""}`.toLocaleLowerCase("zh-Hant");
+function gameSearchText(entry) {
+  return `${entry.title ?? ""} ${entry.originalTitle ?? ""} ${entry.appid ?? ""}`.toLocaleLowerCase("zh-Hant");
 }
 
 function normalizeList(values) {
@@ -37,6 +37,8 @@ function normalizeList(values) {
 export function filterAndSortGames(entries, filters = {}, prepared = null) {
   const query = normalizedQuery(filters.query);
   const min = Number(filters.min || 0);
+  const max = filters.max ? Number(filters.max) : null;
+  const validRange = !ratingRangeError(filters);
   const minReviews = Number(filters.minReviews || 0);
   const selectedTags = normalizeList(filters.tags);
 
@@ -44,12 +46,12 @@ export function filterAndSortGames(entries, filters = {}, prepared = null) {
     .filter((entry) => {
       if (filters.playerMode && filters.playerMode !== "all" && (entry.playerMode ?? "unknown") !== filters.playerMode) return false;
       if (filters.manualOnly === "manual" && !entry.manualAdded) return false;
-      if (query && !(prepared?.get(entry)?.title ?? gameTitle(entry)).includes(query)) return false;
+      if (query && !(prepared?.get(entry)?.searchText ?? gameSearchText(entry)).includes(query)) return false;
       if (filters.newOnly && !entry.isNew) return false;
       if (filters.year && filters.year !== "all" && entry.year !== Number(filters.year)) return false;
       if (filters.month && filters.month !== "all" && entry.month !== Number(filters.month)) return false;
       if (filters.chinese && filters.chinese !== "all" && entry.chineseSupport !== filters.chinese) return false;
-      if (min > 0 && (entry.score == null || entry.score < min)) return false;
+      if (validRange && (min > 0 || max !== null) && (entry.score == null || entry.score < min || (max !== null && entry.score >= max))) return false;
       if (minReviews > 0 && (entry.reviews == null || entry.reviews < minReviews)) return false;
       const tags = prepared?.get(entry)?.tags ?? normalizeList(entry.tags);
       return selectedTags.every((tag) => tags.includes(tag));
@@ -134,14 +136,21 @@ export function createGameQuery() {
   return (entries, filters = {}, view = "all") => {
     if (source !== entries) {
       source = entries;
-      prepared = new Map(entries.map(entry => [entry, { title: gameTitle(entry), tags: normalizeList(entry.tags) }]));
+      prepared = new Map(entries.map(entry => [entry, { searchText: gameSearchText(entry), tags: normalizeList(entry.tags) }]));
       previousKey = null;
     }
-    const key = JSON.stringify([view, filters.query, filters.year, filters.month, filters.min, filters.minReviews, filters.chinese, filters.playerMode, filters.manualOnly, filters.newOnly, filters.sort, filters.tags]);
+    const key = JSON.stringify([view, filters.query, filters.year, filters.month, filters.min, filters.max, filters.minReviews, filters.chinese, filters.playerMode, filters.manualOnly, filters.newOnly, filters.sort, filters.tags]);
     if (key !== previousKey) {
       result = filterAndSortGames(view === "favorites" ? entries.filter(entry => entry.favorite) : entries, filters, prepared);
       previousKey = key;
     }
     return result;
   };
+}
+
+export function ratingRangeError(filters) {
+  const min = Number(filters.min || 0);
+  const max = filters.max ? Number(filters.max) : null;
+  return !Number.isFinite(min) || min < 0 || min > 100 || (max !== null && (!Number.isFinite(max) || max <= min || max > 100))
+    ? "上限必須大於下限，且介於 0～100%；目前不套用好評率條件。" : "";
 }

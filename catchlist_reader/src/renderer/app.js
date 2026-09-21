@@ -1,13 +1,13 @@
-import { collectTagOptionsFromIndex, createTagIndex, createGameQuery } from "./game-browser.js";
+import { collectTagOptionsFromIndex, createTagIndex, createGameQuery, ratingRangeError } from "./game-browser.js";
 import { openManualGamePanel } from "./manual-game-panel.js";
 import { renderItemTemplate } from "./item-template.js";
-import { viewNavigation, hiddenListMarkup, updateStatusMarkup } from "./personal-ui.js";
+import { viewNavigation, hiddenListMarkup, updateStatusMarkup, hiddenReasons, reasonOptions } from "./personal-ui.js";
 
 const GAME_BATCH_SIZE = 50;
 const MAX_EXTERNAL_BATCH_SIZE = 50;
 
 const mediaCopy = {
-  games: { title: "遊戲探索", search: "搜尋遊戲名稱…" },
+  games: { title: "遊戲探索", search: "搜尋遊戲名稱或 Steam AppID…" },
   anime: { title: "動畫探索", search: "搜尋動畫名稱…" },
   movies: { title: "電影探索", search: "搜尋電影名稱…" },
   liveAction: { title: "真人劇年度必看", search: "搜尋真人劇名稱…" },
@@ -17,12 +17,13 @@ const state = {
   active: "games",
   view: "all",
   hiddenQuery: "",
+  hiddenReason: "all",
   statusOpen: false,
   filtersOpen: false,
   mutationPending: false,
   payload: null,
   filters: {
-    games: { manualOnly: "all", query: "", year: "all", month: "all", min: "0", minReviews: "0", chinese: "all", playerMode: "all", tags: [], tagsOpen: false, tagQuery: "", tagOptionsExpanded: false },
+    games: { manualOnly: "all", query: "", year: "all", month: "all", min: "0", max: "", minReviews: "0", chinese: "all", playerMode: "all", tags: [], tagsOpen: false, tagQuery: "", tagOptionsExpanded: false },
     anime: { query: "", year: "all", season: "all", min: "0" },
     movies: { query: "", year: "all", category: "all", min: "0" },
     liveAction: { query: "", year: "all", region: "all" },
@@ -50,7 +51,15 @@ const toast = document.querySelector("#toast");
 const backToTop = document.querySelector("#backToTop");
 
 function library(media = state.active) {
-  return state.payload?.libraries?.find((item) => item.media === media) ?? { entries: [], sections: [], exists: false };
+  const data = state.payload?.libraries?.find((item) => item.media === media) ?? { entries: [], sections: [], exists: false };
+  if (media === "games" && Object.hasOwn(hiddenReasons, state.view)) {
+    const classified = state.payload.classifiedEntries ??= {};
+    const entries = classified[state.view] ??= (state.payload.hiddenEntries ?? [])
+      .filter(record => record.media === "games" && (record.reason ?? "played") === state.view && record.available && record.entry)
+      .map(record => record.entry);
+    return { ...data, entries };
+  }
+  return data;
 }
 
 function escapeHtml(value) {
@@ -156,7 +165,7 @@ function advancedToolbar(data) {
       <div class="toolbar games game-filter-fields">
         <label class="filter-field"><span>發售年份</span><select class="field" data-filter="year" aria-label="遊戲年份">${options(years, filter.year, "所有年份")}</select></label>
         <label class="filter-field"><span>發售月份</span><select class="field" data-filter="month" aria-label="遊戲月份">${options(months, filter.month, "所有月份")}</select></label>
-        <label class="filter-field"><span>好評率</span><select class="field" data-filter="min" aria-label="最低好評率">${scoreOptions(filter.min, true)}</select></label>
+        <div class="filter-field rating-range"><span>好評率</span><div class="rating-bounds"><select class="field" data-filter="min" aria-label="最低好評率">${scoreOptions(filter.min, true)}</select><select class="field" data-filter="max" aria-label="好評率上限（未滿）"><option value="">上限不限</option>${[85, 90, 95, 97, 100].map(score => `<option value="${score}" ${String(filter.max) === String(score) ? "selected" : ""}>未滿 ${score}%</option>`).join("")}</select></div><small data-rating-error role="status">${ratingRangeError(filter)}</small></div>
         <label class="filter-field"><span>評論數</span><select class="field reviews-filter" data-filter="minReviews" aria-label="最低評論數">${reviewOptions(filter.minReviews)}</select></label>
         <label class="filter-field"><span>中文支援</span><select class="field chinese-filter" data-filter="chinese" aria-label="中文支援"><option value="all" ${filter.chinese === "all" ? "selected" : ""}>中文：全部</option><option value="supported" ${filter.chinese === "supported" ? "selected" : ""}>✓ 支援</option><option value="unsupported" ${filter.chinese === "unsupported" ? "selected" : ""}>× 不支援</option><option value="unknown" ${filter.chinese === "unknown" ? "selected" : ""}>— 待確認</option></select></label>
         <label class="filter-field"><span>收錄來源</span><select class="field" data-filter="manualOnly" aria-label="收錄來源"><option value="all" ${filter.manualOnly !== "manual" ? "selected" : ""}>來源：全部</option><option value="manual" ${filter.manualOnly === "manual" ? "selected" : ""}>只看手動加入</option></select></label>
@@ -176,7 +185,7 @@ function advancedToolbar(data) {
 
 function activeFilterCount() {
   const filter = state.filters[state.active];
-  return ["year", "month", "season", "category", "region", "min", "minReviews", "chinese", "playerMode", "manualOnly"]
+  return ["year", "month", "season", "category", "region", "min", "max", "minReviews", "chinese", "playerMode", "manualOnly"]
     .filter((key) => filter[key] && !["all", "0"].includes(filter[key])).length + (filter.tags?.length ?? 0);
 }
 
@@ -251,6 +260,7 @@ function entriesMarkup(entries) {
   const visibleEntries = displayedEntries(entries);
   return visibleEntries.length
     ? visibleEntries.map((entry) => renderItemTemplate(entry, state.active, state.active === "games" ? {
+      backlog: state.view === "backlog",
       selectedTags: state.filters.games.tags,
       expanded: state.expandedGameTags.has(String(entry.appid ?? entry.id)),
       tagLimit: gameTagLimit(),
@@ -318,6 +328,8 @@ function appendNextGameBatch() {
 }
 
 function refreshResults({ hydrateCovers = true, resetGames = true } = {}) {
+  const rangeError = app.querySelector("[data-rating-error]");
+  if (rangeError) rangeError.textContent = ratingRangeError(state.filters.games);
   syncFilterSummary();
   if (state.view === "hidden") return;
   const entries = filteredEntries();
@@ -396,7 +408,7 @@ function syncModeControls() {
 function syncGameControls() {
   syncModeControls();
   const filter = state.filters[state.active];
-  for (const key of ["query", "year", "month", "season", "category", "region", "min", "minReviews", "chinese", "playerMode", "tagQuery", "manualOnly"]) {
+  for (const key of ["query", "year", "month", "season", "category", "region", "min", "max", "minReviews", "chinese", "playerMode", "tagQuery", "manualOnly"]) {
     const control = app.querySelector(`[data-filter="${key}"]`);
     if (control) control.value = filter[key];
   }
@@ -408,6 +420,7 @@ function refreshGameBrowser(options) {
 }
 
 function render() {
+  closeHideMenu(false);
   if (state.payload?.visitWarning) {
     for (const filter of Object.values(state.filters)) filter.newOnly = false;
   }
@@ -423,14 +436,14 @@ function render() {
   }
   const data = library();
   const hidden = (state.payload.hiddenEntries ?? []).filter((entry) => entry.media === state.active);
-  const navigation = viewNavigation(state.view, state.active, data.entries, hidden.length);
+  const navigation = viewNavigation(state.view, state.active, state.payload.libraries.find(item => item.media === state.active)?.entries ?? [], hidden.length, Object.fromEntries(Object.keys(hiddenReasons).map(reason => [reason, hidden.filter(record => (record.reason ?? "played") === reason && record.available).length])));
   const update = updateStatusMarkup(state.payload, state.active, state.statusOpen);
   const operations = state.active === "games" ? `<button class="button add-game-button" type="button" data-action="add-game" ${data.warning ? "disabled" : ""}><span aria-hidden="true">＋</span>新增遊戲</button>` : "";
   const heading = `<div class="browse-heading">${navigation}<div class="browse-tools">${update}${operations}</div></div>${data.warning ? `<p class="status-warning" role="alert">${escapeHtml(data.warning)}</p>` : ""}${data.integrityWarning ? `<p class="status-warning" role="alert">${escapeHtml(data.integrityWarning)}</p>` : ""}`;
   stopGameAutoLoad();
   if (state.view === "hidden") {
-    const result = hiddenListMarkup(hidden, state.hiddenQuery);
-    app.innerHTML = `<div class="layout"><section class="content">${heading}<div class="section-status"><div class="section-summary"><strong>隱藏管理</strong><span data-hidden-count>${result.count} 筆紀錄</span></div></div><p class="view-note">恢復後會回到全部清單，原有收藏也會保留。清除失效紀錄不會重建已刪除的作品。</p><input class="field hidden-search" data-hidden-query value="${escapeHtml(state.hiddenQuery)}" placeholder="搜尋隱藏作品名稱…" aria-label="搜尋隱藏作品名稱"><div class="hidden-list">${result.markup}</div></section></div>`;
+    const result = hiddenListMarkup(hidden, state.hiddenQuery, state.active === "games" ? state.hiddenReason : "all");
+    app.innerHTML = `<div class="layout"><section class="content">${heading}<div class="section-status"><div class="section-summary"><strong>隱藏管理</strong><span data-hidden-count>${result.count} 筆紀錄</span></div></div><p class="view-note">恢復後會回到全部清單，原有收藏也會保留。清除失效紀錄不會重建已刪除的作品。</p><input class="field hidden-search" data-hidden-query value="${escapeHtml(state.hiddenQuery)}" placeholder="搜尋隱藏作品名稱…" aria-label="搜尋隱藏作品名稱">${state.active === "games" ? `<select class="field hidden-reason-filter" data-reason-filter aria-label="篩選隱藏原因"><option value="all">所有原因</option>${reasonOptions(state.hiddenReason)}</select>` : ""}<div class="hidden-list">${result.markup}</div></section></div>`;
     return;
   }
   const entries = filteredEntries();
@@ -459,6 +472,64 @@ function ask({ eyebrow = "請確認", title, message, confirm = "確認", danger
 }
 
 let toastTimer;
+let hideMenu;
+function closeHideMenu(restoreFocus = true) {
+  if (!hideMenu) return;
+  const { element, trigger } = hideMenu;
+  element.remove();
+  trigger.setAttribute("aria-expanded", "false");
+  if (restoreFocus) trigger.focus({ preventScroll: true });
+  hideMenu = null;
+}
+
+function openHideMenu(trigger, entry) {
+  closeHideMenu(false);
+  const element = document.createElement("div");
+  element.className = "hide-menu";
+  element.setAttribute("role", "menu");
+  element.setAttribute("aria-label", `隱藏 ${entry.title}`);
+  element.innerHTML = Object.entries(hiddenReasons).map(([key, label]) => `<button type="button" role="menuitem" data-reason="${key}">${label}</button>`).join("")
+    + (entry.hiddenKey ? '<button type="button" role="menuitem" data-reason="restore">恢復顯示</button>' : "");
+  document.body.append(element);
+  const rect = trigger.getBoundingClientRect();
+  element.style.left = `${Math.max(8, Math.min(rect.right - element.offsetWidth, innerWidth - element.offsetWidth - 8))}px`;
+  element.style.top = `${Math.max(8, rect.bottom + element.offsetHeight + 8 > innerHeight ? rect.top - element.offsetHeight - 4 : rect.bottom + 4)}px`;
+  trigger.setAttribute("aria-expanded", "true");
+  hideMenu = { element, trigger };
+  element.querySelector("button").focus();
+  element.addEventListener("keydown", event => {
+    const buttons = [...element.querySelectorAll("button")];
+    const index = buttons.indexOf(document.activeElement);
+    if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+      event.preventDefault();
+      buttons[event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : (index + (event.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length].focus();
+    }
+    if (event.key === "Escape") { event.preventDefault(); closeHideMenu(); }
+    if (event.key === "Tab") closeHideMenu();
+  });
+  element.addEventListener("click", async event => {
+    const reason = event.target.closest("[data-reason]")?.dataset.reason;
+    if (!reason || state.mutationPending) return;
+    state.mutationPending = true;
+    toast.classList.remove("show");
+    toast.innerHTML = "";
+    closeHideMenu();
+    try {
+      state.payload = entry.hiddenKey
+        ? reason === "restore" ? await window.catchList.restoreHidden(entry.hiddenKey) : await window.catchList.setHiddenReason(entry.hiddenKey, reason)
+        : await window.catchList.hideEntry("games", entry.id, reason);
+      render();
+      showToast(reason === "restore" ? `已恢復「${entry.title}」` : `「${entry.title}」已移至${hiddenReasons[reason]}`, reason !== "restore");
+      (toast.querySelector("button") ?? app.querySelector('[data-view="backlog"]'))?.focus({ preventScroll: true });
+    } catch (error) { showToast(error.message); }
+    finally { state.mutationPending = false; }
+  });
+}
+document.addEventListener("pointerdown", event => {
+  if (hideMenu && !hideMenu.element.contains(event.target) && !hideMenu.trigger.contains(event.target)) closeHideMenu(false);
+});
+window.addEventListener("resize", () => closeHideMenu(false));
+window.addEventListener("scroll", () => closeHideMenu(false));
 function showToast(message, undo = false) {
   clearTimeout(toastTimer);
   toast.innerHTML = `<span>${escapeHtml(message)}</span>${undo ? '<button data-action="undo">立即復原</button>' : ""}`;
@@ -514,6 +585,7 @@ document.addEventListener("click", async (event) => {
   const media = event.target.closest("[data-media]")?.dataset.media;
   if (media) {
     state.active = media;
+    if (media !== "games" && Object.hasOwn(hiddenReasons, state.view)) state.view = "all";
     if (media === "games") state.visibleGameCount = GAME_BATCH_SIZE;
     await load();
     return;
@@ -553,10 +625,10 @@ document.addEventListener("click", async (event) => {
         if (favoriteId) {
           const entry = library().entries.find((item) => item.id === favoriteId);
           if (!entry) throw new Error("作品已變更，請重新讀取");
-          state.payload = await window.catchList.setFavorite(state.active, favoriteId, !entry.favorite);
+          state.payload = state.view === "backlog" ? await window.catchList.favoriteBacklog(favoriteId) : await window.catchList.setFavorite(state.active, favoriteId, !entry.favorite);
           render();
           app.querySelector(`[data-favorite="${CSS.escape(favoriteId)}"]`)?.focus({ preventScroll: true });
-          showToast(entry.favorite ? `已取消收藏「${entry.title}」` : `已收藏「${entry.title}」`);
+          showToast(state.view === "backlog" ? `已收藏並恢復「${entry.title}」` : entry.favorite ? `已取消收藏「${entry.title}」` : `已收藏「${entry.title}」`);
         } else {
           const record = state.payload.hiddenEntries.find((item) => item.hideKey === restoreKey);
           state.payload = await window.catchList.restoreHidden(restoreKey);
@@ -573,7 +645,7 @@ document.addEventListener("click", async (event) => {
     if (action === "toggle-tag-options") { state.filters.games.tagOptionsExpanded = !state.filters.games.tagOptionsExpanded; refreshTagPanel(); }
     if (action === "clear-filters") {
       const filter = state.filters[state.active];
-      Object.assign(filter, { manualOnly: "all", query: "", year: "all", month: "all", season: "all", category: "all", region: "all", min: "0", minReviews: "0", chinese: "all", playerMode: "all", tags: [], tagQuery: "", tagOptionsExpanded: false });
+      Object.assign(filter, { manualOnly: "all", query: "", year: "all", month: "all", season: "all", category: "all", region: "all", min: "0", max: "", minReviews: "0", chinese: "all", playerMode: "all", tags: [], tagQuery: "", tagOptionsExpanded: false });
       state.expandedGameTags.clear();
       syncGameControls();
       if (state.active === "games") refreshGameBrowser(); else refreshResults();
@@ -592,6 +664,7 @@ document.addEventListener("click", async (event) => {
     const entryId = event.target.closest("[data-hide]")?.dataset.hide;
     if (entryId) {
       const entry = library().entries.find((item) => item.id === entryId);
+      if (state.active === "games") { openHideMenu(event.target.closest("[data-hide]"), entry); return; }
       const confirmed = await ask({ eyebrow: "隱藏作品", title: `隱藏「${entry.title}」？`, message: "作品會從閱讀器隱藏，原始資料與收藏都會保留。可立即復原，或之後到隱藏管理恢復。", confirm: "隱藏", danger: true });
       if (confirmed) { state.payload = await window.catchList.hideEntry(state.active, entryId); render(); showToast(`已隱藏「${entry.title}」`, true); }
     }
@@ -608,7 +681,7 @@ document.addEventListener("input", (event) => {
   if (event.target.matches("[data-hidden-query]")) {
     state.hiddenQuery = event.target.value;
     const records = (state.payload.hiddenEntries ?? []).filter((entry) => entry.media === state.active);
-    const result = hiddenListMarkup(records, state.hiddenQuery);
+    const result = hiddenListMarkup(records, state.hiddenQuery, state.active === "games" ? state.hiddenReason : "all");
     app.querySelector(".hidden-list").innerHTML = result.markup;
     app.querySelector("[data-hidden-count]").textContent = `${result.count} 筆紀錄`;
     return;
@@ -624,9 +697,20 @@ document.addEventListener("input", (event) => {
   }
 });
 
-document.addEventListener("change", (event) => {
+document.addEventListener("change", async (event) => {
+  if (event.target.matches("[data-reason-filter]")) { state.hiddenReason = event.target.value; render(); return; }
+  if (event.target.matches("[data-hidden-reason]")) {
+    if (state.mutationPending) return;
+    state.mutationPending = true;
+    try { state.payload = await window.catchList.setHiddenReason(event.target.dataset.hiddenReason, event.target.value); render(); showToast("已修改隱藏原因", true); }
+    catch (error) { showToast(error.message); render(); }
+    finally { state.mutationPending = false; }
+    return;
+  }
   if (!event.target.matches("select[data-filter]")) return;
   state.filters[state.active][event.target.dataset.filter] = event.target.value;
+  const error = app.querySelector("[data-rating-error]");
+  if (error) error.textContent = ratingRangeError(state.filters.games);
   if (state.active === "games") refreshGameBrowser(); else render();
 });
 
@@ -667,7 +751,7 @@ document.addEventListener("keydown", (event) => {
 
 function viewGame(appid) {
   state.view = "all";
-  Object.assign(state.filters.games, { query: "", year: "all", month: "all", min: "0", minReviews: "0", chinese: "all", playerMode: "all", tags: [], tagQuery: "", manualOnly: "all", newOnly: false });
+  Object.assign(state.filters.games, { query: "", year: "all", month: "all", min: "0", max: "", minReviews: "0", chinese: "all", playerMode: "all", tags: [], tagQuery: "", manualOnly: "all", newOnly: false });
   const index = filteredEntries().findIndex((entry) => entry.appid === appid);
   state.visibleGameCount = Math.max(GAME_BATCH_SIZE, Math.ceil((index + 1) / GAME_BATCH_SIZE) * GAME_BATCH_SIZE);
   render();
