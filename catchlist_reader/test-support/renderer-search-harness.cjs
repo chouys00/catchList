@@ -45,6 +45,22 @@ async function focusSearch(window) {
   await window.webContents.executeJavaScript(`document.querySelector('[data-filter="query"]').focus()`);
 }
 
+async function moveSearchPointer(window, inside) {
+  const point = await window.webContents.executeJavaScript(`(() => {
+    const rect = document.querySelector('[data-action="clear-search"]').getBoundingClientRect();
+    return { x: Math.round(rect.left + rect.width / 2), y: Math.round(rect.top + rect.height / 2) };
+  })()`);
+  window.webContents.sendInputEvent({ type: "mouseMove", ...(inside ? point : { x: 1, y: 1 }) });
+  // 等待真正的 CSS transition 完成，不加入測試類別或停用動畫。
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  return window.webContents.executeJavaScript(`(() => {
+    const button = document.querySelector('[data-action="clear-search"]');
+    const halo = getComputedStyle(button, '::before');
+    return { hovered: button.matches(':hover'), background: getComputedStyle(button).backgroundColor,
+      haloOpacity: halo.opacity, haloRadius: halo.borderRadius, haloTransform: halo.transform };
+  })()`);
+}
+
 async function press(window, keyCode, modifiers = []) {
   window.focus();
   await window.webContents.executeJavaScript(`document.activeElement?.focus()`);
@@ -143,7 +159,7 @@ async function captureResponsiveQa(window) {
   for (const [name, width, height] of [["desktop", 1440, 900], ["mid", 900, 700], ["mobile", 390, 844]]) {
     window.setContentSize(width, height);
     await new Promise((resolve) => setTimeout(resolve, 300));
-    await window.webContents.executeJavaScript(`document.querySelector('[data-action="clear-search"]')?.classList.add('is-hovered')`);
+    await moveSearchPointer(window, true);
     const image = await window.webContents.capturePage();
     const filepath = path.join(outputDir, `task-5-${name}.png`);
     fs.writeFileSync(filepath, image.toPNG());
@@ -287,7 +303,7 @@ async function runCoverUpdateTest(address) {
 async function run() {
   const server = await startServer();
   const address = server.address();
-  const window = new BrowserWindow({ show: false, webPreferences: { contextIsolation: true, sandbox: true } });
+  const window = new BrowserWindow({ show: false, webPreferences: { contextIsolation: true, sandbox: true, offscreen: true, backgroundThrottling: false } });
   try {
     await window.loadURL(`http://127.0.0.1:${address.port}`);
     await window.webContents.executeJavaScript(`new Promise((resolve, reject) => {
@@ -336,13 +352,8 @@ async function run() {
     await window.webContents.insertText("你有餅嗎？");
     const chinese = await searchState(window);
     await new Promise((resolve) => setTimeout(resolve, 250));
-    await window.webContents.executeJavaScript(`document.querySelector('[data-action="clear-search"]')?.classList.add('is-hovered')`);
-    const clearHover = await window.webContents.executeJavaScript(`(() => {
-      const button = document.querySelector('[data-action="clear-search"]');
-      const buttonStyle = getComputedStyle(button);
-      const halo = getComputedStyle(button, '::before');
-      return { color: buttonStyle.color, background: buttonStyle.backgroundColor, haloOpacity: halo.opacity, haloRadius: halo.borderRadius, haloTransform: halo.transform };
-    })()`);
+    const clearHover = await moveSearchPointer(window, true);
+    const clearLeave = await moveSearchPointer(window, false);
     const clearButton = await window.webContents.executeJavaScript(`(() => {
       const input = document.querySelector('[data-filter="query"]');
       const button = document.querySelector('[data-action="clear-search"]');
@@ -513,7 +524,7 @@ async function run() {
     const largeGameBatch = await runLargeGameBatchTest(address);
     const coverUpdate = await runCoverUpdateTest(address);
 
-    process.stdout.write(`${JSON.stringify({ initialGames, typed, backspaced, insertedInMiddle, replacedSelection, chinese, clearHover, clearButton, gameBrowser, animeBeforeSearch, animeAfterSearch, animeRailCount, movieRailCount, liveAction, restoredGameSearch, clearInteraction, cleared, responsiveLayout, visualQa, largeGameBatch, coverUpdate })}\n`);
+    process.stdout.write(`${JSON.stringify({ initialGames, typed, backspaced, insertedInMiddle, replacedSelection, chinese, clearHover, clearLeave, clearButton, gameBrowser, animeBeforeSearch, animeAfterSearch, animeRailCount, movieRailCount, liveAction, restoredGameSearch, clearInteraction, cleared, responsiveLayout, visualQa, largeGameBatch, coverUpdate })}\n`);
   } finally {
     window.destroy();
     await new Promise((resolve) => server.close(resolve));

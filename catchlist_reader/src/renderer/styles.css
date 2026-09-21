@@ -43,11 +43,10 @@ button { color: inherit; }
 .content { min-width: 0; padding: 24px clamp(20px, 3vw, 48px) 64px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .section-status { min-height: 38px; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; }
-.section-summary, .section-actions { display: flex; align-items: center; gap: 12px; }
+.section-summary { display: flex; align-items: center; gap: 12px; }
 .section-status strong { color: var(--ink); font-family: var(--serif); font-size: 20px; font-weight: 500; }
 
 .toolbar { display: grid; grid-template-columns: minmax(180px, 1.5fr) repeat(2, minmax(130px, .7fr)) auto; gap: 8px; margin: 14px 0; }
-.toolbar.games { grid-template-columns: minmax(190px, 1.6fr) repeat(4, minmax(108px, .58fr)) minmax(100px, .52fr) minmax(92px, auto) auto; }
 .field { width: 100%; min-height: 38px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); color: var(--ink); padding: 0 12px; outline: none; }
 .field:focus { border-color: var(--lime); box-shadow: 0 0 0 2px color-mix(in srgb, var(--lime) 18%, transparent); }
 .button { min-height: 38px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); padding: 0 14px; cursor: pointer; }
@@ -168,7 +167,6 @@ button.game-cover:hover { border-color: var(--lime); }
 @media (min-width: 901px) and (max-width: 1200px) {
   .item.anime, .item.movies, .item.live-action { grid-template-columns: minmax(0, 1fr) auto; }
   .item .actions { grid-column: 1 / -1; }
-  .toolbar.games { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .game-column-header, .item.games { grid-template-columns: 140px minmax(130px, 1fr) 100px 82px 32px minmax(90px, 1fr) 106px; gap: 8px; }
 }
 .empty { padding: 70px 20px; border: 1px dashed var(--line); color: var(--muted); text-align: center; line-height: 1.7; }
@@ -198,8 +196,6 @@ button.game-cover:hover { border-color: var(--lime); }
   .tab { padding: 8px 13px; }
   .content { padding-top: 18px; }
   .toolbar { grid-template-columns: 1fr 1fr; }
-  .toolbar.games { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .toolbar .search { grid-column: 1 / -1; }
   .game-column-header { display: none; }
   .item, .item.anime, .item.movies, .item.games, .item.live-action { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; }
   .item > .meta, .item > .score, .item > .rating { grid-column: auto; }
@@ -233,9 +229,6 @@ button.game-cover:hover { border-color: var(--lime); }
   .content { padding: 14px 14px 56px; }
   .section-status span:last-child { display: none; }
   .toolbar { grid-template-columns: 1fr; }
-  .toolbar .search { grid-column: auto; }
-  .toolbar.games { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .toolbar.games .search { grid-column: 1 / -1; }
   .toolbar.games .field, .toolbar.games .button { min-height: 44px; }
   .tag-panel { margin-inline: -14px; padding: 14px; border-left: 0; border-right: 0; }
   .tag-panel-heading { align-items: stretch; flex-direction: column; gap: 10px; }
@@ -282,15 +275,9 @@ button.game-cover:hover { border-color: var(--lime); }
 .search-clear[hidden] { display: none; }
 .search-clear::before { content: ""; position: absolute; z-index: -1; width: 26px; height: 26px; border-radius: 50%; background: color-mix(in srgb, var(--ink) 6%, var(--surface-3)); opacity: 0; transform: scale(.92); transition: opacity 120ms ease, transform 120ms ease; }
 .search-clear svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; transition: transform 120ms ease; }
-.search-clear:hover,
-.search-clear.is-hovered { color: color-mix(in srgb, var(--muted) 84%, var(--ink)); }
-.search-clear:hover::before,
-.search-clear.is-hovered::before { opacity: 1; transform: scale(1); }
-.search-clear:hover svg,
-.search-clear.is-hovered svg { transform: scale(1.03); }
-.search-clear.is-hovered,
-.search-clear.is-hovered::before,
-.search-clear.is-hovered svg { transition: none; }
+.search-clear:hover { color: color-mix(in srgb, var(--muted) 84%, var(--ink)); }
+.search-clear:hover::before { opacity: 1; transform: scale(1); }
+.search-clear:hover svg { transform: scale(1.03); }
 .search-clear:active { color: color-mix(in srgb, var(--muted) 84%, var(--ink)); transform: scale(.94); }
 .search-clear:focus-visible { color: color-mix(in srgb, var(--muted) 84%, var(--ink)); outline: 1px solid color-mix(in srgb, var(--muted) 56%, transparent); outline-offset: -4px; border-radius: 50%; }
 .search-clear:focus-visible::before { opacity: 1; transform: scale(1); }
@@ -300,13 +287,11 @@ button.game-cover:hover { border-color: var(--lime); }
 #advancedFilters { padding: 12px 0; border-bottom: 1px solid var(--line); }
 #advancedFilters[hidden] { display: none; }
 #advancedFilters .toolbar { margin: 0; grid-template-columns: repeat(3, minmax(110px, 1fr)); }
-#advancedFilters .toolbar.games { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 #advancedFilters .tag-panel { margin: 10px 0 0; }
 .new-note { color: var(--muted); font-size: 12px; margin: 10px 0; line-height: 1.6; }
 .browse-toolbar + #advancedFilters + .list { margin-top: 10px; }
 @media (max-width: 1100px) {
   .browse-heading .update-panel summary > span:first-child { display: none; }
-  #advancedFilters .toolbar.games { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (max-width: 760px) {
   .browse-heading { flex-wrap: wrap; gap: 10px 16px; padding-bottom: 14px; }
@@ -319,7 +304,7 @@ button.game-cover:hover { border-color: var(--lime); }
   .browse-toolbar .sort-field { min-width: 0; }
   .browse-toolbar .result-count { grid-column: 1; padding: 0; }
   .browse-toolbar .batch-open { grid-column: 2 / -1; }
-  #advancedFilters .toolbar.games, #advancedFilters .toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #advancedFilters .toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 560px) {
   .content { padding-top: 6px; }

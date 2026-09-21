@@ -155,7 +155,6 @@ function reviewOptions(selected) {
 
 function advancedToolbar(data) {
   const filter = state.filters[state.active];
-  const search = "";
   if (state.active === "games") {
     const years = [...new Set(data.entries.map((entry) => entry.year))].filter(Number.isFinite).sort((a, b) => b - a);
     const months = [...new Set(data.entries.map((entry) => entry.month))].filter(Number.isFinite).sort((a, b) => a - b);
@@ -175,12 +174,12 @@ function advancedToolbar(data) {
   const years = [...new Set(data.entries.map((entry) => entry.year))].filter(Number.isFinite).sort((a, b) => b - a);
   if (state.active === "liveAction") {
     const regions = [...new Set(data.entries.map((entry) => entry.region))].sort((a, b) => a.localeCompare(b, "zh-Hant"));
-    return `<div class="toolbar">${search}<select class="field" data-filter="year" aria-label="年份">${options(years, filter.year, "所有年份")}</select><select class="field" data-filter="region" aria-label="地區">${options(regions, filter.region, "所有地區")}</select></div>`;
+    return `<div class="toolbar"><select class="field" data-filter="year" aria-label="年份">${options(years, filter.year, "所有年份")}</select><select class="field" data-filter="region" aria-label="地區">${options(regions, filter.region, "所有地區")}</select></div>`;
   }
   const third = state.active === "anime"
     ? `<select class="field" data-filter="season" aria-label="季度">${options(["春", "夏", "秋", "冬", "劇場版"], filter.season, "所有季度")}</select>`
     : `<select class="field" data-filter="category" aria-label="影片類別">${options([...new Set(data.entries.map((entry) => entry.category))].sort((a, b) => a.localeCompare(b, "zh-Hant")), filter.category, "所有類別")}</select>`;
-  return `<div class="toolbar">${search}<select class="field" data-filter="year" aria-label="年份">${options(years, filter.year, "所有年份")}</select>${third}<select class="field" data-filter="min" aria-label="最低評分">${scoreOptions(filter.min)}</select></div>`;
+  return `<div class="toolbar"><select class="field" data-filter="year" aria-label="年份">${options(years, filter.year, "所有年份")}</select>${third}<select class="field" data-filter="min" aria-label="最低評分">${scoreOptions(filter.min)}</select></div>`;
 }
 
 function activeFilterCount() {
@@ -723,8 +722,6 @@ document.addEventListener("change", async (event) => {
   }
   if (!event.target.matches("select[data-filter]")) return;
   state.filters[state.active][event.target.dataset.filter] = event.target.value;
-  const error = app.querySelector("[data-rating-error]");
-  if (error) error.textContent = ratingRangeError(state.filters.games);
   if (state.active === "games") refreshGameBrowser(); else render();
 });
 

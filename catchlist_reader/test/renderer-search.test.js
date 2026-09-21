@@ -132,6 +132,9 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
     searchCount: 1,
   });
   assert.equal(result.clearHover.background, "rgba(0, 0, 0, 0)");
+  assert.equal(result.clearHover.hovered, true);
+  assert.equal(result.clearLeave.hovered, false);
+  assert.equal(result.clearLeave.haloOpacity, "0");
   assert.equal(result.clearHover.haloOpacity, "1");
   assert.equal(result.clearHover.haloRadius, "50%");
   assert.equal(result.clearHover.haloTransform, "matrix(1, 0, 0, 1, 0, 0)");
