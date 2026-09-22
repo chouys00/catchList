@@ -58,11 +58,11 @@ test("模式篩選更新快取，與中文及收藏條件交集；圖示清楚�
     { id: "2", playerMode: "multi", chineseSupport: "supported", favorite: true },
     { id: "3", playerMode: "multi", chineseSupport: "unsupported" }, { id: "4" }];
   const query = createGameQuery();
-  assert.equal(query(entries, { playerMode: "single" }).length, 1);
-  assert.equal(query(entries, { playerMode: "multi" }).length, 2);
+  assert.equal(query(entries, { playerMode: "single" }).length, 0);
+  assert.equal(query(entries, { playerMode: "multi" }).length, 1);
   assert.equal(query(entries, { playerMode: "multi", chinese: "supported" }, "favorites")[0].id, "2");
   assert.equal(query(entries, { playerMode: "unknown" })[0].id, "4");
-  assert.equal(query(entries, { playerMode: "all" }).length, 4);
+  assert.equal(query(entries, { playerMode: "all" }).length, 2);
   const html = renderItemTemplate({ title: "測試", reviews: 100, playerMode: "multi" }, "games");
   assert.match(html, /也可能支援單人/);
   assert.match(html, /data-mode="multi"/);

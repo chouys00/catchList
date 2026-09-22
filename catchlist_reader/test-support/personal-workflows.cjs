@@ -148,8 +148,9 @@ app.whenReady().then(async () => {
   for (const media of ["games", "anime", "movies", "liveAction"]) {
     await click(`[data-media="${media}"]`);
     await click('[data-view="all"]');
+    const allCountBeforeFavorite = await js("document.querySelectorAll('.item').length");
     await click("[data-favorite]");
-    await until("document.querySelector('[data-favorite][aria-pressed=\"true\"]') !== null");
+    await until(`document.querySelectorAll('.item').length === ${allCountBeforeFavorite - 1}`);
     await click('[data-view="favorites"]');
     assert.equal(await js("document.querySelectorAll('.item').length"), 1);
     if (media === "games") await capture("favorites-desktop");

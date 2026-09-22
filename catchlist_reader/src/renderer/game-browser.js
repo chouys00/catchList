@@ -1,3 +1,5 @@
+import { entriesForView } from "./personal-ui.js";
+
 function cleanText(value) {
   return String(value ?? "").trim();
 }
@@ -141,7 +143,7 @@ export function createGameQuery() {
     }
     const key = JSON.stringify([view, filters.query, filters.year, filters.month, filters.min, filters.max, filters.minReviews, filters.chinese, filters.playerMode, filters.manualOnly, filters.newOnly, filters.sort, filters.tags]);
     if (key !== previousKey) {
-      result = filterAndSortGames(view === "favorites" ? entries.filter(entry => entry.favorite) : entries, filters, prepared);
+      result = filterAndSortGames(entriesForView(entries, view), filters, prepared);
       previousKey = key;
     }
     return result;

@@ -1,12 +1,23 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { hiddenListMarkup, updateStatusMarkup, viewNavigation } from "../src/renderer/personal-ui.js";
+import { entriesForView, hiddenListMarkup, updateStatusMarkup, viewNavigation } from "../src/renderer/personal-ui.js";
 import { renderItemTemplate } from "../src/renderer/item-template.js";
 
 test("收藏按鈕提供明確的名稱與切換狀態", () => {
   const entry = { id: "a", title: "作品", score: 8, periodLabel: "2025", episodes: "12", format: "TV", searchUrl: "https://www.google.com" };
   assert.match(renderItemTemplate(entry, "anime"), /aria-pressed="false" aria-label="加入收藏 作品"/);
   assert.match(renderItemTemplate({ ...entry, favorite: true }, "anime"), /aria-pressed="true" aria-label="取消收藏 作品"/);
+});
+
+test("已收藏作品只出現在收藏頁，不再出現在全部清單", () => {
+  const entries = [{ id: "plain", favorite: false }, { id: "saved", favorite: true }];
+  assert.deepEqual(entriesForView(entries, "all").map((entry) => entry.id), ["plain"]);
+  assert.deepEqual(entriesForView(entries, "favorites").map((entry) => entry.id), ["saved"]);
+  assert.deepEqual(entriesForView(entries, "played").map((entry) => entry.id), ["plain", "saved"]);
+
+  const markup = viewNavigation("all", "anime", entries, 0);
+  assert.match(markup, /data-view="all"[^>]*>全部<span>1<\/span>/);
+  assert.match(markup, /data-view="favorites"[^>]*>待看收藏<span>1<\/span>/);
 });
 
 test("隱藏搜尋支援大小寫，失效紀錄及名稱不會變成 HTML", () => {

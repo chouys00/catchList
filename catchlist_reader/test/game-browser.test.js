@@ -183,13 +183,13 @@ test("篩選結果跨續載重用，條件、收藏與新快照變更後重新�
   const source = entries.map((entry, i) => ({ ...entry, favorite: i === 0, isNew: i === 1 }));
   const filters = { sort: "score", tags: [] };
   const first = query(source, filters);
-  assert.deepEqual(first, filterAndSortGames(source, filters));
+  assert.deepEqual(first, filterAndSortGames(source.filter(e => !e.favorite), filters));
   assert.equal(query(source, { ...filters, tagsOpen: true }), first);
   assert.deepEqual(query(source, filters, "favorites"), filterAndSortGames(source.filter(e => e.favorite), filters));
   for (const change of [{ query: "牌組" }, { tags: ["策略"] }, { year: "2026" }, { minReviews: "20000" }, { newOnly: true }, { chinese: "supported" }, { sort: "reviews" }, { manualOnly: "manual" }]) {
     const next = { ...filters, ...change };
-    assert.deepEqual(query(source, next), filterAndSortGames(source, next));
+    assert.deepEqual(query(source, next), filterAndSortGames(source.filter(e => !e.favorite), next));
   }
   const nextSource = source.map(e => ({ ...e, title: "更名", favorite: !e.favorite }));
-  assert.deepEqual(query(nextSource, { query: "更名" }), filterAndSortGames(nextSource, { query: "更名" }));
+  assert.deepEqual(query(nextSource, { query: "更名" }), filterAndSortGames(nextSource.filter(e => !e.favorite), { query: "更名" }));
 });

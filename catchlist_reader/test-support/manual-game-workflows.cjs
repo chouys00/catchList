@@ -83,7 +83,9 @@ app.whenReady().then(async () => {
   await click('[data-panel-save]'); await until('!document.querySelector("#manualGameDialog")');
   assert.ok(await js('!!document.querySelector("[data-game-row=\\"123\\"] .manual-source")'));
   assert.equal(await js('document.querySelector("[data-filter=query]").value'), "");
-  await click('[data-game-row="123"] [data-favorite]'); await until('document.querySelector("[data-game-row=\\"123\\"] [data-favorite]").getAttribute("aria-pressed") === "true"');
+  await click('[data-game-row="123"] [data-favorite]'); await until('!document.querySelector("[data-game-row=\\"123\\"]")');
+  await click('[data-view="favorites"]');
+  assert.equal(await js('document.querySelector("[data-game-row=\\"123\\"] [data-favorite]").getAttribute("aria-pressed")'), "true");
   await click('[data-game-row="123"] [data-hide]'); await click('[data-reason="played"]');
   await until('!document.querySelector("[data-game-row=\\"123\\"]")');
   await openPanel(); await preview("123"); assert.equal(await js('document.querySelector("[data-panel-save]").textContent'), "恢復並查看");
@@ -91,7 +93,7 @@ app.whenReady().then(async () => {
   assert.equal(await js('document.querySelector("[data-game-row=\\"123\\"] [data-favorite]").getAttribute("aria-pressed")'), "true");
   await click('[data-action="toggle-filters"]'); await select("manualOnly", "manual"); assert.equal(await js('document.querySelectorAll(".item.games").length'), 1);
   await select("min", "85"); assert.equal(await js('document.querySelectorAll(".item.games").length'), 0);
-  await click('[data-action="clear-filters"]'); assert.equal(await js('document.querySelectorAll(".item.games").length'), 8);
+  await click('[data-action="clear-filters"]'); assert.equal(await js('document.querySelectorAll(".item.games").length'), 1);
   for (const width of [1440, 1024, 390]) {
     win.setContentSize(width, 900); await js('window.scrollTo(0, 0)'); await new Promise((r) => setTimeout(r, 100));
     assert.equal(await js('document.documentElement.scrollWidth > innerWidth'), false);
@@ -118,9 +120,10 @@ app.whenReady().then(async () => {
     assert.equal(await js('!!document.querySelector(".batch-open")'), true);
   }
   await click('[data-media="games"]'); await until('!!document.querySelector("[data-action=add-game]")');
-  win.reload(); await until('document.querySelectorAll(".item.games").length === 8');
+  win.reload(); await until('document.querySelectorAll(".item.games").length === 7');
   assert.equal(lib.loadLibrary(temp, "games").entries.find((e) => e.appid === "123").favorite, true);
   assert.equal(fs.readFileSync(path.join(temp, "遊戲.md"), "utf8"), fixture);
+  await click('[data-view="favorites"]');
   await click('[data-game-row="123"] [data-delete]'); await until('document.querySelector("#confirmDialog").open');
   assert.match(await js('document.querySelector("#dialogMessage").textContent'), /手動清單/);
   await click('#dialogConfirm'); await until('!document.querySelector("[data-game-row=\\"123\\"]")');
