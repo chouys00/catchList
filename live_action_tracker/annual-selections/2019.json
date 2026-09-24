@@ -1,0 +1,335 @@
+{
+  "year": 2019,
+  "selectedAt": "2026-09-23",
+  "researchAsOf": "2026-09-23",
+  "status": "curated",
+  "yearBasis": "作品或本季在原產地首次播出的年份；非臺灣上架年份，也非完結年份。",
+  "selectionMethod": "AI 參考公開在地口碑、創作代表性與年度話題選出五區各10部；排列不代表名次，IMDb不參與入選。",
+  "editorialNotes": "兼顧社會議題與日常生活劇；愛的迫降、棒球大聯盟、想見你及鏡子森林依首播年列在 2019。",
+  "imdbDataNote": "本次新增作品未填入未經查證的IMDb分數、票數或連結；報告顯示資料不足。",
+  "researchSources": {
+    "kr": [
+      "https://www.cinemaescapist.com/2019/12/best-korean-dramas-2019/",
+      "https://10mag.com/10-korean-dramas-from-2019-you-must-watch/"
+    ],
+    "jp": [
+      "https://uptogo.com.tw/娛樂/電視劇/2019日劇推薦/",
+      "https://www.tv-tokyo.co.jp/plus/drama/entry/2019/020907.html",
+      "https://dramablog.cinemarev.net/bestdrama2019-7.html",
+      "https://wiki.d-addicts.com/Dakara_Watashi_wa_Oshimashita"
+    ],
+    "tw": [
+      "https://en.wikipedia.org/wiki/List_of_Taiwanese_dramas_from_2011_to_2020"
+    ],
+    "cn": [
+      "https://zh.wikipedia.org/wiki/中国大陆电视剧列表_(2019年)",
+      "https://www.programbank.co.jp/gallery/3240/"
+    ],
+    "western": [
+      "https://www.afi.com/award/afi-awards-2019/",
+      "https://time.com/5736515/best-tv-shows-2019/"
+    ]
+  },
+  "selections": [
+    {
+      "region": "kr",
+      "title": "山茶花開時",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "愛的迫降",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "棒球大聯盟",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "李屍朝鮮 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "德魯納酒店",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "耀眼",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "他人即地獄",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "浪漫的體質",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "偶然發現的一天",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "熱血司祭 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "凪的新生活",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "昨日的美食 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "東京大飯店",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "我要準時下班",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "我的事說來話長",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "3年A班－從此刻起，大家都是我的人質－",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "輪到你了",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "這筆經費不能報銷！",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "G弦上的你和我",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "所以我推她",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "我們與惡的距離",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "俗女養成記",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "想見你",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "噬罪者",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "最佳利益",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "用九柑仔店",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "鏡子森林",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "魂囚西門",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "生死接線員",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "苦力",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "陳情令",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "長安十二時辰",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "慶餘年 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "大宋少年志",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "小歡喜",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "都挺好",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "宸汐緣",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "致我們暖暖的小時光",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "破冰行動",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "鶴唳華亭",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Chernobyl",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The Crown 第3季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Fosse/Verdon",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Fleabag 第2季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Pose 第2季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Succession 第2季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Unbelievable",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Veep 第7季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Watchmen",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "When They See Us",
+      "imdbScore": null,
+      "imdbVotes": null
+    }
+  ]
+}

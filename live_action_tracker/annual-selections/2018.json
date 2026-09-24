@@ -1,0 +1,329 @@
+{
+  "year": 2018,
+  "selectedAt": "2026-09-23",
+  "researchAsOf": "2026-09-23",
+  "status": "curated",
+  "yearBasis": "作品或本季在原產地首次播出的年份；非臺灣上架年份，也非完結年份。",
+  "selectionMethod": "AI 參考公開在地口碑、創作代表性與年度話題選出五區各10部；排列不代表名次，IMDb不參與入選。",
+  "editorialNotes": "保留家庭、女性處境與犯罪題材的不同表現；天空之城、知否以首次播出的 2018 年歸檔。",
+  "imdbDataNote": "本次新增作品未填入未經查證的IMDb分數、票數或連結；報告顯示資料不足。",
+  "researchSources": {
+    "kr": [
+      "https://www.soompi.com/article/1287269wpp/top-10-buzzworthy-dramas-2018"
+    ],
+    "jp": [
+      "https://www.ptt.cc/bbs/Japandrama/M.1545742238.A.118.html"
+    ],
+    "tw": [
+      "https://en.wikipedia.org/wiki/List_of_Taiwanese_dramas_from_2011_to_2020"
+    ],
+    "cn": [
+      "https://www.sohu.com/a/284621985_120023712"
+    ],
+    "western": [
+      "https://www.afi.com/award/afi-awards-2018/"
+    ]
+  },
+  "selections": [
+    {
+      "region": "kr",
+      "title": "我的大叔",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "陽光先生",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "天空之城",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "Live",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "火星生活",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "客：The Guest",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "金秘書為何那樣",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "經常請吃飯的漂亮姐姐",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "百日的郎君",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "過來抱抱我",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "法醫女王",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "我是大哥大！！",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "dele 刪除人生",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "99.9 不可能的翻案 第2季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "EERIE 看不見的臉",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "信用詐欺師JP",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "大叔的愛",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "情色小說家",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "女子的生活",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "無法成為野獸的我們",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "姊的時代",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "翻牆的記憶",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "1006的房客",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "台北歌手",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "人際關係事務所",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "奇蹟的女兒",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "你的孩子不是你的孩子",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "憤怒的菩薩",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "雙城故事",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "20之後",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "大江大河",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "天盛長歌",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "延禧攻略",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "如懿傳",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "香蜜沉沉燼如霜",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "知否知否應是綠肥紅瘦",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "忽而今夏",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "北京女子圖鑑",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "悍城",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "最美的青春",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The Americans 第6季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The Assassination of Gianni Versace: American Crime Story",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Atlanta 第2季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Barry 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Better Call Saul 第4季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The Kominsky Method 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The Marvelous Mrs. Maisel 第2季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Pose 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Succession 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "This Is Us 第3季",
+      "imdbScore": null,
+      "imdbVotes": null
+    }
+  ]
+}

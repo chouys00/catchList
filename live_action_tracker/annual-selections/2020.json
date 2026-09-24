@@ -1,0 +1,331 @@
+{
+  "year": 2020,
+  "selectedAt": "2026-09-23",
+  "researchAsOf": "2026-09-23",
+  "status": "curated",
+  "yearBasis": "作品或本季在原產地首次播出的年份；非臺灣上架年份，也非完結年份。",
+  "selectionMethod": "AI 參考公開在地口碑、創作代表性與年度話題選出五區各10部；排列不代表名次，IMDb不參與入選。",
+  "editorialNotes": "納入懸疑、醫療、勞動與親密關係題材；大江大河2 依 2020 年首播歸檔。",
+  "imdbDataNote": "本次新增作品未填入未經查證的IMDb分數、票數或連結；報告顯示資料不足。",
+  "researchSources": {
+    "kr": [
+      "https://www.scmp.com/lifestyle/k-pop/k-drama/article/3115289/top-10-k-dramas-2020-start-uncanny-counter"
+    ],
+    "jp": [
+      "https://zh.wikipedia.org/wiki/日本劇集列表_(2020年)",
+      "https://www.harpersbazaar.com/tw/culture/drama/g23443340/2020-autumn-japanese-drama/"
+    ],
+    "tw": [
+      "https://en.wikipedia.org/wiki/List_of_Taiwanese_dramas_from_2011_to_2020",
+      "https://www.dramaqueen.com.tw/features/20201230/002.html"
+    ],
+    "cn": [
+      "https://www.sohu.com/a/436805896_99969801"
+    ],
+    "western": [
+      "https://www.afi.com/award/afi-awards-2020/"
+    ]
+  },
+  "selections": [
+    {
+      "region": "kr",
+      "title": "機智醫生生活 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "惡之花",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "雖然是精神病但沒關係",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "秘密森林 第2季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "人性課外課",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "梨泰院Class",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "Sweet Home 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "驅魔麵館 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "夫婦的世界",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "重返18歲",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "半澤直樹 第2季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "MIU404",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "如果30歲還是處男，似乎就能成為魔法師",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "今際之國的闖關者 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "戀愛可以持續到天長地久",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "我的家政夫渚先生",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "忒修斯之船",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "#遠端戀愛",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "姐姐的戀人",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "麒麟來了",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "國際橋牌社",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "彼岸之嫁",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "覆活",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "妖怪人間",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "若是一個人",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "誰是被害者",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "做工的人",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "路～台灣快線～",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "我的婆婆怎麼那麼可愛",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "浪漫輸給你",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "沉默的真相",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "隱秘的角落",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "棋魂",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "隱秘而偉大",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "摩天大樓",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "我是餘歡水",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "鬼吹燈之龍嶺迷窟",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "三十而已",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "大江大河2",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "裝台",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Better Call Saul 第5季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Bridgerton 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The Crown 第4季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The Good Lord Bird",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Lovecraft Country",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The Mandalorian 第2季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Mrs. America",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The Queen’s Gambit",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Ted Lasso 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Unorthodox",
+      "imdbScore": null,
+      "imdbVotes": null
+    }
+  ]
+}

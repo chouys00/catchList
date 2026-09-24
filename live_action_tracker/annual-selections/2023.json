@@ -1,0 +1,336 @@
+{
+  "year": 2023,
+  "selectedAt": "2026-09-23",
+  "researchAsOf": "2026-09-23",
+  "status": "curated",
+  "yearBasis": "作品或本季在原產地首次播出的年份；非臺灣上架年份，也非完結年份。",
+  "selectionMethod": "AI 參考公開在地口碑、創作代表性與年度話題選出五區各10部；排列不代表名次，IMDb不參與入選。",
+  "editorialNotes": "保留犯罪、勞動與社會議題等年度代表作；繁花依 2023 年12月首播歸檔；歐美排除真人實境節目 Jury Duty，另選劇情影集。",
+  "imdbDataNote": "本次新增作品未填入未經查證的IMDb分數、票數或連結；報告顯示資料不足。",
+  "researchSources": {
+    "kr": [
+      "https://www.nme.com/features/best-korean-dramas-kdramas-series-of-the-year-2023-nme-3558193"
+    ],
+    "jp": [
+      "https://marujapanese.com/2023ranking-japanese-dramas/",
+      "https://bangumi.tv/real/tag/日剧/airtime/2023?sort=collects",
+      "https://www.ptt.cc/bbs/Japandrama/M.1704108887.A.978.html"
+    ],
+    "tw": [
+      "https://news.tvbs.com.tw/entertainment/2345298",
+      "https://woman.tvbs.com.tw/entertainment/39798",
+      "https://goldenhorse.org.tw/fpp/completed/detail/11006"
+    ],
+    "cn": [
+      "https://www.beauty321.com/post/59465",
+      "https://zh.wikipedia.org/wiki/中国大陆电视剧列表_(2023年)"
+    ],
+    "western": [
+      "https://www.afi.com/award/afi-awards-2023/",
+      "https://www.vogue.com/article/best-tv-2023/",
+      "https://editorial.rottentomatoes.com/guide/best-tv-series-2023/"
+    ]
+  },
+  "selections": [
+    {
+      "region": "kr",
+      "title": "Moving 異能",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "壞媽媽",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "戀人",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "模範計程車 第2季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "惡鬼",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "精神病房也會迎來清晨",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "浪漫速成班",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "死期將至",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "與惡魔有約",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "假面女郎",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "重啟人生",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "VIVANT",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "0.5的男人",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "相撲聖域",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "Last Man－全盲搜查官－",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "最喜歡的花",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "一兆遊戲",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "獻給國王的無名指",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "昨日的美食 第2季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "下剋上球兒",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "人選之人—造浪者",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "模仿犯",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "八尺門的辯護人",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "有生之年",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "牛車來去",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "此時此刻",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "親愛壞蛋",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "地獄里長",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "不良執念清除師",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "台灣犯罪故事",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "漫長的季節",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "狂飆",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "去有風的地方",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "三體",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "蓮花樓",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "古相思曲",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "繁花",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "我有一個朋友",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "故鄉，別來無恙",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "長相思 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The Diplomat 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The Bear 第2季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Beef",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Slow Horses 第3季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The Last of Us 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The Morning Show 第3季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Only Murders in the Building 第3季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Poker Face 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Reservation Dogs 第3季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Succession 第4季",
+      "imdbScore": null,
+      "imdbVotes": null
+    }
+  ]
+}

@@ -1,0 +1,329 @@
+{
+  "year": 2016,
+  "selectedAt": "2026-09-23",
+  "researchAsOf": "2026-09-23",
+  "status": "curated",
+  "yearBasis": "作品或本季在原產地首次播出的年份；非臺灣上架年份，也非完結年份。",
+  "selectionMethod": "AI 參考公開在地口碑、創作代表性與年度話題選出五區各10部；排列不代表名次，IMDb不參與入選。",
+  "editorialNotes": "以在地年度回顧為基礎，納入植劇場及類型劇創作；跨年劇依首播年歸檔，天黑請閉眼列在 2016。",
+  "imdbDataNote": "本次新增作品未填入未經查證的IMDb分數、票數或連結；報告顯示資料不足。",
+  "researchSources": {
+    "kr": [
+      "https://www.allkpop.com/article/2026/09/10-years-later-the-best-k-dramas-of-2016-that-remain-unforgettable-to-this-day"
+    ],
+    "jp": [
+      "https://www.jiemian.com/article/1043864.html"
+    ],
+    "tw": [
+      "https://en.wikipedia.org/wiki/List_of_Taiwanese_dramas_from_2011_to_2020"
+    ],
+    "cn": [
+      "https://www.sohu.com/a/123335766_464310"
+    ],
+    "western": [
+      "https://www.afi.com/press/afi_awards_2016_announced/"
+    ]
+  },
+  "selections": [
+    {
+      "region": "kr",
+      "title": "信號",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "孤單又燦爛的神－鬼怪",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "太陽的後裔",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "浪漫醫生金師傅 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "又，吳海英",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "舉重妖精金福珠",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "青春時代 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "月之戀人－步步驚心：麗",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "雲畫的月光",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "W－兩個世界",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "火花",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "家族的形式",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "重版出來！",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "寬鬆世代又如何",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "當家姐姐",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "真田丸",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "不落的太陽",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "逃避雖可恥但有用",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "我的恐怖妻子",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "黑暗中的十個女人",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "植劇場－戀愛沙塵暴",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "植劇場－荼蘼",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "植劇場－姜老師，妳談過戀愛嗎？",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "植劇場－天黑請閉眼",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "紫色大稻埕",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "遺憾拼圖",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "滾石愛情故事",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "1989一念間",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "後菜鳥的燦爛時代",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "我和我的十七歲",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "一起同過窗 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "最好的我們",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "鬼吹燈之精絕古城",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "遇見王瀝川",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "餘罪 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "上癮",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "靈魂擺渡3",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "小別離",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "如果蝸牛有愛情",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "歡樂頌 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The Americans 第4季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Atlanta 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Better Call Saul 第2季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The Crown 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Game of Thrones 第6季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The Night Of",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The People v. O. J. Simpson: American Crime Story",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Stranger Things 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "This Is Us 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Veep 第5季",
+      "imdbScore": null,
+      "imdbVotes": null
+    }
+  ]
+}

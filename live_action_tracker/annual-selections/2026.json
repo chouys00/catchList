@@ -1,0 +1,338 @@
+{
+  "year": 2026,
+  "selectedAt": "2026-09-23；截至當日暫選，非全年定稿",
+  "researchAsOf": "2026-09-23",
+  "status": "provisional",
+  "yearBasis": "作品或本季在原產地首次播出的年份；非臺灣上架年份，也非完結年份。",
+  "selectionMethod": "AI 參考公開在地口碑、創作代表性與年度話題選出五區各10部；排列不代表名次，IMDb不參與入選。",
+  "editorialNotes": "截至 2026-09-23 的暫選，依已播出作品與年中評論整理，不代表全年定稿；年底需重新研究並經人工確認後更新，既有年度不會自動覆寫。",
+  "imdbDataNote": "本次新增作品未填入未經查證的IMDb分數、票數或連結；報告顯示資料不足。",
+  "researchSources": {
+    "kr": [
+      "https://www.beauty321.com/post/72760",
+      "https://news.tvbs.com.tw/entertainment/3264323",
+      "https://www.soompi.com/article/1847188wpp/2026-k-drama-masterlist"
+    ],
+    "jp": [
+      "https://www.oricon.co.jp/pressrelease/2902025/"
+    ],
+    "tw": [
+      "https://woman.tvbs.com.tw/entertainment/65871",
+      "https://zh.wikipedia.org/wiki/都市開基祖",
+      "https://www.cht.com.tw/zh-tw/home/cht/messages/2026/0716-1720",
+      "https://www.cna.com.tw/news/amov/202606170328.aspx"
+    ],
+    "cn": [
+      "https://finance.sina.cn/2026-07-12/detail-inihpymz2834750.d.html",
+      "https://www.sina.cn/news/detail/5335851237113935.html",
+      "https://dramawanderlust.com/best-cdramas-2026/"
+    ],
+    "western": [
+      "https://www.marieclaire.com/culture/tv-shows/best-tv-shows-2026/",
+      "https://www.tomsguide.com/entertainment/streaming/i-review-tv-shows-for-a-living-and-these-are-the-10-shows-from-2026-id-actually-recommend-streaming-right-now",
+      "https://www.tvline.com/2183359/2026-best-tv-shows/"
+    ]
+  },
+  "selections": [
+    {
+      "region": "kr",
+      "title": "鐵拳教育",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "菜鳥伙房兵",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "我的王室死對頭",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "稻草人",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "努力克服自卑的我們",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "柔美的細胞小將 第3季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "愛情怎麼翻譯？",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "莎拉的真偽人生",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "Girigo：奪命許願",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "kr",
+      "title": "21世紀大君夫人",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "憧れの作家は人間じゃありませんでした",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "銀河の一票",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "テミスの不確かな法廷",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "九条の大罪",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "リブート",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "未来のムスコ",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "豊臣兄弟！",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "ちるらん 新撰組鎮魂歌 京都決戦篇",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "時計館の殺人",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "jp",
+      "title": "魯山人のかまど",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "欠妳的那場婚禮",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "乩身",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "人生只租不賣",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "凶宅專賣店",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "何百芮的地獄戀曲",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "動物園",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "向流星許願的我們",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "百萬人推理",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "都市開基祖",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "tw",
+      "title": "成名在望",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "太平年",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "生命樹",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "主角",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "低智商犯罪",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "家業",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "純真年代的愛情",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "逐玉",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "成何體統",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "軋戲",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "cn",
+      "title": "唐宮奇案之青霧風鳴",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The Pitt 第2季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Industry 第4季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "A Knight of the Seven Kingdoms 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Love Story: John F. Kennedy Jr. & Carolyn Bessette",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Hacks 第5季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "The Testaments 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Margo’s Got Money Troubles",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Widow’s Bay 第1季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Paradise 第2季",
+      "imdbScore": null,
+      "imdbVotes": null
+    },
+    {
+      "region": "western",
+      "title": "Shrinking 第3季",
+      "imdbScore": null,
+      "imdbVotes": null
+    }
+  ]
+}
