@@ -76,7 +76,7 @@ test("預覽不寫檔，確認防重複、資料夾切換與外部修改，隱�
   const service = new ManualGameService({ lookup: async (id) => game(id), now: () => Date.parse(game().addedAt) });
   const preview = await service.prepare(dir, "123"); assert.equal(readManualGames(dir).entries.length, 0);
   assert.throws(() => service.commit(other, preview.token), /失效/);
-  service.commit(dir, preview.token); assert.throws(() => service.commit(dir, preview.token), /失效/);
+  service.commit(dir, preview.token, "favorites"); assert.throws(() => service.commit(dir, preview.token), /失效/);
   const entry = loadLibrary(dir, "games").entries[0]; hideEntry(dir, "games", entry.id);
   assert.equal((await service.prepare(dir, "123")).duplicate.hidden, true);
   const second = new ManualGameService({ lookup: async (id) => game(id) });
@@ -90,6 +90,51 @@ test("取消遲到的預覽不能確認加入", async (t) => {
   const service = new ManualGameService({ lookup: () => new Promise((done) => { resolve = done; }) });
   const request = service.prepare(dir, "123"); service.cancel(); resolve(game());
   await assert.rejects(request, /取消/); assert.equal(readManualGames(dir).entries.length, 0);
+});
+
+test("新增必須選候補或收藏，分類與手動資料一起保存", async (t) => {
+  for (const destination of ["backlog", "favorites"]) {
+    const dir = fixture(t);
+    const service = new ManualGameService({ lookup: async () => game() });
+    const preview = await service.prepare(dir, "123");
+    assert.throws(() => service.commit(dir, preview.token, "all"), /候補或收藏/);
+    assert.equal(readManualGames(dir).entries.length, 0);
+    service.commit(dir, preview.token, destination);
+    assert.equal(readManualGames(dir).entries.length, 1);
+    if (destination === "backlog") {
+      assert.equal(loadLibrary(dir, "games").entries.length, 0);
+      assert.equal(loadHiddenEntries(dir)[0].reason, "backlog");
+    } else assert.equal(loadLibrary(dir, "games").entries[0].favorite, true);
+    deleteEntry(dir, "games", `manual-123`);
+    const second = new ManualGameService({ lookup: async () => game() });
+    const again = await second.prepare(dir, "123");
+    second.commit(dir, again.token, destination === "backlog" ? "favorites" : "backlog");
+    if (destination === "backlog") {
+      assert.equal(loadLibrary(dir, "games").entries[0].favorite, true);
+      assert.equal(loadHiddenEntries(dir).length, 0);
+    } else {
+      assert.equal(loadHiddenEntries(dir)[0].reason, "backlog");
+      assert.equal(loadHiddenEntries(dir)[0].entry.favorite, false);
+    }
+  }
+});
+
+test("新增兩檔寫入失敗及中斷可復原原本不存在的檔案", (t) => {
+  const dir = fixture(t);
+  const changes = [
+    { name: MANUAL_GAMES_FILE, before: null, after: "manual" },
+    { name: ".catchlist-hidden.json", before: null, after: "hidden" },
+  ];
+  let count = 0;
+  assert.throws(() => commitGameFiles(dir, changes, (file, text) => {
+    if (++count === 2) throw new Error("模擬磁碟失敗");
+    atomicText(file, text);
+  }), /磁碟失敗/);
+  assert.deepEqual(fs.readdirSync(dir), []);
+  fs.writeFileSync(path.join(dir, ".catchlist-game-transaction.json"), JSON.stringify(changes));
+  fs.writeFileSync(path.join(dir, MANUAL_GAMES_FILE), "manual");
+  recoverGameTransaction(dir);
+  assert.deepEqual(fs.readdirSync(dir), []);
 });
 
 test("輸入僅接受 Steam AppID 與商店網址，不接受任意網域", () => {

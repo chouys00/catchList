@@ -12,13 +12,17 @@ export function openManualGamePanel({ onSaved, onView }) {
     <form id="manualGameLookup"><label for="steamGameInput">Steam ID 或商店網址</label><input id="steamGameInput" class="field" autocomplete="off" placeholder="例如 413150 或 Steam 商店網址" required maxlength="2048"><button class="button" type="submit">讀取遊戲</button></form>
     <p class="manual-status" role="status" aria-live="polite"></p><div class="manual-preview"></div>
     <p class="manual-data-note">保留加入時的資料，本版不自動更新。手動清單會與報告放在同一個資料夾。</p></div>
-    <footer class="manual-panel-footer"><button class="button subtle" type="button" data-panel-close>取消</button><button class="button primary" type="button" data-panel-save disabled>加入清單</button></footer>`;
+    <footer class="manual-panel-footer"><fieldset class="manual-destination" hidden><legend>加入哪個清單？</legend><div class="manual-destination-options"><label><input type="radio" name="destination" value="backlog" checked><span><strong>候補</strong><small>有興趣，先留著</small></span></label><label><input type="radio" name="destination" value="favorites"><span><strong>收藏</strong><small>想玩，排進待玩清單</small></span></label></div></fieldset><div class="manual-panel-actions"><button class="button subtle" type="button" data-panel-close>取消</button><button class="button primary" type="button" data-panel-save disabled>加入清單</button></div></footer>`;
   document.body.append(panel);
   const form = panel.querySelector("form");
   const input = panel.querySelector("input");
   const status = panel.querySelector(".manual-status");
   const preview = panel.querySelector(".manual-preview");
   const save = panel.querySelector("[data-panel-save]");
+  const destination = panel.querySelector(".manual-destination");
+  const selectedDestination = () => destination.querySelector("input:checked").value;
+  const destinationLabel = () => selectedDestination() === "backlog" ? "候補" : "收藏";
+  destination.addEventListener("change", () => { save.textContent = `加入${destinationLabel()}`; });
   let generation = 0;
   let result = null;
   let saving = false;
@@ -50,14 +54,14 @@ export function openManualGamePanel({ onSaved, onView }) {
   });
   panel.querySelectorAll("[data-panel-close]").forEach((button) => button.addEventListener("click", close));
   input.addEventListener("input", () => {
-    generation++; result = null; save.disabled = true; preview.innerHTML = ""; status.textContent = "";
+    generation++; result = null; save.disabled = true; preview.innerHTML = ""; status.textContent = ""; destination.hidden = true; save.textContent = "加入清單";
     form.querySelector("button").disabled = false;
     void window.catchList.cancelGamePreview?.().catch(() => {});
   });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const run = ++generation;
-    result = null; save.disabled = true; preview.innerHTML = "";
+    result = null; save.disabled = true; preview.innerHTML = ""; destination.hidden = true;
     status.classList.remove("failed"); status.textContent = "正在讀取 Steam 資料…";
     form.querySelector("button").disabled = true;
     try {
@@ -74,10 +78,10 @@ export function openManualGamePanel({ onSaved, onView }) {
         return;
       }
       const game = response.game;
-      status.textContent = "確認是這款遊戲後，即可加入清單。";
+      status.textContent = "確認遊戲後，選擇加入候補或收藏。";
       const rating = game.reviews === null ? "評論讀取失敗" : game.reviews === 0 ? "尚無評論" : `${game.score}% 好評 · ${game.reviews.toLocaleString()} 則評論`;
       preview.innerHTML = `<div class="manual-cover-slot"></div><span class="manual-source">手動加入</span><h3>${escape(game.title)}</h3><dl><dt>發售資訊</dt><dd>${escape(game.releaseLabel)}</dd><dt>玩家評價</dt><dd>${rating}</dd><dt>中文支援</dt><dd>${({ supported: "支援中文", unsupported: "不支援中文", unknown: "待確認" })[game.chineseSupport]}</dd></dl>${game.warnings?.length ? `<p class="manual-warning">${game.warnings.map(escape).join("<br>")}</p>` : ""}`;
-      save.textContent = "加入清單"; save.disabled = false;
+      destination.hidden = false; save.textContent = `加入${destinationLabel()}`; save.disabled = false;
       // 封面不阻擋新增；沿用既有安全封面解析與快取。
       void window.catchList.resolveGameCovers?.([game.appid]).then((covers) => {
         const url = covers[game.appid];
@@ -101,10 +105,11 @@ export function openManualGamePanel({ onSaved, onView }) {
         const appid = result.duplicate.entry.appid;
         saving = false; restoreFocus = false; close(); onView(appid); return;
       }
-      const payload = await window.catchList.addGame(result.token);
+      const payload = await window.catchList.addGame(result.token, selectedDestination());
       onSaved(payload);
       savedAppid = payload.addedAppid;
-      status.classList.remove("failed"); status.textContent = "已加入清單。原有搜尋與篩選已保留。";
+      status.classList.remove("failed"); status.textContent = `已加入${destinationLabel()}。原有搜尋與篩選已保留。`;
+      destination.hidden = true;
       save.textContent = "查看新增遊戲";
       form.hidden = true;
       panel.querySelectorAll("[data-panel-close]").forEach((button) => { button.textContent = "關閉"; });

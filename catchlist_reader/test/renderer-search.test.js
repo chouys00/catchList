@@ -125,6 +125,12 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
   assert.equal(result.animeAfterSearch.resultCount, "1 筆結果");
   assert.equal(result.animeRailCount, 0);
   assert.equal(result.movieRailCount, 0);
+  for (const resultForTitle of [result.animeTitleActions, result.movieTitleActions, result.liveActionTitleActions]) {
+    assert.equal(resultForTitle.copied, resultForTitle.title);
+    assert.equal(resultForTitle.opened, `https://www.google.com/search?q=${encodeURIComponent(resultForTitle.title)}`);
+  }
+  assert.equal(result.animeTitleActions.toast, "已複製作品名稱");
+  assert.equal(result.liveActionTitleActions.imdbButton, "開啟 IMDb");
   assert.deepEqual(result.liveAction, {
     itemCount: 3,
     hideCount: 3,

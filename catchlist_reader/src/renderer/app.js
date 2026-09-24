@@ -700,10 +700,10 @@ document.addEventListener("click", async (event) => {
     if (action === "undo") { const result = await window.catchList.undoLastOperation(); state.payload = result; toast.classList.remove("show"); render(); showToast(`已復原「${result.restored.title}」`); }
     const copyTitleId = event.target.closest("[data-copy-title]")?.dataset.copyTitle;
     if (copyTitleId) {
-      const entry = library("games").entries.find((item) => item.id === copyTitleId);
+      const entry = library().entries.find((item) => item.id === copyTitleId);
       if (!entry) throw new Error("作品已變更，請重新讀取");
-      await window.catchList.copyText(formatGameTitleCopyText(entry.title, entry.originalTitle));
-      showToast("已複製遊戲名稱");
+      await window.catchList.copyText(state.active === "games" ? formatGameTitleCopyText(entry.title, entry.originalTitle) : entry.title);
+      showToast(state.active === "games" ? "已複製遊戲名稱" : "已複製作品名稱");
       return;
     }
     const openUrl = event.target.closest("[data-open]")?.dataset.open;
@@ -799,7 +799,8 @@ document.addEventListener("keydown", (event) => {
 function viewGame(appid) {
   state.catalogSearch = false;
   const entry = library("games").entries.find((item) => item.appid === appid);
-  state.view = entry?.favorite ? "favorites" : "all";
+  const hidden = state.payload.hiddenEntries.find((item) => item.media === "games" && item.entry?.appid === appid);
+  state.view = hidden ? hidden.reason ?? "played" : entry?.favorite ? "favorites" : "all";
   Object.assign(state.filters.games, { query: "", year: "all", month: "all", min: "0", max: "", minReviews: "0", chinese: "all", playerMode: "all", tags: [], tagQuery: "", manualOnly: "all", newOnly: false });
   const index = filteredEntries().findIndex((entry) => entry.appid === appid);
   state.visibleGameCount = Math.max(GAME_BATCH_SIZE, Math.ceil((index + 1) / GAME_BATCH_SIZE) * GAME_BATCH_SIZE);

@@ -140,6 +140,8 @@ button.game-cover:hover { border-color: var(--lime); }
 .title strong { display: block; font-family: var(--serif); font-size: 17px; font-weight: 500; overflow-wrap: anywhere; }
 .title small, .meta { color: var(--muted); font-size: 12px; }
 .game-title-actions { display: flex; align-items: flex-start; gap: 4px; min-width: 0; }
+.title-actions .game-title-actions { align-items: center; }
+.title-actions .copy-title-button { margin-top: 0; }
 .game-title-link { width: fit-content; max-width: 100%; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
 .game-title-link .title-primary { display: inline; font-family: var(--serif); font-size: 17px; font-weight: 500; line-height: 1.35; overflow-wrap: anywhere; text-decoration: underline; text-decoration-color: transparent; text-decoration-thickness: 1px; text-underline-offset: 4px; transition: color 140ms ease, text-decoration-color 140ms ease; }
 .game-title-cell > small { display: block; margin-top: 3px; line-height: 1.35; }
@@ -373,6 +375,18 @@ button.game-cover:hover { border-color: var(--lime); }
 .manual-preview dd { margin: 0; overflow-wrap: anywhere; }
 .manual-warning { padding: 12px; border-left: 2px solid var(--danger); background: var(--surface-3); font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
 .manual-panel-footer { border-top: 1px solid var(--line); }
+.manual-panel-footer { flex-direction: column; align-items: stretch; }
+.manual-panel-actions { display: flex; gap: 16px; }
+.manual-destination { margin: 0; padding: 0; border: 0; min-width: 0; }
+.manual-destination legend { margin-bottom: 12px; font-size: 14px; color: var(--ink); }
+.manual-destination-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.manual-destination-options label { display: flex; align-items: center; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: pointer; }
+.manual-destination-options label:has(:checked) { border-color: var(--lime); background: var(--surface-3); }
+.manual-destination-options label:has(:focus-visible) { outline: 2px solid var(--lime); outline-offset: 3px; }
+.manual-destination-options input { accent-color: var(--lime); margin: 0; flex-shrink: 0; }
+.manual-destination-options strong, .manual-destination-options small { display: block; }
+.manual-destination-options strong { font-size: 15px; }
+.manual-destination-options small { margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .manual-panel-footer .primary { flex: 1; }
 .manual-game-panel button:focus-visible, .manual-game-panel input:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
 @keyframes manual-panel-enter { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }

@@ -49,6 +49,12 @@ export function formatGameTitleCopyText(title, originalTitle) {
   return [...new Set(names)].join("\n");
 }
 
+function searchableTitle(entry) {
+  const title = escapeHtml(entry.title);
+  const url = escapeHtml(`https://www.google.com/search?q=${encodeURIComponent(entry.title)}`);
+  return `<div class="title title-actions"><div class="game-title-actions"><button class="game-title-link" type="button" data-open="${url}" aria-label="使用 Google 搜尋 ${title}" title="使用 Google 搜尋"><strong class="title-primary">${title}${externalLinkIcon()}</strong></button><button class="copy-title-button" type="button" data-copy-title="${escapeHtml(entry.id)}" aria-label="複製 ${title} 的名稱" title="複製名稱">${copyIcon()}</button></div></div>`;
+}
+
 function hideIcon() {
   return '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 4.2A10.5 10.5 0 0 1 12 4c5.5 0 9 8 9 8a18 18 0 0 1-2.1 3.2M6.6 6.6C4.2 8.2 3 12 3 12s3.5 8 9 8a9.8 9.8 0 0 0 4.1-.9"/></svg>';
 }
@@ -94,16 +100,16 @@ export function renderItemTemplate(entry, media, view) {
   if (media === "anime") {
     const score = entry.score == null ? "—" : entry.score.toFixed(2);
     const details = entry.episodes && entry.format ? `${entry.episodes} · ${entry.format}` : "集數與類型未提供";
-    return `<article class="item anime"><span class="score">${score}</span><div class="title"><strong>${escapeHtml(entry.title)}</strong></div><span class="meta">${escapeHtml(entry.periodLabel)}</span><span class="meta">${escapeHtml(details)}</span>${actions(entry, "Google 搜尋", entry.searchUrl)}</article>`;
+    return `<article class="item anime"><span class="score">${score}</span>${searchableTitle(entry)}<span class="meta">${escapeHtml(entry.periodLabel)}</span><span class="meta">${escapeHtml(details)}</span>${actions(entry, "Google 搜尋", entry.searchUrl)}</article>`;
   }
 
   if (media === "movies") {
-    return `<article class="item movies"><span class="score">${entry.score.toFixed(2)}</span><div class="title"><strong>${escapeHtml(entry.title)}</strong></div><span class="meta">${escapeHtml(entry.periodLabel)}</span><span class="meta">IMDb ${entry.imdbScore.toFixed(1)} · ${escapeHtml(entry.votesLabel)}</span><span class="meta">${escapeHtml(entry.category)}</span>${actions(entry, "Google 搜尋", entry.searchUrl)}</article>`;
+    return `<article class="item movies"><span class="score">${entry.score.toFixed(2)}</span>${searchableTitle(entry)}<span class="meta">${escapeHtml(entry.periodLabel)}</span><span class="meta">IMDb ${entry.imdbScore.toFixed(1)} · ${escapeHtml(entry.votesLabel)}</span><span class="meta">${escapeHtml(entry.category)}</span>${actions(entry, "Google 搜尋", entry.searchUrl)}</article>`;
   }
 
   if (media === "liveAction") {
     const imdb = entry.imdbScore == null ? "IMDb 資料不足" : `IMDb ${entry.imdbScore.toFixed(1)} · ${escapeHtml(entry.votesLabel)}`;
-    return `<article class="item live-action"><div class="title"><strong>${escapeHtml(entry.title)}</strong></div><span class="meta">${escapeHtml(entry.periodLabel)}</span><span class="meta">${escapeHtml(entry.region)}</span><span class="meta">${imdb}</span>${actions(entry, entry.hasImdbUrl ? "開啟 IMDb" : "Google 搜尋", entry.url)}</article>`;
+    return `<article class="item live-action">${searchableTitle(entry)}<span class="meta">${escapeHtml(entry.periodLabel)}</span><span class="meta">${escapeHtml(entry.region)}</span><span class="meta">${imdb}</span>${actions(entry, entry.hasImdbUrl ? "開啟 IMDb" : "Google 搜尋", entry.url)}</article>`;
   }
 
   const appid = escapeHtml(entry.appid);

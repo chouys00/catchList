@@ -19,13 +19,16 @@ export function recoverGameTransaction(directory) {
   const raw = readOptional(journal);
   if (raw === null) return;
   const transaction = JSON.parse(raw);
-  if (!Array.isArray(transaction) || transaction.length !== 2 || new Set(transaction.map((x) => x.name)).size !== 2
-    || transaction.some((x) => !["遊戲.md", MANUAL_GAMES_FILE].includes(x.name) || typeof x.before !== "string" || typeof x.after !== "string")) throw new Error("遊戲刪除復原紀錄異常，請保留檔案並檢查");
+  if (!Array.isArray(transaction) || transaction.length < 2 || transaction.length > 3 || new Set(transaction.map((x) => x.name)).size !== transaction.length
+    || transaction.some((x) => !["遊戲.md", MANUAL_GAMES_FILE, ".catchlist-hidden.json", ".catchlist-favorites.json"].includes(x.name) || (x.before !== null && typeof x.before !== "string") || typeof x.after !== "string")) throw new Error("遊戲交易復原紀錄異常，請保留檔案並檢查");
   for (const item of transaction) {
     const current = readOptional(path.join(directory, item.name));
     if (current !== item.before && current !== item.after) throw new Error("遊戲資料已由其他程式修改，無法自動復原刪除；請保留復原紀錄");
   }
-  for (const item of transaction) atomicText(path.join(directory, item.name), item.before);
+  for (const item of transaction) {
+    if (item.before === null) fs.rmSync(path.join(directory, item.name), { force: true });
+    else atomicText(path.join(directory, item.name), item.before);
+  }
   fs.unlinkSync(journal);
 }
 export function commitGameFiles(directory, changes, write = atomicText) {
@@ -73,10 +76,10 @@ export function manualEntry(record) {
     sectionKey: "manual", periodLabel: "手動加入", originalTitle: record.originalTitle || "" };
 }
 export const manualJson = (entries) => `${JSON.stringify({ version: 1, entries }, null, 2)}\n`;
-export function addManualRecord(directory, record, expectedRaw) {
+export function addManualRecord(directory, record, expectedRaw, stateChanges = []) {
   const current = readManualGames(directory);
   if (current.raw !== expectedRaw) throw new Error("手動清單已變更，請重新讀取遊戲預覽");
   if (current.entries.some((item) => item.appid === record.appid)) throw new Error("遊戲已收錄，請重新讀取");
   if (!validEntry(record)) throw new Error("遊戲預覽資料不完整，請重新讀取");
-  commitGameFiles(directory, [{ name: MANUAL_GAMES_FILE, before: current.raw, after: manualJson([...current.entries, record]) }]);
+  commitGameFiles(directory, [{ name: MANUAL_GAMES_FILE, before: current.raw, after: manualJson([...current.entries, record]) }, ...stateChanges]);
 }

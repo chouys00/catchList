@@ -55,16 +55,20 @@ const liveAction = {
 test("動畫列先顯示評分與名稱，再顯示年份和集數", () => {
   const markup = renderItemTemplate(anime, "anime");
 
-  assert.match(markup, /^<article class="item anime"><span class="score">9\.20<\/span><div class="title">/);
+  assert.match(markup, /^<article class="item anime"><span class="score">9\.20<\/span><div class="title title-actions">/);
   assert.ok(markup.indexOf("2026 年春季") < markup.indexOf("19 · TV"));
+  assert.match(markup, /class="game-title-link"[^>]+data-open="https:\/\/www\.google\.com\/search\?q=%E6%B8%AC%E8%A9%A6%E5%8B%95%E7%95%AB"[^>]+aria-label="使用 Google 搜尋 測試動畫"/);
+  assert.match(markup, /class="copy-title-button"[^>]+data-copy-title="anime-1"[^>]+aria-label="複製 測試動畫 的名稱"/);
 });
 
 test("電影列先顯示評分與名稱，再顯示年份、IMDb 與類別", () => {
   const markup = renderItemTemplate(movie, "movies");
 
-  assert.match(markup, /^<article class="item movies"><span class="score">8\.15<\/span><div class="title">/);
+  assert.match(markup, /^<article class="item movies"><span class="score">8\.15<\/span><div class="title title-actions">/);
   assert.ok(markup.indexOf("2026 年 2 月") < markup.indexOf("IMDb 7.8 · 12 萬票"));
   assert.ok(markup.indexOf("IMDb 7.8 · 12 萬票") < markup.indexOf("劇情"));
+  assert.match(markup, /class="game-title-link"[^>]+aria-label="使用 Google 搜尋 測試電影"/);
+  assert.match(markup, /class="copy-title-button"[^>]+data-copy-title="movie-1"/);
 });
 
 test("動畫缺少評分、集數與類型時顯示明確替代文字", () => {
@@ -89,6 +93,15 @@ test("真人劇列顯示年度、地區與 IMDb 資訊", () => {
   assert.match(markup, /IMDb 8\.2 · 7,526 票/);
   assert.match(markup, /data-open="https:\/\/www\.imdb\.com\/title\/tt1234567\/"/);
   assert.match(markup, />開啟 IMDb<\/button>/);
+  assert.match(markup, /class="game-title-link"[^>]+data-open="https:\/\/www\.google\.com\/search\?q=%E6%B8%AC%E8%A9%A6%E7%9C%9F%E4%BA%BA%E5%8A%87"/);
+  assert.match(markup, /class="copy-title-button"[^>]+data-copy-title="show-1"/);
+});
+
+test("作品名稱與搜尋網址會安全放進按鈕屬性", () => {
+  const markup = renderItemTemplate({ ...anime, id: 'a"b', title: 'A&B <劇>' }, "anime");
+  assert.match(markup, /data-copy-title="a&quot;b"/);
+  assert.match(markup, /data-open="https:\/\/www\.google\.com\/search\?q=A%26B%20%3C%E5%8A%87%3E"/);
+  assert.match(markup, /A&amp;B &lt;劇&gt;/);
 });
 
 test("遊戲列把好評率與評論數組合為同一欄", () => {

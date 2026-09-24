@@ -3,7 +3,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("catchList", {
   previewGame: (input) => ipcRenderer.invoke("games:preview", input),
   cancelGamePreview: () => ipcRenderer.invoke("games:cancel-preview"),
-  addGame: (token) => ipcRenderer.invoke("games:add", token),
+  addGame: (token, destination) => ipcRenderer.invoke("games:add", token, destination),
   load: (media) => ipcRenderer.invoke("library:load", media),
   setFavorite: (media, entryId, favorite) => ipcRenderer.invoke("library:set-favorite", media, entryId, favorite),
   setHiddenReason: (key, reason) => ipcRenderer.invoke("library:set-hidden-reason", key, reason),

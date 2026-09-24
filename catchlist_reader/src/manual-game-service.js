@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
-import { sourceEntries, readHiddenEntries } from "./library.js";
-import { readManualGames, addManualRecord } from "./manual-games.js";
+import path from "node:path";
+import { sourceEntries, readHiddenEntries, readFavorites, HIDDEN_ENTRIES_FILE, FAVORITES_FILE } from "./library.js";
+import { readManualGames, addManualRecord, readOptional, gameKey } from "./manual-games.js";
 import { parseSteamInput, lookupSteamGame } from "./steam-game-lookup.js";
 
 export class ManualGameService {
@@ -32,11 +33,28 @@ export class ManualGameService {
       throw error;
     }
   }
-  commit(directory, token) {
+  commit(directory, token, destination = "backlog") {
     const preview = this.preview;
     if (!preview || preview.directory !== directory || preview.token !== token) throw new Error("遊戲預覽已失效，請重新讀取");
+    if (!["backlog", "favorites"].includes(destination)) throw new Error("請選擇候補或收藏");
     if (this.duplicate(directory, preview.game.appid)) throw new Error("遊戲已收錄，請重新讀取清單");
-    addManualRecord(directory, { ...preview.game, addedAt: new Date(this.now()).toISOString() }, preview.raw);
+    const addedAt = new Date(this.now()).toISOString();
+    const key = gameKey(preview.game.appid);
+    const name = destination === "backlog" ? HIDDEN_ENTRIES_FILE : FAVORITES_FILE;
+    const before = readOptional(path.join(directory, name));
+    const records = destination === "backlog" ? readHiddenEntries(directory) : readFavorites(directory);
+    const entry = { media: "games", title: preview.game.title, ...(destination === "backlog"
+      ? { hideKey: key, hiddenAt: addedAt, reason: "backlog" }
+      : { key, savedAt: addedAt }) };
+    const entries = [...records.filter((record) => (record.key ?? record.hideKey) !== key), entry];
+    const changes = [{ name, before, after: `${JSON.stringify({ version: 1, entries }, null, 2)}\n` }];
+    // 刪除後重新加入時，清除另一分類留下的個人紀錄，以本次選擇為準。
+    const otherName = destination === "backlog" ? FAVORITES_FILE : HIDDEN_ENTRIES_FILE;
+    const otherBefore = readOptional(path.join(directory, otherName));
+    const otherRecords = destination === "backlog" ? readFavorites(directory) : readHiddenEntries(directory);
+    const otherEntries = otherRecords.filter((record) => (record.key ?? record.hideKey) !== key);
+    if (otherEntries.length !== otherRecords.length) changes.push({ name: otherName, before: otherBefore, after: `${JSON.stringify({ version: 1, entries: otherEntries }, null, 2)}\n` });
+    addManualRecord(directory, { ...preview.game, addedAt }, preview.raw, changes);
     this.cancel();
     return preview.game.appid;
   }

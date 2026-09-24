@@ -181,6 +181,24 @@ async function captureResponsiveQa(window) {
   await new Promise((resolve) => setTimeout(resolve, 100));
   const mobileList = await window.webContents.capturePage();
   fs.writeFileSync(path.join(outputDir, "task-5-mobile-list.png"), mobileList.toPNG());
+  results.titleRows = {};
+  for (const media of ["anime", "movies", "liveAction"]) {
+    await window.webContents.executeJavaScript(`document.querySelector('[data-media="${media}"]')?.click()`);
+    results.titleRows[media] = {};
+    for (const [size, width, height] of [["desktop", 1440, 900], ["mobile", 390, 844]]) {
+      window.setContentSize(width, height);
+      await new Promise((resolve) => setTimeout(resolve, 180));
+      await window.webContents.executeJavaScript(`document.querySelector('.item')?.scrollIntoView({ block: 'center' })`);
+      const image = await window.webContents.capturePage();
+      fs.writeFileSync(path.join(outputDir, `title-${media}-${size}.png`), image.toPNG());
+      results.titleRows[media][size] = await window.webContents.executeJavaScript(`(() => ({
+        viewport: window.innerWidth,
+        pageWidth: document.documentElement.scrollWidth,
+        titleVisible: Boolean(document.querySelector('.item .game-title-link')?.getBoundingClientRect().width),
+        copyVisible: Boolean(document.querySelector('.item .copy-title-button')?.getBoundingClientRect().width),
+      }))()`);
+    }
+  }
   return results;
 }
 
@@ -540,9 +558,39 @@ async function run() {
     await window.webContents.insertText("星海");
     const animeAfterSearch = await searchState(window);
     const animeRailCount = await window.webContents.executeJavaScript(`document.querySelectorAll('.rail').length`);
+    const animeTitleActions = await window.webContents.executeJavaScript(`(async () => {
+      const row = document.querySelector('.item.anime');
+      const title = row.querySelector('.title-primary')?.textContent;
+      row.querySelector('[data-copy-title]').click();
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      const copied = window.__catchListCopyTextCalls.at(-1);
+      row.querySelector('.game-title-link').click();
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      return { title, copied, opened: window.__catchListOpenUrlCalls.at(-1)?.[0], toast: document.querySelector('#toast')?.textContent?.trim() };
+    })()`);
     await window.webContents.executeJavaScript(`document.querySelector('[data-media="movies"]').click()`);
     const movieRailCount = await window.webContents.executeJavaScript(`document.querySelectorAll('.rail').length`);
+    const movieTitleActions = await window.webContents.executeJavaScript(`(async () => {
+      const row = document.querySelector('.item.movies');
+      const title = row.querySelector('.title-primary')?.textContent;
+      row.querySelector('[data-copy-title]').click();
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      const copied = window.__catchListCopyTextCalls.at(-1);
+      row.querySelector('.game-title-link').click();
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      return { title, copied, opened: window.__catchListOpenUrlCalls.at(-1)?.[0] };
+    })()`);
     await window.webContents.executeJavaScript(`document.querySelector('[data-media="liveAction"]').click()`);
+    const liveActionTitleActions = await window.webContents.executeJavaScript(`(async () => {
+      const row = document.querySelector('.item.live-action');
+      const title = row.querySelector('.title-primary')?.textContent;
+      row.querySelector('[data-copy-title]').click();
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      const copied = window.__catchListCopyTextCalls.at(-1);
+      row.querySelector('.game-title-link').click();
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      return { title, copied, opened: window.__catchListOpenUrlCalls.at(-1)?.[0], imdbButton: row.querySelector('.actions [data-open]')?.textContent };
+    })()`);
     const liveAction = await window.webContents.executeJavaScript(`(() => {
       const initial = {
         itemCount: document.querySelectorAll('.item.live-action').length,
@@ -576,7 +624,7 @@ async function run() {
     const largeGameBatch = await runLargeGameBatchTest(address);
     const coverUpdate = await runCoverUpdateTest(address);
 
-    process.stdout.write(`${JSON.stringify({ initialGames, titleActions, typed, backspaced, insertedInMiddle, replacedSelection, chinese, clearHover, clearLeave, clearButton, gameBrowser, animeBeforeSearch, animeAfterSearch, animeRailCount, movieRailCount, liveAction, restoredGameSearch, clearInteraction, cleared, responsiveLayout, visualQa, largeGameBatch, coverUpdate })}\n`);
+    process.stdout.write(`${JSON.stringify({ initialGames, titleActions, typed, backspaced, insertedInMiddle, replacedSelection, chinese, clearHover, clearLeave, clearButton, gameBrowser, animeBeforeSearch, animeAfterSearch, animeRailCount, animeTitleActions, movieRailCount, movieTitleActions, liveActionTitleActions, liveAction, restoredGameSearch, clearInteraction, cleared, responsiveLayout, visualQa, largeGameBatch, coverUpdate })}\n`);
   } finally {
     window.destroy();
     await new Promise((resolve) => server.close(resolve));

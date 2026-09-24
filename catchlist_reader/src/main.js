@@ -86,9 +86,9 @@ function registerIpc() {
     return manualGames.prepare(dataDir, input);
   });
   ipcMain.handle("games:cancel-preview", () => { manualGames.cancel(); });
-  ipcMain.handle("games:add", (_event, token) => {
+  ipcMain.handle("games:add", (_event, token, destination) => {
     if (!dataDir || activeMedia !== "games") throw new Error("請先開啟遊戲頁");
-    const appid = manualGames.commit(dataDir, token);
+    const appid = manualGames.commit(dataDir, token, destination);
     return { ...snapshot(), addedAppid: appid };
   });
   ipcMain.handle("library:load", (_event, media) => {

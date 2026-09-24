@@ -28,7 +28,7 @@ app.whenReady().then(async () => {
   ipcMain.handle("library:load", (_, media) => { active = media; return snapshot(); });
   ipcMain.handle("games:preview", (_, input) => service.prepare(temp, input));
   ipcMain.handle("games:cancel-preview", () => service.cancel());
-  ipcMain.handle("games:add", (_, token) => { const addedAppid = service.commit(temp, token); return { ...snapshot(), addedAppid }; });
+  ipcMain.handle("games:add", (_, token, destination) => { const addedAppid = service.commit(temp, token, destination); return { ...snapshot(), addedAppid }; });
   ipcMain.handle("library:set-favorite", (_, media, id, value) => { lib.setFavorite(temp, media, id, value); return snapshot(); });
   ipcMain.handle("library:hide-entry", (_, media, id, reason) => { lib.hideEntry(temp, media, id, reason); return snapshot(); });
   ipcMain.handle("library:restore-hidden", (_, key) => { lib.restoreHiddenEntry(temp, key); return snapshot(); });
@@ -36,7 +36,7 @@ app.whenReady().then(async () => {
   ipcMain.handle("library:resolve-game-covers", () => ({}));
   ipcMain.handle("external:open-urls", () => { throw new Error("測試不得開啟外部連結"); });
   session.defaultSession.webRequest.onBeforeRequest({ urls: ["https://*/*", "http://*/*"] }, (_, callback) => callback({ cancel: true }));
-  const win = new BrowserWindow({ show: false, width: 1440, height: 900, webPreferences: { preload: path.join(root, "src/preload.cjs"), contextIsolation: true, sandbox: true } });
+  const win = new BrowserWindow({ show: false, width: 1440, height: 900, webPreferences: { preload: path.join(root, "src/preload.cjs"), contextIsolation: true, sandbox: true, backgroundThrottling: false } });
   const js = (code) => win.webContents.executeJavaScript(code);
   const until = async (code) => { for (let i = 0; i < 120; i++) { if (await js(code)) return; await new Promise((r) => setTimeout(r, 25)); } throw new Error(`等待畫面逾時：${code}`); };
   const click = async (selector) => { await js(`document.querySelector(${JSON.stringify(selector)}).click()`); };
@@ -44,6 +44,7 @@ app.whenReady().then(async () => {
   const select = (key, value) => js(`(() => { const input = document.querySelector('[data-filter="${key}"]'); input.value = '${value}'; input.dispatchEvent(new Event('change', { bubbles: true })); })()`);
   const capture = async (name) => {
     if (!process.env.CATCHLIST_QA_DIR) return;
+    win.showInactive();
     await new Promise((r) => setTimeout(r, 220));
     fs.mkdirSync(process.env.CATCHLIST_QA_DIR, { recursive: true });
     fs.writeFileSync(path.join(process.env.CATCHLIST_QA_DIR, `${name}.png`), (await win.webContents.capturePage()).toPNG());
@@ -70,6 +71,9 @@ app.whenReady().then(async () => {
   await fill('[data-filter="query"]', "不會找到的文字"); assert.equal(await js('document.querySelectorAll(".item.games").length'), 0);
   await openPanel(); await preview("123");
   assert.equal(fs.existsSync(path.join(temp, ".catchlist-manual-games.json")), false);
+  assert.equal(await js('document.querySelector("[data-panel-save]").textContent'), "加入候補");
+  await click('input[value="favorites"]');
+  assert.equal(await js('document.querySelector("[data-panel-save]").textContent'), "加入收藏");
   await capture("manual-preview-desktop");
   for (const width of [1440, 1024, 390]) {
     win.setContentSize(width, 900);
@@ -83,7 +87,7 @@ app.whenReady().then(async () => {
   await click('[data-panel-save]'); await until('!document.querySelector("#manualGameDialog")');
   assert.ok(await js('!!document.querySelector("[data-game-row=\\"123\\"] .manual-source")'));
   assert.equal(await js('document.querySelector("[data-filter=query]").value'), "");
-  await click('[data-game-row="123"] [data-favorite]'); await until('!document.querySelector("[data-game-row=\\"123\\"]")');
+
   await click('[data-view="favorites"]');
   assert.equal(await js('document.querySelector("[data-game-row=\\"123\\"] [data-favorite]").getAttribute("aria-pressed")'), "true");
   await click('[data-game-row="123"] [data-hide]'); await click('[data-reason="played"]');
@@ -128,6 +132,14 @@ app.whenReady().then(async () => {
   assert.match(await js('document.querySelector("#dialogMessage").textContent'), /手動清單/);
   await click('#dialogConfirm'); await until('!document.querySelector("[data-game-row=\\"123\\"]")');
   assert.equal(lib.loadLibrary(temp, "games").entries.length, 7);
+  now += 60000;
+  await openPanel(); await preview("456");
+  await click('[data-panel-save]'); await until('document.querySelector("[data-panel-save]").textContent === "查看新增遊戲"');
+  assert.equal(lib.loadHiddenEntries(temp).find(e => e.entry?.appid === "456").reason, "backlog");
+  await click('[data-panel-save]'); await until('!document.querySelector("#manualGameDialog")');
+  assert.equal(await js('document.querySelector("[data-view=backlog]").classList.contains("active")'), true);
+  assert.ok(await js(`!!document.querySelector('[data-game-row="456"]')`));
+  await capture("manual-backlog-result");
   console.log(JSON.stringify({ success: true, widths: [1440, 1024, 390], reportUnchanged: true, manualFlows: true }));
   clearTimeout(deadline); win.destroy(); app.exit(0);
 }).catch((error) => { console.error(error); clearTimeout(deadline); app.exit(1); });
