@@ -449,3 +449,16 @@ button.game-cover:hover { border-color: var(--lime); }
   .hidden-reason { grid-column: 1; }
   .hidden-row > .meta { grid-row: auto; }
 }
+
+/* 隱藏管理的評分欄與原有操作並排，窄視窗改為分行。 */
+.hidden-row { grid-template-columns: minmax(0, 1fr) 170px auto auto; }
+.hidden-row:has(.hidden-reason) { grid-template-columns: minmax(0, 1fr) 170px auto auto auto; }
+.hidden-ratings { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.hidden-ratings > div { display: grid; gap: 4px; }
+.hidden-ratings strong { font-variant-numeric: tabular-nums; }
+@media (max-width: 1000px) {
+  .hidden-row, .hidden-row:has(.hidden-reason) { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+  .hidden-row > .title { grid-column: 1 / -1; }
+  .hidden-ratings { grid-column: 1 / -1; width: 170px; }
+  .hidden-row > .meta { grid-row: auto; grid-column: 1 / -1; }
+}

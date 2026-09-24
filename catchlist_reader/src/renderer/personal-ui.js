@@ -24,12 +24,25 @@ export function viewNavigation(view, media, entries, hiddenCount, reasonCounts =
   return `<nav class="library-views" aria-label="清單檢視">${tabs.map(([key, label, count]) => `<button type="button" class="view-button${view === key ? " active" : ""}" data-view="${key}" aria-pressed="${view === key}">${label}<span>${count}</span></button>`).join("")}</nav>`;
 }
 
+function hiddenRatings(record) {
+  const entry = record.available ? record.entry : null;
+  const score = record.media === "liveAction" ? entry?.imdbScore : entry?.score;
+  const scoreLabel = !entry ? "—" : record.media === "liveAction"
+    ? (score == null ? "IMDb 資料不足" : `IMDb ${score.toFixed(1)}`)
+    : Number.isFinite(score) ? (record.media === "games" ? `${score}%` : score.toFixed(2)) : "—";
+  // 與原清單一致：保留票數文字（例如 36k票），不重新展開為整數。
+  const countLabel = !entry ? "—" : record.media === "games"
+    ? (entry.reviews == null ? "評論讀取失敗" : entry.reviews === 0 ? "尚無評論" : `(${entry.reviews.toLocaleString()})`)
+    : entry.votesLabel || "—";
+  return `<div class="hidden-ratings"><div><span class="meta">評分</span><strong>${escapeHtml(scoreLabel)}</strong></div><div><span class="meta">評分數</span><strong>${escapeHtml(countLabel)}</strong></div></div>`;
+}
+
 export function hiddenListMarkup(records, query, reason = "all") {
   const needle = query.trim().toLocaleLowerCase("zh-Hant");
   const filtered = records.filter((entry) => (reason === "all" || (entry.reason ?? "played") === reason) && String(entry.title).toLocaleLowerCase("zh-Hant").includes(needle));
   return {
     count: filtered.length,
-    markup: filtered.length ? filtered.map((entry) => `<article class="hidden-row"><div class="title"><strong>${escapeHtml(entry.title)}</strong><small>${entry.available ? escapeHtml(entry.periodLabel) : "原始報告已找不到這部作品"}</small></div>${entry.media === "games" ? `<label class="hidden-reason"><span class="sr-only">${escapeHtml(entry.title)}的隱藏原因</span><select class="field" data-hidden-reason="${escapeHtml(entry.hideKey)}" ${entry.available ? "" : "disabled"}>${reasonOptions(entry.reason ?? "played")}</select></label>` : ""}<span class="meta">隱藏於 ${escapeHtml(dateLabel(entry.hiddenAt))}</span><button type="button" class="button compact" data-restore="${escapeHtml(entry.hideKey)}">${entry.available ? "恢復顯示" : "清除隱藏紀錄"}</button></article>`).join("") : `<div class="empty">${query.trim() ? "沒有符合名稱的隱藏作品。" : "目前沒有隱藏作品。"}</div>`,
+    markup: filtered.length ? filtered.map((entry) => `<article class="hidden-row"><div class="title"><strong>${escapeHtml(entry.title)}</strong><small>${entry.available ? escapeHtml(entry.periodLabel) : "原始報告已找不到這部作品"}</small></div>${hiddenRatings(entry)}${entry.media === "games" ? `<label class="hidden-reason"><span class="sr-only">${escapeHtml(entry.title)}的隱藏原因</span><select class="field" data-hidden-reason="${escapeHtml(entry.hideKey)}" ${entry.available ? "" : "disabled"}>${reasonOptions(entry.reason ?? "played")}</select></label>` : ""}<span class="meta">隱藏於 ${escapeHtml(dateLabel(entry.hiddenAt))}</span><button type="button" class="button compact" data-restore="${escapeHtml(entry.hideKey)}">${entry.available ? "恢復顯示" : "清除隱藏紀錄"}</button></article>`).join("") : `<div class="empty">${query.trim() ? "沒有符合名稱的隱藏作品。" : "目前沒有隱藏作品。"}</div>`,
   };
 }
 
