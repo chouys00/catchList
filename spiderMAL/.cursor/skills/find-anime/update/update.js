@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import { SEASONS, ZH_TO_EN, DEFAULT_MIN_SCORE, TARGET_PATH } from '../lib/constants.js';
 import { getSeasonAnime, getSeasonAnimeFromAniList } from '../lib/jikan.js';
 import { enrichWithCN } from '../lib/bangumi.js';
-import { buildBatchText, saveStacked } from '../lib/writer.js';
+import { saveAnimeBatch } from '../lib/writer.js';
 
 function monthToSeasonIndex(month) {
   if (month >= 1 && month <= 3) return 0;
@@ -138,6 +138,7 @@ async function main() {
 
       // 5. Build items for batch text
       const items = enriched.map((anime) => ({
+        ...anime,
         name_cn: anime.title_cn || anime.title_japanese || anime.title || null,
         score: anime.score ?? null,
         episodes: anime.episodes ?? null,
@@ -145,13 +146,12 @@ async function main() {
       }));
 
       // 6. Build batch text and stack into file
-      const batchText = buildBatchText({
+      saveAnimeBatch(TARGET_PATH, {
         year,
         season,
         minScore: DEFAULT_MIN_SCORE,
         items,
       });
-      saveStacked(TARGET_PATH, batchText);
 
       console.log(`   ✅ ${year} ${season} 已寫入（${items.length} 部）`);
     } catch (err) {

@@ -117,7 +117,7 @@ button.game-tag:hover { border-color: var(--muted); color: var(--ink); }
 .game-column-header .center { text-align: center; }
 .game-load-sentinel { display: flex; justify-content: center; align-items: center; gap: 12px; min-height: 88px; color: var(--muted); font-size: 12px; }
 .item { display: grid; gap: 14px; align-items: center; padding: 12px 4px; border-bottom: 1px solid var(--line); }
-.item.anime { grid-template-columns: 76px minmax(240px, 2fr) 120px 96px auto; }
+  .item.anime { grid-template-columns: 88px minmax(240px, 2fr) minmax(220px, 1fr); }
 .item.live-action { grid-template-columns: minmax(180px, 2fr) 120px 70px minmax(150px, 1fr) auto; }
 .item.movies { grid-template-columns: 76px minmax(220px, 2fr) 112px 154px minmax(96px, .6fr) auto; }
 .item.games { position: relative; padding: 12px 8px; transition: background-color 140ms ease; }
@@ -476,3 +476,64 @@ button.game-cover:hover { border-color: var(--lime); }
   .hidden-ratings { grid-column: 1 / -1; width: 170px; }
   .hidden-row > .meta { grid-row: auto; grid-column: 1 / -1; }
 }
+
+/* 動畫：保留清單的閱讀節奏，以直式封面和影片入口建立層次。 */
+.item.anime { grid-template-columns: 88px minmax(200px, 1.6fr) minmax(220px, 1fr); gap: 24px; padding: 18px 8px; align-items: center; }
+.anime-cover { width: 88px; height: 126px; padding: 0; border: 1px solid var(--line); border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+button.anime-cover { cursor: zoom-in; transition: border-color 140ms ease; }
+button.anime-cover:hover { border-color: var(--lime); }
+.anime-cover img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.anime-cover-empty { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 9px; padding: 8px; color: var(--muted); text-align: center; font-size: 11px; line-height: 1.6; }
+.anime-cover-empty svg { width: 30px; height: 40px; stroke: var(--dim); fill: none; stroke-width: 1.2; }
+.anime-info, .anime-media { min-width: 0; }
+.anime-facts { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-bottom: 8px; }
+.anime-info .game-title-link .title-primary { font-size: 20px; line-height: 1.55; }
+.anime-info .title-actions .game-title-actions { align-items: flex-start; }
+.anime-row-controls { display: flex; gap: 4px; margin-top: 9px; }
+.anime-media { border-left: 1px solid var(--line); padding-left: 24px; }
+.anime-trailer-link { display: flex; align-items: flex-start; gap: 12px; width: 100%; padding: 8px 0; border: 0; background: none; cursor: pointer; text-align: left; }
+.anime-trailer-link > svg { flex: 0 0 28px; width: 28px; height: 28px; color: var(--lime); fill: none; stroke: currentColor; stroke-width: 1.4; }
+.anime-trailer-link > span { min-width: 0; }
+.anime-trailer-link strong, .anime-trailer-empty strong { display: block; font-size: 13px; font-weight: 600; line-height: 1.5; }
+.anime-trailer-link small, .anime-trailer-empty small { display: block; color: var(--muted); font-size: 12px; line-height: 1.6; margin-top: 5px; overflow-wrap: anywhere; }
+.anime-trailer-link small:first-of-type { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.anime-trailer-link .external-icon { fill: none; stroke: currentColor; stroke-width: 1.5; }
+.anime-trailer-link:hover strong { color: var(--lime); }
+.anime-trailer-empty { padding: 8px 0; color: var(--muted); }
+.anime-media-options { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 7px; }
+.anime-media-edit { border: 0; padding: 5px 0; min-height: 32px; font-size: 12px; color: var(--muted); background: transparent; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.anime-media-edit:hover { color: var(--ink); }
+.anime-cover:focus-visible, .anime-trailer-link:focus-visible, .anime-media-edit:focus-visible, .anime-candidate:focus-visible { outline: 2px solid var(--lime); outline-offset: 4px; }
+.anime-picker { width: min(680px, calc(100vw - 28px)); max-height: calc(100vh - 40px); overflow-y: auto; padding: 24px; }
+.anime-picker-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.anime-picker h2 { margin: 0 0 8px; font-family: var(--serif); font-size: 24px; }
+.anime-picker-heading p { margin: 0; line-height: 1.6; }
+.anime-picker-note, .anime-picker-status { font-size: 13px; line-height: 1.7; color: var(--muted); }
+.anime-picker-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.anime-candidates { border-top: 1px solid var(--line); }
+.anime-candidate { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; gap: 14px; width: 100%; padding: 12px 4px; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: left; cursor: pointer; }
+.anime-candidate:hover { background: var(--surface-2); }
+.anime-candidate img, .anime-candidate-placeholder { width: 48px; height: 68px; object-fit: cover; background: var(--surface-2); }
+.anime-candidate strong, .anime-candidate small { display: block; overflow-wrap: anywhere; line-height: 1.6; }
+.anime-candidate small { color: var(--muted); font-size: 12px; }
+.anime-select-label { color: var(--lime); font-size: 12px; }
+.anime-candidate:disabled { opacity: .5; cursor: wait; }
+@media (max-width: 900px) {
+  .item.anime { grid-template-columns: 80px minmax(0, 1fr); gap: 12px 18px; }
+  .anime-cover { width: 80px; height: 114px; }
+  .anime-media { grid-column: 2; padding: 12px 0 0; border-left: 0; border-top: 1px solid var(--line); }
+}
+@media (max-width: 560px) {
+  .item.anime { grid-template-columns: 72px minmax(0, 1fr); gap: 12px 14px; padding: 18px 0; align-items: start; }
+  .anime-cover { width: 72px; height: 104px; }
+  .anime-info .game-title-link .title-primary { font-size: 17px; }
+  .anime-facts { gap: 4px 10px; }
+  .anime-media { grid-column: 1 / -1; }
+  .anime-media-options { justify-content: flex-end; }
+  .anime-media-edit { min-height: 44px; padding-inline: 4px; }
+  .anime-row-controls { margin-top: 6px; }
+  .anime-picker { padding: 18px; }
+  .anime-picker h2 { font-size: 21px; }
+  .anime-candidate { gap: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { button.anime-cover { transition: none; } }

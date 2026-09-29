@@ -4,6 +4,7 @@ import { formatGameTitleCopyText, renderItemTemplate } from "./item-template.js"
 import { entriesForView, viewNavigation, hiddenListMarkup, updateStatusMarkup, hiddenReasons, reasonOptions } from "./personal-ui.js";
 
 import { catalogGames } from "./catalog-search.js";
+import { AnimeMediaUI } from "./anime-media-ui.js";
 
 const GAME_BATCH_SIZE = 50;
 const MAX_EXTERNAL_BATCH_SIZE = 50;
@@ -54,6 +55,7 @@ const coverImage = document.querySelector("#coverImage");
 const coverTitle = document.querySelector("#coverTitle");
 const toast = document.querySelector("#toast");
 const backToTop = document.querySelector("#backToTop");
+const animeMediaUI = new AnimeMediaUI(app, (message) => showToast(message));
 
 function searchingCatalog() { return state.active === "games" && state.catalogSearch; }
 
@@ -134,7 +136,7 @@ function updateRenderedGameCovers(appids) {
 
 function showCover(url, title) {
   coverImage.src = url;
-  coverImage.alt = `遊戲封面：${title}`;
+  coverImage.alt = `作品封面：${title}`;
   coverTitle.textContent = title;
   coverDialog.showModal();
 }
@@ -264,6 +266,7 @@ function gameTagPanel() {
 }
 
 function displayedEntries(entries) {
+  if (state.active === "anime") return entries.map(entry => animeMediaUI.decorate(entry));
   return state.active === "games" ? entries.map((entry) => ({ ...entry, coverUrl: state.gameCovers.get(entry.appid) })) : entries;
 }
 
@@ -438,6 +441,8 @@ function refreshGameBrowser(options) {
 }
 
 function render() {
+  animeMediaUI.stop();
+  animeMediaUI.setScope(state.payload?.dataDir);
   closeHideMenu(false);
   if (state.payload?.visitWarning) {
     for (const filter of Object.values(state.filters)) filter.newOnly = false;
@@ -476,6 +481,7 @@ function render() {
     setupGameAutoLoad();
     void hydrateGameCovers(entries.slice(0, state.visibleGameCount));
   }
+  if (state.active === "anime") animeMediaUI.attach(entries);
 }
 
 function ask({ eyebrow = "請確認", title, message, confirm = "確認", danger = false }) {
@@ -570,7 +576,7 @@ function syncBackToTop() {
 
 async function load() {
   const media = state.active;
-  try { const payload = await window.catchList.load(media); if (state.active !== media) return false; state.payload = payload; render(); return true; } catch (error) { showToast(error.message); return false; }
+  try { const payload = await window.catchList.load(media); if (state.active !== media) return false; state.payload = payload; animeMediaUI.reset(); render(); return true; } catch (error) { showToast(error.message); return false; }
 }
 
 async function openBatch(urls, label) {

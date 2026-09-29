@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { EN_TO_ZH } from './constants.js';
 import { atomicWriteFile, sanitizeDisplayText } from '@catchlist/core';
+import { saveAnimeSources, sourceRecord } from '@catchlist/core/anime-sources.js';
 
 export function seasonToZh(season) {
   const s = String(season || '').toLowerCase();
@@ -55,4 +56,11 @@ export function saveStacked(targetPath, batchText) {
   const hasExisting = existing.trim().length > 0;
   const finalText = hasExisting ? `${batchText}\n\n${existing}` : batchText;
   atomicWriteFile(targetPath, finalText, 'utf8');
+}
+
+export function saveAnimeBatch(targetPath, batch) {
+  // 先保存來源；失敗時不推進 Markdown 季度，讓下次仍可重試。
+  const records = batch.items.map(item => sourceRecord(item, `${batch.year}-${seasonToZh(batch.season)}`));
+  saveAnimeSources(path.dirname(targetPath), records);
+  saveStacked(targetPath, buildBatchText(batch));
 }

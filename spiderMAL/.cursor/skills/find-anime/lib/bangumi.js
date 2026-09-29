@@ -30,24 +30,14 @@ export function pickBestMatch(rawTitle, results) {
   const candidates = results.filter((item) => item.name_cn && String(item.name_cn).trim().length > 0);
   const list = candidates.length > 0 ? candidates : results;
 
-  const normalize = (s) => String(s || '').replace(/\s+/g, '').toLowerCase();
+  const normalize = (s) => toTraditional(String(s || '')).normalize('NFKC').replace(/[\p{P}\p{Z}\s]/gu, '').toLowerCase();
   const target = normalize(rawTitle);
 
-  const exact = list.find(
+  const exact = list.filter(
     (item) => normalize(item.name) === target || normalize(item.name_cn) === target,
   );
-  if (exact) return exact;
-
-  const sorted = [...list].sort((a, b) => {
-    const sa = typeof a.score === 'number' ? a.score : -1;
-    const sb = typeof b.score === 'number' ? b.score : -1;
-    if (sa !== sb) return sb - sa;
-    const ra = typeof a.rank === 'number' ? a.rank : Number.MAX_SAFE_INTEGER;
-    const rb = typeof b.rank === 'number' ? b.rank : Number.MAX_SAFE_INTEGER;
-    return ra - rb;
-  });
-
-  return sorted[0] ?? null;
+  // 搜尋排名不能證明是同一部作品；無唯一原名比對就保留原文。
+  return exact.length === 1 ? exact[0] : null;
 }
 
 const NAME_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -72,8 +62,8 @@ export async function enrichWithCN(animeList, onProgress, {
       const rawTitle = anime.title_japanese || anime.title;
       onProgress?.(i + 1, animeList.length, rawTitle);
       const cached = cache?.data?.[rawTitle];
-      if (cached?.version === 1 && typeof cached.title === 'string' && cached.title.trim() && now() >= cached.savedAt && now() - cached.savedAt < NAME_CACHE_TTL_MS) {
-        results[i] = { ...anime, title_cn: cached.title };
+      if (cached?.version === 2 && typeof cached.title === 'string' && cached.title.trim() && now() >= cached.savedAt && now() - cached.savedAt < NAME_CACHE_TTL_MS) {
+        results[i] = { ...anime, title_cn: cached.title, bangumiId: cached.bangumiId };
         continue;
       }
       try {
@@ -81,9 +71,9 @@ export async function enrichWithCN(animeList, onProgress, {
         const best = pickBestMatch(rawTitle, hits);
         const rawNameCn = best?.name_cn?.trim() || null;
         const title = rawNameCn ? toTraditional(rawNameCn) : null;
-        results[i] = { ...anime, title_cn: title };
+        results[i] = { ...anime, title_cn: title, bangumiId: best?.id ?? null };
         if (title) {
-          try { cache?.set(rawTitle, { version: 1, title, savedAt: now() }); }
+          try { cache?.set(rawTitle, { version: 2, title, bangumiId: best?.id ?? null, savedAt: now() }); }
           catch { console.warn('中文名稱快取無法儲存，本次查詢結果仍保留。'); }
         }
       } catch {

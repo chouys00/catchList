@@ -99,8 +99,18 @@ function renderGameTags(entry, view = {}) {
 export function renderItemTemplate(entry, media, view) {
   if (media === "anime") {
     const score = entry.score == null ? "—" : entry.score.toFixed(2);
-    const details = entry.episodes && entry.format ? `${entry.episodes} · ${entry.format}` : "集數與類型未提供";
-    return `<article class="item anime"><span class="score">${score}</span>${searchableTitle(entry)}<span class="meta">${escapeHtml(entry.periodLabel)}</span><span class="meta">${escapeHtml(details)}</span>${actions(entry, "Google 搜尋", entry.searchUrl)}</article>`;
+    const media = entry.animeMedia;
+    const episodes = entry.episodes ?? media?.episodes;
+    const format = entry.format ?? media?.format;
+    const details = episodes && format ? `${episodes} · ${format}` : "集數與類型未提供";
+    const cover = media?.coverUrl
+      ? `<button class="anime-cover" type="button" data-cover="${escapeHtml(media.coverUrl)}" data-cover-title="${escapeHtml(entry.title)}" aria-label="放大 ${escapeHtml(entry.title)} 的動畫封面"><img src="${escapeHtml(media.coverUrl)}" alt="${escapeHtml(entry.title)} 動畫封面" loading="lazy" decoding="async"></button>`
+      : `<div class="anime-cover anime-cover-empty"><svg aria-hidden="true" viewBox="0 0 32 40"><rect x="5" y="4" width="22" height="32" rx="1"/><path d="m12 15 10 5-10 5z"/></svg><span>${!media || media.status === "loading" ? "封面待載入" : "尚無封面"}</span></div>`;
+    const trailer = media?.trailerUrl
+      ? `<button class="anime-trailer-link" data-open="${escapeHtml(media.trailerUrl)}" aria-label="在 YouTube 觀看 ${escapeHtml(entry.title)} 的宣傳影片"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 5 11 7-11 7z"/></svg><span><strong>觀看宣傳影片${externalLinkIcon()}</strong><small>${escapeHtml(media.trailerTitle)}</small><small>${escapeHtml(media.trailerAuthor || "YouTube")}</small></span></button>`
+      : `<div class="anime-trailer-empty"><strong>${!media || media.status === "loading" ? "正在查詢封面與影片" : media.status === "error" || media.trailerUnavailable ? "影片資訊暫時無法讀取" : media.status === "unmatched" ? "需要確認對應作品" : "來源尚無宣傳影片"}</strong><small>${media?.status === "unmatched" ? "選擇正確季度或版本後即可顯示" : media?.status === "error" ? "稍後可重新查詢" : media?.status === "ready" ? "仍可點選名稱搜尋作品" : "首次查詢後會保存結果"}</small></div>`;
+    const edit = (media?.status === "error" || media?.trailerUnavailable) ? `<button class="anime-media-edit" data-anime-retry="${escapeHtml(entry.id)}">重新查詢</button>` : "";
+    return `<article class="item anime" data-anime-row="${escapeHtml(entry.id)}">${cover}<div class="anime-info"><div class="anime-facts"><span class="score">${score}</span><span class="meta">${escapeHtml(entry.periodLabel)}</span><span class="meta">${escapeHtml(details)}</span></div>${searchableTitle(entry)}<div class="anime-row-controls">${favoriteButton(entry)}<button class="icon-button" data-hide="${escapeHtml(entry.id)}" title="隱藏" aria-label="隱藏 ${escapeHtml(entry.title)}">${hideIcon()}</button><button class="icon-button danger" data-delete="${escapeHtml(entry.id)}" title="真正刪除" aria-label="真正刪除 ${escapeHtml(entry.title)}">${deleteIcon()}</button></div></div><div class="anime-media">${trailer}<div class="anime-media-options">${edit}<button class="anime-media-edit" data-anime-edit="${escapeHtml(entry.id)}">${media?.status === "unmatched" ? "選擇作品" : "校正作品"}</button></div>${media?.cacheWarning ? `<small class="status-warning">${escapeHtml(media.cacheWarning)}</small>` : ""}</div></article>`;
   }
 
   if (media === "movies") {

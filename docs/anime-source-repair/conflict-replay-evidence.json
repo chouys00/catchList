@@ -1,0 +1,110 @@
+{
+  "checkedAt": "2026-09-29T03:55:15.397Z",
+  "historicalCommit": "ecab59dc",
+  "results": [
+    {
+      "query": "よふかしのうた Season2",
+      "malId": 58390,
+      "legacySelected": {
+        "id": 394784,
+        "title": "MIX MEISEI STORY 2ND SEASON ～二度目の夏、空の向こうへ～",
+        "cn": "MIX：明青故事 第二季 ～第二个夏天，迈向晴空～"
+      },
+      "currentSelected": null,
+      "response": [
+        {
+          "id": 394784,
+          "title": "MIX MEISEI STORY 2ND SEASON ～二度目の夏、空の向こうへ～",
+          "cn": "MIX：明青故事 第二季 ～第二个夏天，迈向晴空～"
+        }
+      ],
+      "queryUrl": "https://api.bgm.tv/search/subject/%E3%82%88%E3%81%B5%E3%81%8B%E3%81%97%E3%81%AE%E3%81%86%E3%81%9F%20Season2?type=2"
+    },
+    {
+      "query": "多聞くん今どっち!?",
+      "malId": 59047,
+      "legacySelected": {
+        "id": 255191,
+        "title": "この世界の（さらにいくつもの）片隅に",
+        "cn": "在这世界(更多一些)的角落"
+      },
+      "currentSelected": null,
+      "response": [
+        {
+          "id": 255191,
+          "title": "この世界の（さらにいくつもの）片隅に",
+          "cn": "在这世界(更多一些)的角落"
+        },
+        {
+          "id": 449001,
+          "title": "くるみ割り人形",
+          "cn": "胡桃夹子幻想"
+        },
+        {
+          "id": 198025,
+          "title": "美味しんぼ",
+          "cn": "美味大挑战"
+        },
+        {
+          "id": 188885,
+          "title": "ばくはつ五郎",
+          "cn": "爆发五郎"
+        },
+        {
+          "id": 277727,
+          "title": "フラグタイム",
+          "cn": "时光碎片"
+        },
+        {
+          "id": 79953,
+          "title": "恐怖新聞",
+          "cn": "恐怖新闻"
+        },
+        {
+          "id": 72358,
+          "title": "魔女っ子チックル",
+          "cn": "淘气小仙女"
+        },
+        {
+          "id": 220631,
+          "title": "映画 この素晴らしい世界に祝福を！紅伝説",
+          "cn": "电影 为美好的世界献上祝福！红传说"
+        },
+        {
+          "id": 467930,
+          "title": "青春ブタ野郎はサンタクロースの夢を見ない",
+          "cn": "青春猪头少年不会梦到圣诞服女郎"
+        },
+        {
+          "id": 529751,
+          "title": "Yu-Gi-Oh! CARD GAME THE CHRONICLES",
+          "cn": "游戏王卡片游戏 故事编年史"
+        }
+      ],
+      "queryUrl": "https://api.bgm.tv/search/subject/%E5%A4%9A%E8%81%9E%E3%81%8F%E3%82%93%E4%BB%8A%E3%81%A9%E3%81%A3%E3%81%A1!%3F?type=2"
+    },
+    {
+      "query": "仙逆剧场版 神临之战",
+      "malId": 60279,
+      "legacySelected": {
+        "id": 542046,
+        "title": "完美世界剧场版 九劫焚天",
+        "cn": "完美世界剧场版 九劫焚天"
+      },
+      "currentSelected": null,
+      "response": [
+        {
+          "id": 507533,
+          "title": "仙逆剧场版 神临之战",
+          "cn": ""
+        },
+        {
+          "id": 542046,
+          "title": "完美世界剧场版 九劫焚天",
+          "cn": "完美世界剧场版 九劫焚天"
+        }
+      ],
+      "queryUrl": "https://api.bgm.tv/search/subject/%E4%BB%99%E9%80%86%E5%89%A7%E5%9C%BA%E7%89%88%20%E7%A5%9E%E4%B8%B4%E4%B9%8B%E6%88%98?type=2"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "name": "catchlist-reader",
-  "version": "1.0.37",
+  "version": "1.0.40",
   "private": true,
   "description": "CatchList 動畫、電影、遊戲與真人劇 Markdown 桌面閱讀器",
   "type": "module",
@@ -41,5 +41,9 @@
       ],
       "artifactName": "CatchListReader-${version}-portable.${ext}"
     }
+  },
+  "dependencies": {
+    "@catchlist/core": "^1.0.0",
+    "opencc-js": "^1.0.5"
   }
 }

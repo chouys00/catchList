@@ -1,0 +1,1948 @@
+{
+  "version": 1,
+  "records": [
+    {
+      "title": "Re：從零開始的異世界生活 第四季 喪失篇",
+      "sectionKey": "2026-春",
+      "savedAt": "2026-09-29T03:40:44.678Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-春",
+        "bangumi": [
+          {
+            "id": 547888,
+            "name": "Re:ゼロから始める異世界生活 4th season 喪失編"
+          }
+        ],
+        "match": "人工核對原名、續作編號與來源季度"
+      },
+      "malId": 61316,
+      "anilistId": 189046,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/189046",
+      "originalTitle": "Re:Zero kara Hajimeru Isekai Seikatsu 4th Season",
+      "nativeTitle": "Re:ゼロから始める異世界生活 4th season",
+      "year": 2026,
+      "episodes": 19,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx189046-yaHWtS5FII46.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=i8EjBP85cCc"
+      },
+      "trailerTitle": "TVアニメ『Re:ゼロから始める異世界生活』4th seasonメインPV第2弾│2026年4月放送開始",
+      "trailerAuthor": "「Re:ゼロから始める異世界生活」チャンネル【公式】"
+    },
+    {
+      "title": "詭秘之主特別篇",
+      "sectionKey": "2026-春",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-春",
+        "bangumi": [
+          {
+            "id": 577226,
+            "name": "诡秘之主特别篇"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 62276,
+      "anilistId": 199448,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/199448",
+      "originalTitle": "Guimi Zhi Zhu Specials",
+      "nativeTitle": "诡秘之主 特别篇",
+      "year": 2026,
+      "episodes": 3,
+      "format": "ONA",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx199448-BuqzEdkuPSEm.png",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=2B8-GKoyGMU"
+      },
+      "trailerTitle": "Lord of Mysteries Specials | Official Trailer | Crunchyroll",
+      "trailerAuthor": "Crunchyroll"
+    },
+    {
+      "title": "日本三國",
+      "sectionKey": "2026-春",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-春",
+        "bangumi": [
+          {
+            "id": 623851,
+            "name": "日本三國"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 63375,
+      "anilistId": 206914,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/206914",
+      "originalTitle": "Nippon Sangoku",
+      "nativeTitle": "日本三國",
+      "year": 2026,
+      "episodes": 12,
+      "format": "ONA",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx206914-SHKX08LarRzB.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=PvjwzkcaT2Y"
+      },
+      "trailerTitle": "『日本三國』第3弾予告｜EDテーマ「誓い」Leina｜4月5日(日)より世界最速配信開始！",
+      "trailerAuthor": "TWIN ENGINE"
+    },
+    {
+      "title": "石紀元 科學與未來 第3部分",
+      "sectionKey": "2026-春",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-春",
+        "bangumi": [
+          {
+            "id": 508004,
+            "name": "Dr.STONE SCIENCE FUTURE 第3クール"
+          }
+        ],
+        "match": "人工核對原名、續作編號與來源季度"
+      },
+      "malId": 62568,
+      "anilistId": 199221,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/199221",
+      "originalTitle": "Dr. STONE: SCIENCE FUTURE Part 3",
+      "nativeTitle": "Dr.STONE SCIENCE FUTURE 3クール",
+      "year": 2026,
+      "episodes": 13,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx199221-TReDQMNhslHu.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=Ox8hatPxyiQ"
+      },
+      "trailerTitle": "TVアニメ「Dr.STONE SCIENCE FUTURE」最終シーズン第3クール《メインPV》",
+      "trailerAuthor": "TOHO animation チャンネル"
+    },
+    {
+      "title": "上伊那牡丹，酒醉身姿似百合花般",
+      "sectionKey": "2026-春",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-春",
+        "bangumi": [
+          {
+            "id": 543360,
+            "name": "上伊那ぼたん、酔へる姿は百合の花"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 61186,
+      "anilistId": 187869,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/187869",
+      "originalTitle": "Kamiina Botan, Yoeru Sugata wa Yuri no Hana",
+      "nativeTitle": "上伊那ぼたん、酔へる姿は百合の花",
+      "year": 2026,
+      "episodes": 12,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx187869-LUn3dyTzuKUq.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=XX90FklAWsc"
+      },
+      "trailerTitle": "TVアニメ『上伊那ぼたん、酔へる姿は百合の花』PV第1弾｜OPテーマ：yonige「芽吹くとき」",
+      "trailerAuthor": "アニプレックス チャンネル"
+    },
+    {
+      "title": "『我的英雄學院』No.170＋1『More』",
+      "sectionKey": "2026-春",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-春",
+        "bangumi": [
+          {
+            "id": 644516,
+            "name": "『僕のヒーローアカデミア』No.170＋1『More』"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 63130,
+      "anilistId": 204356,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/204356",
+      "originalTitle": "Boku no Hero Academia No. 170+1: More",
+      "nativeTitle": "僕のヒーローアカデミア No. 170+1 「More」",
+      "year": 2026,
+      "episodes": 1,
+      "format": "SPECIAL",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx204356-RNYmxUVVz3Z2.png",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=GhO6xlgmEGw"
+      },
+      "trailerTitle": "『僕のヒーローアカデミア』No.170+1「More」PV／5月2日(土)夕方5:30放送／ヒロアカMore",
+      "trailerAuthor": "TOHO animation チャンネル"
+    },
+    {
+      "title": "關於我轉生變成史萊姆這檔事 第四季",
+      "sectionKey": "2026-春",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-春",
+        "bangumi": [
+          {
+            "id": 515594,
+            "name": "転生したらスライムだった件 第4期"
+          }
+        ],
+        "match": "人工核對原名、續作編號與來源季度"
+      },
+      "malId": 59970,
+      "anilistId": 182205,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/182205",
+      "originalTitle": "Tensei Shitara Slime Datta Ken 4th Season Part 1 & 2",
+      "nativeTitle": "転生したらスライムだった件 第4期 第1&2クール",
+      "year": 2026,
+      "episodes": 24,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx182205-q2AeO1owuQbO.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=ikxIrDr72iA"
+      },
+      "trailerTitle": "TVアニメ『転生したらスライムだった件 第4期』PV第1弾 【2026年4月3日より放送開始！】",
+      "trailerAuthor": "isekai channel @バンダイナムコフィルムワークス"
+    },
+    {
+      "title": "鑽石王牌 act2 第二季",
+      "sectionKey": "2026-春",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-春",
+        "bangumi": [
+          {
+            "id": 495238,
+            "name": "ダイヤのA actⅡ Second Season"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 58877,
+      "anilistId": 177634,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/177634",
+      "originalTitle": "Diamond no Ace act II: Second Season",
+      "nativeTitle": "ダイヤのA actII -Second Season-",
+      "year": 2026,
+      "episodes": 13,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx177634-jYdKdbPOwWhR.png",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=dPWuN1uP09g"
+      },
+      "trailerTitle": "TVアニメ『ダイヤのA』PV第2弾｜4月5日よりテレ東系6局ネット、AT-Xほかにて放送開始",
+      "trailerAuthor": "TVアニメ「ダイヤのA」シリーズ"
+    },
+    {
+      "title": "落語朱音",
+      "sectionKey": "2026-春",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-春",
+        "bangumi": [
+          {
+            "id": 576121,
+            "name": "あかね噺"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 62164,
+      "anilistId": 196935,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/196935",
+      "originalTitle": "Akane-banashi",
+      "nativeTitle": "あかね噺",
+      "year": 2026,
+      "episodes": 12,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx196935-RnLWBsEvNp8M.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=PZJAOQ-7iJ8"
+      },
+      "trailerTitle": "TV anime “Akane-banashi.” The second official trailer | Opening theme: Kuwata Keisuke \"HITOTARASHI\"",
+      "trailerAuthor": "Akane-banashi Global"
+    },
+    {
+      "title": "黃泉使者",
+      "sectionKey": "2026-春",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-春",
+        "bangumi": [
+          {
+            "id": 568572,
+            "name": "黄泉のツガイ"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 62001,
+      "anilistId": 195600,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/195600",
+      "originalTitle": "Yomi no Tsugai",
+      "nativeTitle": "黄泉のツガイ",
+      "year": 2026,
+      "episodes": 24,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx195600-moI0UFArtOme.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=XCyj9KKKjUI"
+      },
+      "trailerTitle": "【メインPV】TVアニメ「黄泉のツガイ」4月4日(土)23時30分より連続2クール放送決定！",
+      "trailerAuthor": "アニプレックス チャンネル"
+    },
+    {
+      "title": "歡迎來到實力至上主義的教室 第四季",
+      "sectionKey": "2026-春",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-春",
+        "bangumi": [
+          {
+            "id": 510710,
+            "name": "ようこそ実力至上主義の教室へ 4th Season"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 59708,
+      "anilistId": 180745,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/180745",
+      "originalTitle": "Youkoso Jitsuryoku Shijou Shugi no Kyoushitsu e 4th Season 2-nensei-hen Ichi Gakki",
+      "nativeTitle": "ようこそ実力至上主義の教室へ 4th Season 2年生編1学期",
+      "year": 2026,
+      "episodes": 16,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx180745-OEZaBeEdWozn.png",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=kAncxuwCPZg"
+      },
+      "trailerTitle": "TVアニメ「ようこそ実力至上主義の教室へ４th Season 2年生編1学期」PV第1弾 | 2026年4月放送",
+      "trailerAuthor": "KADOKAWAanime"
+    },
+    {
+      "title": "和班上第二可愛的女孩成為朋友",
+      "sectionKey": "2026-春",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-春",
+        "bangumi": [
+          {
+            "id": 456079,
+            "name": "クラスで2番目に可愛い女の子と友だちになった"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 56734,
+      "anilistId": 169580,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/169580",
+      "originalTitle": "Class de 2-banme ni Kawaii Onnanoko to Tomodachi ni Natta",
+      "nativeTitle": "クラスで２番目に可愛い女の子と友だちになった",
+      "year": 2026,
+      "episodes": 12,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx169580-nXxpmqu6UVux.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=3mTUxCIyJhA"
+      },
+      "trailerTitle": "I Made Friends with the Second Prettiest Girl in My Class | Official Trailer | Crunchyroll",
+      "trailerAuthor": "Crunchyroll"
+    },
+    {
+      "title": "小書痴的下克上 〜為了成為圖書管理員而不擇手段〜 領主的養女",
+      "sectionKey": "2026-春",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-春",
+        "bangumi": [
+          {
+            "id": 469104,
+            "name": "本好きの下剋上～司書になるためには手段を選んでいられません～ 領主の養女"
+          }
+        ],
+        "match": "人工核對原名、續作編號與來源季度"
+      },
+      "malId": 57466,
+      "anilistId": 171110,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/171110",
+      "originalTitle": "Honzuki no Gekokujou: Ryoushu no Youjo",
+      "nativeTitle": "本好きの下剋上 領主の養女",
+      "year": 2026,
+      "episodes": 24,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx171110-7zOdInS6DQNL.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=rtPF6rjrdSU"
+      },
+      "trailerTitle": "アニメ『本好きの下剋上 領主の養女』PV第2弾｜2026年4月4日(土)放送開始",
+      "trailerAuthor": "【ytv animation】読売テレビ アニメ公式"
+    },
+    {
+      "title": "自稱惡役大小姐的婚約者觀察記錄。",
+      "sectionKey": "2026-春",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-春",
+        "bangumi": [
+          {
+            "id": 558088,
+            "name": "自称悪役令嬢な婚約者の観察記録。"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 61687,
+      "anilistId": 192808,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/192808",
+      "originalTitle": "Jishou Akuyaku Reijou na Konyakusha no Kansatsu Kiroku.",
+      "nativeTitle": "自称悪役令嬢な婚約者の観察記録。",
+      "year": 2026,
+      "episodes": 12,
+      "format": "ONA",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx192808-tfrX4Gn2Y1Ye.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=r6RkeRy4B4c"
+      },
+      "trailerTitle": "An Observation Log of My Fiancée Who Calls Herself a Villainess | Official Trailer | Crunchyroll",
+      "trailerAuthor": "Crunchyroll"
+    },
+    {
+      "title": "飆馬野郎 JOJO的奇妙冒險 第一賽段",
+      "sectionKey": "2026-冬",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-冬",
+        "bangumi": [
+          {
+            "id": 551918,
+            "name": "スティール・ボール・ラン ジョジョの奇妙な冒険 1st STAGE"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 61469,
+      "anilistId": 190327,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/190327",
+      "originalTitle": "JoJo no Kimyou na Bouken: Steel Ball Run - 1st STAGE",
+      "nativeTitle": "ジョジョの奇妙な冒険 スティール・ボール・ラン 1st STAGE",
+      "year": 2026,
+      "episodes": 1,
+      "format": "ONA",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx190327-riJNCFL7w9y4.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=b51C8AbRDGU"
+      },
+      "trailerTitle": "STEEL BALL RUN JoJo’s Bizarre Adventure | Official Trailer | Netflix",
+      "trailerAuthor": "Netflix Anime"
+    },
+    {
+      "title": "プリズム輪舞曲〈ロンド〉",
+      "sectionKey": "2026-冬",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-冬",
+        "bangumi": [],
+        "match": "人工核對原名、續作編號與來源季度"
+      },
+      "malId": 63019,
+      "anilistId": 202955,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/202955",
+      "originalTitle": "Prism Rondo",
+      "nativeTitle": "プリズム輪舞曲",
+      "year": 2026,
+      "episodes": 20,
+      "format": "ONA",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx202955-9ESiLpN9AynZ.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=oLXSfFqTnXg"
+      },
+      "trailerTitle": "Love Through a Prism | Official Trailer | Netflix",
+      "trailerAuthor": "Netflix Anime"
+    },
+    {
+      "title": "金牌得主 第二季",
+      "sectionKey": "2026-冬",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-冬",
+        "bangumi": [
+          {
+            "id": 548818,
+            "name": "メダリスト 第2期"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 61335,
+      "anilistId": 189275,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/189275",
+      "originalTitle": "Medalist 2nd Season",
+      "nativeTitle": "メダリスト 第2期",
+      "year": 2026,
+      "episodes": 9,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx189275-eHsK0lNnFfXH.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=GTaqXo7scOY"
+      },
+      "trailerTitle": "TVアニメ『メダリスト』第2期PV第1弾｜OP主題歌：HANA「Cold Night」",
+      "trailerAuthor": "アニメ『メダリスト』公式チャンネル"
+    },
+    {
+      "title": "黃金神威 最終章",
+      "sectionKey": "2026-冬",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-冬",
+        "bangumi": [
+          {
+            "id": 443106,
+            "name": "ゴールデンカムイ 最終章"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 55772,
+      "anilistId": 166521,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/166521",
+      "originalTitle": "Golden Kamuy: Saishuushou",
+      "nativeTitle": "ゴールデンカムイ 最終章",
+      "year": 2026,
+      "episodes": 13,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b166521-yvCHzltGGU2X.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=NOOSjng2xxg"
+      },
+      "trailerTitle": "TVアニメ「ゴールデンカムイ」最終章PV",
+      "trailerAuthor": "NBCUniversal Anime/Music"
+    },
+    {
+      "title": "放開那個女巫",
+      "sectionKey": "2026-冬",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-冬",
+        "bangumi": [
+          {
+            "id": 250224,
+            "name": "放开那个女巫"
+          }
+        ],
+        "match": "人工核對原名、續作編號與來源季度"
+      },
+      "malId": 62927,
+      "anilistId": 137662,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/137662",
+      "originalTitle": "Fangkai Nage Nüwu",
+      "nativeTitle": "放开那个女巫",
+      "year": 2026,
+      "episodes": 8,
+      "format": "ONA",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx137662-iZigHTc71wi7.png",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=S4P2Mr_Cwys"
+      },
+      "trailerTitle": "Release that Witch | Official Trailer | Crunchyroll",
+      "trailerAuthor": "Crunchyroll"
+    },
+    {
+      "title": "炎炎消防隊 叄之章 第2部分",
+      "sectionKey": "2026-冬",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-冬",
+        "bangumi": [
+          {
+            "id": 502876,
+            "name": "炎炎ノ消防隊 参ノ章 第2クール"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 59229,
+      "anilistId": 179062,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/179062",
+      "originalTitle": "Enen no Shouboutai: San no Shou Part 2",
+      "nativeTitle": "炎炎ノ消防隊 参ノ章 第2クール",
+      "year": 2026,
+      "episodes": 13,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx179062-pbzYE1miZq61.png",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=-oo17kCYzIA"
+      },
+      "trailerTitle": "TVアニメ『炎炎ノ消防隊 参ノ章』第2クールメインPV｜2026年1月9日放送開始！",
+      "trailerAuthor": "炎炎ノ消防隊"
+    },
+    {
+      "title": "わたしが恋人になれるわけないじゃん、ムリムリ! (※ムリじゃなかった!?) ～ネクストシャイン！～",
+      "sectionKey": "2026-冬",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-冬",
+        "bangumi": [],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 62543,
+      "anilistId": 199112,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/199112",
+      "originalTitle": "Watashi ga Koibito ni Nareru Wake Nai jan, Muri Muri! (※Muri ja Nakatta!?): Next Shine!",
+      "nativeTitle": "わたしが恋人になれるわけないじゃん、ムリムリ! (※ムリじゃなかった!?)〜ネクストシャイン！〜",
+      "year": 2026,
+      "episodes": 5,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx199112-WyGPtcAI5QZp.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=CyrUp4JtQoQ"
+      },
+      "trailerTitle": "本予告 #わたなれ｜わたしが恋人になれるわけないじゃん、ムリムリ!（※ムリじゃなかった!?）～ネクストシャイン！～｜続編全5話が制作・TV放送・劇場公開！11/21(金)~新宿バルト9ほかにて",
+      "trailerAuthor": "集英社DeNAプロジェクツ 公式チャンネル"
+    },
+    {
+      "title": "在這世界(更多一些)的角落",
+      "sectionKey": "2026-冬",
+      "savedAt": "2026-09-29T03:40:44.679Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-冬",
+        "bangumi": [
+          {
+            "id": 255191,
+            "name": "この世界の（さらにいくつもの）片隅に"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "status": "needs-review",
+      "reason": "同名來源為 2019 年電影，報告為 2026 冬季、13 集電視動畫；作品版本待確認。",
+      "candidates": [
+        {
+          "sourceUrl": "https://anilist.co/anime/112135",
+          "malId": null,
+          "anilistId": 112135,
+          "title": "この世界の（さらにいくつもの）片隅に",
+          "year": 2019,
+          "episodes": 1,
+          "format": "MOVIE"
+        }
+      ]
+    },
+    {
+      "title": "機動戰士高達 閃光的哈薩維 喀耳刻的魔女",
+      "sectionKey": "2026-冬",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-冬",
+        "bangumi": [
+          {
+            "id": 243430,
+            "name": "機動戦士ガンダム 閃光のハサウェイ キルケーの魔女"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 38716,
+      "anilistId": 113971,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/113971",
+      "originalTitle": "Kidou Senshi Gundam: Senkou no Hathaway - Circe no Majo",
+      "nativeTitle": "機動戦士ガンダム 閃光のハサウェイ キルケーの魔女",
+      "year": 2026,
+      "episodes": 1,
+      "format": "MOVIE",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx113971-GIit95PnSGvt.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=_mZod4M6nDQ"
+      },
+      "trailerTitle": "1月30日公開│『機動戦士ガンダム 閃光のハサウェイ キルケーの魔女』本予告",
+      "trailerAuthor": "ガンダムチャンネル"
+    },
+    {
+      "title": "極速車魂 第三季",
+      "sectionKey": "2026-冬",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-冬",
+        "bangumi": [
+          {
+            "id": 530110,
+            "name": "MFゴースト 3rd Season"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 60602,
+      "anilistId": 185753,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/185753",
+      "originalTitle": "MF Ghost 3rd Season",
+      "nativeTitle": "MFゴースト 3rd Season",
+      "year": 2026,
+      "episodes": 13,
+      "format": "ONA",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx185753-fKim5yXjaE9I.png",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=HJuYJpMJdGs"
+      },
+      "trailerTitle": "TVアニメ『#MFゴースト 3rd Season』第2弾PV　2026年1月1日(木)よりPrime Videoにてテレビ放送より3日間先行配信！",
+      "trailerAuthor": "TVアニメ「MFゴースト」公式"
+    },
+    {
+      "title": "《新世紀福音戰士》30週年紀念特別放映",
+      "sectionKey": "2026-冬",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-冬",
+        "bangumi": [
+          {
+            "id": 616383,
+            "name": "エヴァンゲリオン放送30周年記念特別興行"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 63392,
+      "anilistId": 204270,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/204270",
+      "originalTitle": "Evangelion: Housou 30 Shuunen Kinen Tokubetsu Kougyou",
+      "nativeTitle": "エヴァンゲリオン放送30周年記念特別興行",
+      "year": 2026,
+      "episodes": 1,
+      "format": "SPECIAL",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx204270-6uMH5dFbyQPw.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=t6ju8O7a89g"
+      },
+      "trailerTitle": "【公式】『エヴァンゲリオン放送30周年記念特別興行』",
+      "trailerAuthor": "株式会社カラー khara inc.official"
+    },
+    {
+      "title": "劇場版 我心裡危險的東西",
+      "sectionKey": "2026-冬",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-冬",
+        "bangumi": [
+          {
+            "id": 515869,
+            "name": "劇場版 僕の心のヤバイやつ"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 59985,
+      "anilistId": 182317,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/182317",
+      "originalTitle": "Boku no Kokoro no Yabai Yatsu Movie",
+      "nativeTitle": "劇場版 僕の心のヤバイやつ",
+      "year": 2026,
+      "episodes": 1,
+      "format": "MOVIE",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx182317-zzpOnAECrM2o.png",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=36JDA7oxID0"
+      },
+      "trailerTitle": "劇場版「僕の心のヤバイやつ」本予告｜2026年2月13日(金)全国公開",
+      "trailerAuthor": "tv asahi  animation YouTubeチャンネル"
+    },
+    {
+      "title": "擇天記",
+      "sectionKey": "2026-冬",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2026-冬",
+        "bangumi": [
+          {
+            "id": 140217,
+            "name": "择天记"
+          },
+          {
+            "id": 526975,
+            "name": "择天记3D"
+          }
+        ],
+        "match": "人工核對原名、續作編號與來源季度"
+      },
+      "malId": 61562,
+      "anilistId": 199410,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/199410",
+      "originalTitle": "Ze Tian Ji (2026)",
+      "nativeTitle": "择天记 (2026)",
+      "year": 2026,
+      "episodes": 26,
+      "format": "ONA",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx199410-x60vxUFQxu4x.jpg",
+      "trailer": null
+    },
+    {
+      "title": "賽馬娘 蘆毛灰姑娘 第2部分",
+      "sectionKey": "2025-秋",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-秋",
+        "bangumi": [
+          {
+            "id": 530377,
+            "name": "ウマ娘 シンデレラグレイ 第2クール"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 61930,
+      "anilistId": 195240,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/195240",
+      "originalTitle": "Uma Musume: Cinderella Gray Part 2",
+      "nativeTitle": "ウマ娘 シンデレラグレイ 第2クール",
+      "year": 2025,
+      "episodes": 10,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx195240-hKcmllV6YHQT.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=MNZchQvbMa0"
+      },
+      "trailerTitle": "Umamusume: Cinderella Gray 2nd Cour Main Trailer | ENG SUB",
+      "trailerAuthor": "It's Anime powered by REMOW"
+    },
+    {
+      "title": "王者天下 第六季",
+      "sectionKey": "2025-秋",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-秋",
+        "bangumi": [
+          {
+            "id": 553106,
+            "name": "キングダム 第6シリーズ"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 61517,
+      "anilistId": 190840,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/190840",
+      "originalTitle": "Kingdom 6th Season",
+      "nativeTitle": "キングダム 第6シリーズ",
+      "year": 2025,
+      "episodes": 13,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx190840-CvKAz6aWHB21.png",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=IT5EyilwgoQ"
+      },
+      "trailerTitle": "TVアニメ「キングダム」第６シリーズ本予告第１弾|2025年10月放送予定！",
+      "trailerAuthor": "TVアニメ「キングダム」公式YouTube Channel"
+    },
+    {
+      "title": "輝夜大小姐想讓我告白 通往大人的階梯",
+      "sectionKey": "2025-秋",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-秋",
+        "bangumi": [
+          {
+            "id": 565802,
+            "name": "かぐや様は告らせたい 大人への階段"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 61903,
+      "anilistId": 194884,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/194884",
+      "originalTitle": "Kaguya-sama wa Kokurasetai: Otona e no Kaidan",
+      "nativeTitle": "かぐや様は告らせたい 大人への階段",
+      "year": 2025,
+      "episodes": 2,
+      "format": "SPECIAL",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx194884-rHgGAzKSCEWz.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=LyHTqu5Yg7I"
+      },
+      "trailerTitle": "『かぐや様は告らせたい 大人への階段』本PV｜2025年12月31日(水)放送！",
+      "trailerAuthor": "アニプレックス チャンネル"
+    },
+    {
+      "title": "光陰之外",
+      "sectionKey": "2025-秋",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-秋",
+        "bangumi": [
+          {
+            "id": 458926,
+            "name": "光阴之外"
+          }
+        ],
+        "match": "人工核對原名、續作編號與來源季度"
+      },
+      "malId": 62340,
+      "anilistId": 205905,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/205905",
+      "originalTitle": "Guangyin Zhi Wai",
+      "nativeTitle": "光阴之外",
+      "year": 2025,
+      "episodes": 26,
+      "format": "ONA",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx205905-lbDVh7foIfjt.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=o08Ry50zwrE"
+      },
+      "trailerTitle": "ENGSUB【光阴之外 Beyond Time's Gaze】定档PV来袭！年度最狠王炸国漫！ |  优酷动漫  YOUKU ANIMATION",
+      "trailerAuthor": "YOUKU ANIMATION-Get APP Now"
+    },
+    {
+      "title": "劇場版『ゾンビランドサガ ゆめぎんがパラダイス』",
+      "sectionKey": "2025-秋",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-秋",
+        "bangumi": [],
+        "match": "人工核對原名、續作編號與來源季度"
+      },
+      "malId": 50159,
+      "anilistId": 140337,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/140337",
+      "originalTitle": "Zombie Land Saga: Yume Ginga Paradise",
+      "nativeTitle": "ゾンビランドサガ ゆめぎんがパラダイス",
+      "year": 2025,
+      "episodes": 1,
+      "format": "MOVIE",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx140337-8EtbiPurofcC.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=irI7CoyF_Hk"
+      },
+      "trailerTitle": "Zombie Land Saga: Yumeginga Paradise | Official Trailer | Crunchyroll",
+      "trailerAuthor": "Crunchyroll"
+    },
+    {
+      "title": "藤本樹17-26",
+      "sectionKey": "2025-秋",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-秋",
+        "bangumi": [
+          {
+            "id": 582501,
+            "name": "藤本タツキ17-26"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 62405,
+      "anilistId": 198188,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/198188",
+      "originalTitle": "Fujimoto Tatsuki 17-26",
+      "nativeTitle": "藤本タツキ 17-26",
+      "year": 2025,
+      "episodes": 8,
+      "format": "MOVIE",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx198188-h3w6uICVNhqh.png",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=xDsN2cmAlhQ"
+      },
+      "trailerTitle": "アニメ「藤本タツキ 17-26」（Tatsuki Fujimoto 17-26 ）予告編",
+      "trailerAuthor": "avex pictures"
+    },
+    {
+      "title": "劇場版總集篇 少女樂隊的吶喊 吶、未來。",
+      "sectionKey": "2025-秋",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-秋",
+        "bangumi": [
+          {
+            "id": 512793,
+            "name": "劇場版総集編 ガールズバンドクライ なぁ、未来。"
+          }
+        ],
+        "match": "人工核對原名、續作編號與來源季度"
+      },
+      "malId": null,
+      "anilistId": 199154,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/199154",
+      "originalTitle": "GIRLS BAND CRY: Naa, Mirai.",
+      "nativeTitle": "ガールズバンドクライ なぁ、未来。",
+      "year": 2025,
+      "episodes": 1,
+      "format": "MOVIE",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx199154-uqZFZ49UJzuv.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=pvNj_KZY40A"
+      },
+      "trailerTitle": "『劇場版総集編 ガールズバンドクライ 【後編】 なぁ、未来。』本予告",
+      "trailerAuthor": "ガールズバンドクライ"
+    },
+    {
+      "title": "武動乾坤 第6季",
+      "sectionKey": "2025-秋",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-秋",
+        "bangumi": [
+          {
+            "id": 535075,
+            "name": "武动乾坤 第六季"
+          }
+        ],
+        "match": "人工核對原名、續作編號與來源季度"
+      },
+      "malId": 62249,
+      "anilistId": 202660,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/202660",
+      "originalTitle": "Wu Dong Qiankun 6",
+      "nativeTitle": "武动乾坤 第6季",
+      "year": 2025,
+      "episodes": 12,
+      "format": "ONA",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b202660-pjsk9uTy7Umy.jpg",
+      "trailer": null
+    },
+    {
+      "title": "古諾希亞",
+      "sectionKey": "2025-秋",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-秋",
+        "bangumi": [
+          {
+            "id": 526448,
+            "name": "グノーシア"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 60427,
+      "anilistId": 185116,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/185116",
+      "originalTitle": "Gnosia",
+      "nativeTitle": "グノーシア",
+      "year": 2025,
+      "episodes": 21,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx185116-DIFRjiMgz1IS.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=Rm4ipMdFpeA"
+      },
+      "trailerTitle": "GNOSIA | Official Trailer | Crunchyroll",
+      "trailerAuthor": "Crunchyroll"
+    },
+    {
+      "title": "東島丹三郎想成為假面騎士",
+      "sectionKey": "2025-秋",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-秋",
+        "bangumi": [
+          {
+            "id": 542203,
+            "name": "東島丹三郎は仮面ライダーになりたい"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 61159,
+      "anilistId": 187464,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/187464",
+      "originalTitle": "Toujima Tanzaburou wa Kamen Rider ni Naritai",
+      "nativeTitle": "東島丹三郎は仮面ライダーになりたい",
+      "year": 2025,
+      "episodes": 24,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx187464-NJtK3VC54vPm.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=76c3cCV1BcU"
+      },
+      "trailerTitle": "アニメ『東島丹三郎は仮面ライダーになりたい』第3弾PV｜2025年10月4日放送",
+      "trailerAuthor": "アニプレックス チャンネル"
+    },
+    {
+      "title": "らんま1/2 第2期",
+      "sectionKey": "2025-秋",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-秋",
+        "bangumi": [],
+        "match": "人工核對原名、續作編號與來源季度"
+      },
+      "malId": 60564,
+      "anilistId": 185731,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/185731",
+      "originalTitle": "Ranma 1/2 (2024) 2nd Season",
+      "nativeTitle": "らんま1/2 (2024) 第2期",
+      "year": 2025,
+      "episodes": 12,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx185731-PJ6WKcFDUI4B.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=qf_pRksXtTw"
+      },
+      "trailerTitle": "Ranma1/2: Season 2 | Official Trailer | Netflix",
+      "trailerAuthor": "Netflix Anime"
+    },
+    {
+      "title": "ラブライブ! 虹ヶ咲学園スクールアイドル同好会 完結編 第2章",
+      "sectionKey": "2025-秋",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-秋",
+        "bangumi": [],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 60159,
+      "anilistId": 183384,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/183384",
+      "originalTitle": "Love Live! Nijigasaki Gakuen School Idol Doukoukai: Kanketsu-hen 2",
+      "nativeTitle": "ラブライブ！虹ヶ咲学園スクールアイドル同好会 完結編 第2章",
+      "year": 2025,
+      "episodes": 1,
+      "format": "MOVIE",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx183384-ecrP3DzrDvhM.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=kedh-Fq2Weg"
+      },
+      "trailerTitle": "【本予告】映画『ラブライブ！虹ヶ咲学園スクールアイドル同好会 完結編 第2章』",
+      "trailerAuthor": "(Love Live! series)ラブライブ！シリーズ公式チャンネル"
+    },
+    {
+      "title": "淵之信",
+      "sectionKey": "2025-秋",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-秋",
+        "bangumi": [
+          {
+            "id": 433393,
+            "name": "연의 편지"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 60020,
+      "anilistId": 163788,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/163788",
+      "originalTitle": "Yeonui Pyeonji",
+      "nativeTitle": "연의 편지",
+      "year": 2025,
+      "episodes": 1,
+      "format": "MOVIE",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx163788-Wum8nKlWpcQj.png",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=GTKu2mLpeS4"
+      },
+      "trailerTitle": "Your Letter | Official Main Trailer | INTL",
+      "trailerAuthor": "Lotte Entertainment (International)"
+    },
+    {
+      "title": "碧藍之海 第二季",
+      "sectionKey": "2025-夏",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-夏",
+        "bangumi": [
+          {
+            "id": 515880,
+            "name": "ぐらんぶる Season 2"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 59986,
+      "anilistId": 182309,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/182309",
+      "originalTitle": "Grand Blue Season 2",
+      "nativeTitle": "ぐらんぶる Season 2",
+      "year": 2025,
+      "episodes": 12,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx182309-IfrR8sgHIczv.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=IuKxqWZg5q4"
+      },
+      "trailerTitle": "TVアニメ「ぐらんぶる」Season 2 PV（OPver.）",
+      "trailerAuthor": "NBCUniversal Anime/Music"
+    },
+    {
+      "title": "MIX：明青故事 第二季 ～第二個夏天，邁向晴空～",
+      "sectionKey": "2025-夏",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-夏",
+        "bangumi": [
+          {
+            "id": 394784,
+            "name": "MIX MEISEI STORY 2ND SEASON ～二度目の夏、空の向こうへ～"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "status": "needs-review",
+      "reason": "同名來源為 2023 年、24 集，報告為 2025 夏季、12 集；可能是舊翻譯誤配，暫不套用封面。",
+      "candidates": [
+        {
+          "sourceUrl": "https://anilist.co/anime/153344",
+          "malId": 52614,
+          "anilistId": 153344,
+          "title": "MIX MEISEI STORY 2ND SEASON ～二度目の夏、空の向こうへ～",
+          "year": 2023,
+          "episodes": 24,
+          "format": "TV"
+        }
+      ]
+    },
+    {
+      "title": "百米。",
+      "sectionKey": "2025-夏",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-夏",
+        "bangumi": [
+          {
+            "id": 496135,
+            "name": "ひゃくえむ。"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 58919,
+      "anilistId": 177687,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/177687",
+      "originalTitle": "Hyakuemu.",
+      "nativeTitle": "ひゃくえむ。",
+      "year": 2025,
+      "episodes": 1,
+      "format": "MOVIE",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx177687-T4SrtVjrmW01.png",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=oXeYSCXSFhs"
+      },
+      "trailerTitle": "100 METERS | Official Trailer",
+      "trailerAuthor": "GKIDS Films"
+    },
+    {
+      "title": "琉璃的寶石",
+      "sectionKey": "2025-夏",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-夏",
+        "bangumi": [
+          {
+            "id": 512190,
+            "name": "瑠璃の宝石"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 59791,
+      "anilistId": 180929,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/180929",
+      "originalTitle": "Ruri no Houseki",
+      "nativeTitle": "瑠璃の宝石",
+      "year": 2025,
+      "episodes": 13,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx180929-ytdzqbrOhots.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=kdh0ucpJEH8"
+      },
+      "trailerTitle": "TVアニメ「瑠璃の宝石」第２弾PV ｜ 2025年7月6日（日）より順次放送開始！",
+      "trailerAuthor": "アニプレックス チャンネル"
+    },
+    {
+      "title": "美樂蒂&庫洛米",
+      "sectionKey": "2025-夏",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-夏",
+        "bangumi": [],
+        "match": "人工核對原名、續作編號與來源季度"
+      },
+      "malId": 60726,
+      "anilistId": 186043,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/186043",
+      "originalTitle": "My Melody & Kuromi",
+      "nativeTitle": "My Melody & Kuromi",
+      "year": 2025,
+      "episodes": 12,
+      "format": "ONA",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx186043-nXyStyc58cFd.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=3oKamSmjono"
+      },
+      "trailerTitle": "My Melody & Kuromi | Official Trailer | Netflix",
+      "trailerAuthor": "Netflix Anime"
+    },
+    {
+      "title": "アークナイツ【焔燼曙明/RISE FROM EMBER】",
+      "sectionKey": "2025-夏",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-夏",
+        "bangumi": [],
+        "match": "人工核對原名、續作編號與來源季度"
+      },
+      "malId": 58749,
+      "anilistId": 177175,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/177175",
+      "originalTitle": "Arknights: Enshin Shomei",
+      "nativeTitle": "アークナイツ 焔燼曙明",
+      "year": 2025,
+      "episodes": 10,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx177175-cr5tlJIj7dEi.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=hxZBu_x3Byk"
+      },
+      "trailerTitle": "Arknights TV Animation [RISE FROM EMBER] Official Trailer",
+      "trailerAuthor": "Arknights Official - Yostar"
+    },
+    {
+      "title": "Clevatess-魔獸之王與嬰兒與屍之勇者-",
+      "sectionKey": "2025-夏",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-夏",
+        "bangumi": [
+          {
+            "id": 502142,
+            "name": "クレバテス-魔獣の王と赤子と屍の勇者-"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 59205,
+      "anilistId": 178869,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/178869",
+      "originalTitle": "Clevatess: Majuu no Ou to Akago to Kabane no Yuusha",
+      "nativeTitle": "クレバテス-魔獣の王と赤子と屍の勇者-",
+      "year": 2025,
+      "episodes": 12,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx178869-qiEz0gQD8H5N.png",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=sX4o5OODMqQ"
+      },
+      "trailerTitle": "TVアニメ「クレバテス-魔獣の王と赤子と屍の勇者-」PV第3弾｜Clevatess",
+      "trailerAuthor": "KADOKAWAanime"
+    },
+    {
+      "title": "魔法公主的小煩惱",
+      "sectionKey": "2025-夏",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-夏",
+        "bangumi": [
+          {
+            "id": 434807,
+            "name": "魔法公主的小烦恼"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 57353,
+      "anilistId": 165530,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/165530",
+      "originalTitle": "Mofa Gongzhu De Xiao Fannao",
+      "nativeTitle": "魔法公主的小烦恼",
+      "year": 2025,
+      "episodes": 16,
+      "format": "ONA",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx165530-Ku7VZt2NCIgf.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=50ctpFeiICk"
+      },
+      "trailerTitle": "TVアニメ「ある日、お姫様になってしまった件について」ティザーPV｜2025年9月28日(日)より地上波先行配信・10月1日(水)よりテレビ放送決定！",
+      "trailerAuthor": "KADOKAWAanime"
+    },
+    {
+      "title": "浪浪山小妖怪",
+      "sectionKey": "2025-夏",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-夏",
+        "bangumi": [
+          {
+            "id": 440095,
+            "name": "浪浪山小妖怪"
+          }
+        ],
+        "match": "人工核對原名、續作編號與來源季度"
+      },
+      "malId": null,
+      "anilistId": 199356,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/199356",
+      "originalTitle": "Lang Lang Shan Xiao Yao Guai",
+      "nativeTitle": "浪浪山小妖怪",
+      "year": 2025,
+      "episodes": 1,
+      "format": "MOVIE",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx199356-SO5R1GhQtq9R.png",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=59WTgd35QyQ"
+      },
+      "trailerTitle": "𝑵𝑶𝑩𝑶𝑫𝒀 International Trailer | 《浪浪山小妖怪》国际预告",
+      "trailerAuthor": "CMC Pictures"
+    },
+    {
+      "title": "わたしが恋人になれるわけないじゃん、ムリムリ! (※ムリじゃなかった!?)",
+      "sectionKey": "2025-夏",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-夏",
+        "bangumi": [],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 60326,
+      "anilistId": 184591,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/184591",
+      "originalTitle": "Watashi ga Koibito ni Nareru Wake Nai jan, Muri Muri! (※Muri ja Nakatta!?)",
+      "nativeTitle": "わたしが恋人になれるわけないじゃん、ムリムリ! (※ムリじゃなかった!?)",
+      "year": 2025,
+      "episodes": 12,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx184591-jRXZ29bN61Zc.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=nEj2X9x9M7Q"
+      },
+      "trailerTitle": "There's No Freaking Way I'll Be Your Lover! Unless… | Official Trailer 2 | MULTI-SUB | It's Anime",
+      "trailerAuthor": "It's Anime powered by REMOW"
+    },
+    {
+      "title": "賽馬娘 蘆毛灰姑娘",
+      "sectionKey": "2025-春",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-春",
+        "bangumi": [
+          {
+            "id": 509297,
+            "name": "ウマ娘 シンデレラグレイ"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 59636,
+      "anilistId": 180516,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/180516",
+      "originalTitle": "Uma Musume: Cinderella Gray",
+      "nativeTitle": "ウマ娘 シンデレラグレイ",
+      "year": 2025,
+      "episodes": 13,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx180516-lebpoKLkw6E3.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=Gw8j8-m1gVk"
+      },
+      "trailerTitle": "アニメ『ウマ娘 シンデレラグレイ』メインPV【第1クールOP主題歌：[Alexandros]「超える」】2025年4月6日からTBS系全国28局ネットにて毎週日曜16時30分より分割2クールで放送開始",
+      "trailerAuthor": "ぱかチューブっ!【ウマ娘公式】"
+    },
+    {
+      "title": "黒執事 -緑の魔女編-",
+      "sectionKey": "2025-春",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-春",
+        "bangumi": [],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 59228,
+      "anilistId": 179054,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/179054",
+      "originalTitle": "Kuroshitsuji: Midori no Majo-hen",
+      "nativeTitle": "黒執事 -緑の魔女編-",
+      "year": 2025,
+      "episodes": 13,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx179054-HmN0Za4T157B.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=Vag2bbe70Y0"
+      },
+      "trailerTitle": "アニメ『黒執事 -緑の魔女編-』本PV｜2025年4月5日（土）より各局にて放送開始！",
+      "trailerAuthor": "アニプレックス チャンネル"
+    },
+    {
+      "title": "為美好的世界獻上祝福！第三季 ーBONUS STAGEー",
+      "sectionKey": "2025-春",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-春",
+        "bangumi": [
+          {
+            "id": 513089,
+            "name": "この素晴らしい世界に祝福を！３ーBONUS STAGEー"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 59833,
+      "anilistId": 181244,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/181244",
+      "originalTitle": "Kono Subarashii Sekai ni Shukufuku wo! 3: BONUS STAGE",
+      "nativeTitle": "この素晴らしい世界に祝福を！３ーBONUS STAGEー",
+      "year": 2025,
+      "episodes": 2,
+      "format": "OVA",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx181244-ICHU0FzIhEAY.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=UIFjZfSZJKw"
+      },
+      "trailerTitle": "新作OVA『この素晴らしい世界に祝福を！３ーBONUS STAGEー』特報【2025年3月14日（金）より全国劇場にて2週間限定上映】",
+      "trailerAuthor": "KADOKAWAanime"
+    },
+    {
+      "title": "末日後酒店",
+      "sectionKey": "2025-春",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-春",
+        "bangumi": [
+          {
+            "id": 509986,
+            "name": "アポカリプスホテル"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 59675,
+      "anilistId": 180675,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/180675",
+      "originalTitle": "Apocalypse Hotel",
+      "nativeTitle": "アポカリプスホテル",
+      "year": 2025,
+      "episodes": 12,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx180675-YEwsxiMsnyvL.png",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=epz8n8a2Zik"
+      },
+      "trailerTitle": "Apocalypse Hotel | Official Trailer | Crunchyroll",
+      "trailerAuthor": "Crunchyroll"
+    },
+    {
+      "title": "神印王座剧场版 伊莱克斯传奇",
+      "sectionKey": "2025-春",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-春",
+        "bangumi": [
+          {
+            "id": 492121,
+            "name": "神印王座剧场版 伊莱克斯传奇"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 61508,
+      "anilistId": 195879,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/195879",
+      "originalTitle": "Shen Yin Wangzuo Movie: Yi Lai Ke Si Chuanqi",
+      "nativeTitle": "神印王座剧场版 伊莱克斯传奇",
+      "year": 2025,
+      "episodes": 1,
+      "format": "ONA",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx195879-XSxvdXPj1y5h.jpg",
+      "trailer": null
+    },
+    {
+      "title": "诛仙 第三季",
+      "sectionKey": "2025-春",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-春",
+        "bangumi": [
+          {
+            "id": 506325,
+            "name": "诛仙 第三季"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 61784,
+      "anilistId": 181181,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/181181",
+      "originalTitle": "Zhu Xian 3",
+      "nativeTitle": "诛仙 第三季",
+      "year": 2025,
+      "episodes": 26,
+      "format": "ONA",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx181181-rYDvM8aCeH4w.jpg",
+      "trailer": null
+    },
+    {
+      "title": "再見星上人",
+      "sectionKey": "2025-春",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-春",
+        "bangumi": [
+          {
+            "id": 538839,
+            "name": "이 별에 필요한"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 61595,
+      "anilistId": 192002,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/192002",
+      "originalTitle": "I Byeore Piryohan",
+      "nativeTitle": "이 별에 필요한",
+      "year": 2025,
+      "episodes": 1,
+      "format": "MOVIE",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx192002-sZCUa2OSDhZi.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=VvMbyw_vIcA"
+      },
+      "trailerTitle": "Lost in Starlight | Official Trailer | Netflix [EN SUB]",
+      "trailerAuthor": "Netflix K-Content"
+    },
+    {
+      "title": "搖滾乃是淑女的愛好",
+      "sectionKey": "2025-春",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-春",
+        "bangumi": [
+          {
+            "id": 504678,
+            "name": "ロックは淑女の嗜みでして"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 59360,
+      "anilistId": 179694,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/179694",
+      "originalTitle": "Rock wa Lady no Tashinami Deshite",
+      "nativeTitle": "ロックは淑女の嗜みでして",
+      "year": 2025,
+      "episodes": 13,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx179694-7zhc0T6IImor.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=oO-foFtYnuw"
+      },
+      "trailerTitle": "Rock is a Lady's Modesty | Trailer | Premieres April 3 | HIDIVE",
+      "trailerAuthor": "HIDIVE"
+    },
+    {
+      "title": "安妮·雪莉",
+      "sectionKey": "2025-春",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-春",
+        "bangumi": [
+          {
+            "id": 524801,
+            "name": "アン・シャーリー"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 60334,
+      "anilistId": 184639,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/184639",
+      "originalTitle": "Anne Shirley",
+      "nativeTitle": "アン・シャーリー",
+      "year": 2025,
+      "episodes": 24,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx184639-tmj8NbTroNeI.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=-oaZ3DRpjAk"
+      },
+      "trailerTitle": "Anne Shirley | Official Teaser | Crunchyroll",
+      "trailerAuthor": "Crunchyroll"
+    },
+    {
+      "title": "夏目友人帳 漆 伸ばした手は",
+      "sectionKey": "2025-春",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-春",
+        "bangumi": [],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 60302,
+      "anilistId": 184762,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/184762",
+      "originalTitle": "Natsume Yuujinchou Shichi: Nobashita Te wa",
+      "nativeTitle": "夏目友人帳 漆 伸ばした手は",
+      "year": 2025,
+      "episodes": 1,
+      "format": "SPECIAL",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx184762-d43MK74zcrPI.jpg",
+      "trailer": null
+    },
+    {
+      "title": "完美世界劇場版 九劫焚天",
+      "sectionKey": "2025-春",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-春",
+        "bangumi": [
+          {
+            "id": 542046,
+            "name": "完美世界剧场版 九劫焚天"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "status": "needs-review",
+      "reason": "同名來源標示 2026 年，報告收錄於 2025 春季；需核對原抓取作品。",
+      "candidates": [
+        {
+          "sourceUrl": "https://anilist.co/anime/187594",
+          "malId": 62723,
+          "anilistId": 187594,
+          "title": "完美世界剧场版 九劫焚天",
+          "year": 2026,
+          "episodes": 1,
+          "format": "ONA"
+        }
+      ]
+    },
+    {
+      "title": "時光流逝，飯菜依舊美味",
+      "sectionKey": "2025-春",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-春",
+        "bangumi": [
+          {
+            "id": 531159,
+            "name": "日々は過ぎれど飯うまし"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 60658,
+      "anilistId": 185939,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/185939",
+      "originalTitle": "Hibi wa Sugiredo Meshi Umashi",
+      "nativeTitle": "日々は過ぎれど飯うまし",
+      "year": 2025,
+      "episodes": 12,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx185939-hqt1He153el8.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=FtAmzXI4q_Y"
+      },
+      "trailerTitle": "TVアニメ「日々は過ぎれど飯うまし」本PV｜2025年4月12日(土)より各局にて放送開始！",
+      "trailerAuthor": "アニプレックス チャンネル"
+    },
+    {
+      "title": "炎炎消防隊 叄之章",
+      "sectionKey": "2025-春",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-春",
+        "bangumi": [
+          {
+            "id": 382126,
+            "name": "炎炎ノ消防隊 参ノ章"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 51818,
+      "anilistId": 149118,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/149118",
+      "originalTitle": "Enen no Shouboutai: San no Shou",
+      "nativeTitle": "炎炎ノ消防隊 参ノ章",
+      "year": 2025,
+      "episodes": 12,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx149118-AOQb0xuTssGl.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=nz-VCl7yUAw"
+      },
+      "trailerTitle": "TVアニメ『炎炎ノ消防隊 参ノ章』第2弾PV｜4月4日放送開始｜女王蜂「強火」",
+      "trailerAuthor": "炎炎ノ消防隊"
+    },
+    {
+      "title": "mono女孩",
+      "sectionKey": "2025-春",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-春",
+        "bangumi": [
+          {
+            "id": 485936,
+            "name": "mono"
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 58492,
+      "anilistId": 176246,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/176246",
+      "originalTitle": "mono",
+      "nativeTitle": "mono",
+      "year": 2025,
+      "episodes": 12,
+      "format": "TV",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx176246-ndH8bKh7cmzf.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=YJzMiDd8RyM"
+      },
+      "trailerTitle": "mono | OFFICIAL TRAILER",
+      "trailerAuthor": "Aniplex USA"
+    },
+    {
+      "title": "莉可麗絲：友誼是時間的竊賊",
+      "sectionKey": "2025-春",
+      "savedAt": "2026-09-29T03:40:44.680Z",
+      "provenance": "reviewed-backfill",
+      "evidence": {
+        "reportSection": "2025-春",
+        "bangumi": [
+          {
+            "id": 504950,
+            "name": "リコリス・リコイル Friends are thieves of time."
+          }
+        ],
+        "match": "中文精確對照原名，再核對來源作品"
+      },
+      "malId": 59369,
+      "anilistId": 179706,
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/179706",
+      "originalTitle": "Lycoris Recoil: Friends are thieves of time.",
+      "nativeTitle": "リコリス・リコイル Friends are thieves of time.",
+      "year": 2025,
+      "episodes": 6,
+      "format": "ONA",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx179706-NvVrmMxnDatB.jpg",
+      "trailer": {
+        "url": "https://www.youtube.com/watch?v=5gQn5UwJSfA"
+      },
+      "trailerTitle": "Lycoris Recoil -Friends are thieves of time.- | OFFICIAL TRAILER",
+      "trailerAuthor": "Aniplex USA"
+    }
+  ]
+}

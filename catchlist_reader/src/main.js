@@ -1,15 +1,18 @@
-import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from "electron";
+import { app, BrowserWindow, clipboard, dialog, ipcMain, session, shell } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { parseReport, deleteEntry, hasReportFiles, hideEntry, loadAllLibraries, undoHide, setFavorite, loadHiddenEntries, restoreHiddenEntry, setHiddenReason, favoriteBacklogEntry, undoHiddenReason } from "./library.js";
+import { parseReport, sourceEntries, deleteEntry, hasReportFiles, hideEntry, loadAllLibraries, undoHide, setFavorite, loadHiddenEntries, restoreHiddenEntry, setHiddenReason, favoriteBacklogEntry, undoHiddenReason } from "./library.js";
 import { loadUpdateStatus } from "./update-status.js";
 import { GameCoverCache, GameCoverService } from "./game-cover-cache.js";
 import { resolveSteamCover } from "./steam-covers.js";
 import { ReportCache } from "./report-cache.js";
 import { VisitHistory } from "./visit-history.js";
 import { ManualGameService } from "./manual-game-service.js";
+import { CoverRequestLog } from "./cover-request-log.js";
+import { AnimeMediaService, trailerUrl } from "./anime-media.js";
+import { readAnimeSources, animeSourceKey } from "@catchlist/core/anime-sources.js";
 
 const sourceDir = path.dirname(fileURLToPath(import.meta.url));
 const isolatedUserDataDir = process.env.CATCHLIST_USER_DATA_DIR?.trim();
@@ -18,6 +21,20 @@ let mainWindow;
 let dataDir;
 let lastOperation;
 let gameCoverService;
+let coverRequestLog;
+let animeMediaService;
+
+function animeService() {
+  return animeMediaService ??= new AnimeMediaService(path.join(app.getPath("userData"), "anime-media-cache.json"));
+}
+
+function animeEntry(id) {
+  if (!dataDir || typeof id !== "string") throw new Error("請先開啟動畫清單");
+  const entry = sourceEntries(dataDir, "anime", { reportCache }).entries.find(item => item.id === id);
+  if (!entry) throw new Error("清單已變更，請重新開啟動畫頁");
+  try { return { ...entry, sourceRecord: readAnimeSources(dataDir).records[animeSourceKey(entry)] }; }
+  catch { return { ...entry, sourceWarning: "動畫來源檔無法讀取，請檢查資料檔" }; }
+}
 const visits = new VisitHistory();
 const reportCache = new ReportCache(parseReport);
 const manualGames = new ManualGameService();
@@ -69,7 +86,13 @@ function snapshot() {
 async function resolveGameCovers(appids) {
   if (!gameCoverService) {
     const cache = new GameCoverCache(path.join(app.getPath("userData"), "steam-cover-cache.json"));
-    gameCoverService = new GameCoverService({ cache, resolveCover: resolveSteamCover });
+    gameCoverService = new GameCoverService({
+      cache,
+      resolveCover: (appid) => {
+        coverRequestLog?.recordDetailRequest(appid);
+        return resolveSteamCover(appid);
+      },
+    });
   }
   return gameCoverService.resolve(appids);
 }
@@ -77,10 +100,13 @@ async function resolveGameCovers(appids) {
 function validExternalUrl(raw) {
   const url = new URL(raw);
   if (url.protocol !== "https:") return false;
-  return url.hostname === "www.google.com" || url.hostname === "store.steampowered.com" || url.hostname === "www.imdb.com";
+  return url.hostname === "www.google.com" || url.hostname === "store.steampowered.com" || url.hostname === "www.imdb.com" || trailerUrl({ url: raw }) === raw;
 }
 
 function registerIpc() {
+  ipcMain.handle("anime:resolve-media", (_event, id, retry) => animeService().resolve(animeEntry(id), { retry: retry === true }));
+  ipcMain.handle("anime:search-media", (_event, id, query) => { animeEntry(id); return animeService().search(query); });
+  ipcMain.handle("anime:select-media", (_event, id, malId) => animeService().select(animeEntry(id), malId));
   ipcMain.handle("games:preview", (_event, input) => {
     if (!dataDir || activeMedia !== "games") throw new Error("請先開啟遊戲頁並選擇資料夾");
     return manualGames.prepare(dataDir, input);
@@ -190,11 +216,18 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  coverRequestLog = new CoverRequestLog(path.join(app.getPath("userData"), "steam-cover-requests.log"));
+  const coverFilter = { urls: ["https://*.steamstatic.com/*"] };
+  session.defaultSession.webRequest.onSendHeaders(coverFilter, (details) => coverRequestLog.recordImageSent(details));
+  session.defaultSession.webRequest.onCompleted(coverFilter, (details) => coverRequestLog.recordImage(details));
+  session.defaultSession.webRequest.onErrorOccurred(coverFilter, (details) => coverRequestLog.recordImageError(details));
   dataDir = initialDirectory();
   registerIpc();
   createWindow();
   app.on("activate", () => BrowserWindow.getAllWindows().length === 0 && createWindow());
 });
+
+app.on("before-quit", () => coverRequestLog?.finish());
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();

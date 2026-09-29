@@ -1,5 +1,5 @@
 {
-  "minimumVersion": "1.0.37",
+  "minimumVersion": "1.0.40",
   "officialRuntime": "electron-portable",
   "requiredFeatures": [
     "liveAction",

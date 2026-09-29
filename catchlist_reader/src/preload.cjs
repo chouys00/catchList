@@ -1,6 +1,9 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("catchList", {
+  resolveAnimeMedia: (id, retry = false) => ipcRenderer.invoke("anime:resolve-media", id, retry),
+  searchAnimeMedia: (id, query) => ipcRenderer.invoke("anime:search-media", id, query),
+  selectAnimeMedia: (id, malId) => ipcRenderer.invoke("anime:select-media", id, malId),
   previewGame: (input) => ipcRenderer.invoke("games:preview", input),
   cancelGamePreview: () => ipcRenderer.invoke("games:cancel-preview"),
   addGame: (token, destination) => ipcRenderer.invoke("games:add", token, destination),

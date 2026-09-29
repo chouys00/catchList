@@ -120,6 +120,8 @@ export async function getSeasonAnimeFromAniList(year, season, { get = axios.get,
         const animeData = jikanRes.data.data;
         if (animeData) {
           enrichedAnime.push({
+            ...animeData,
+            mal_id: animeData.mal_id ?? idMal,
             title: animeData.title,
             title_japanese: animeData.title_japanese,
             score: animeData.score,

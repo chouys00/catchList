@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { buildBatchText, saveStacked, seasonToZh } from '../lib/writer.js';
+import { saveAnimeBatch, seasonToZh } from '../lib/writer.js';
 import { TARGET_PATH } from '../lib/constants.js';
 
 function loadCache() {
@@ -29,9 +29,7 @@ function loadCache() {
 async function main() {
   try {
     const cache = loadCache();
-    const batchText = buildBatchText(cache);
-
-    saveStacked(TARGET_PATH, batchText);
+    saveAnimeBatch(TARGET_PATH, cache);
 
     const seasonZh = seasonToZh(cache.season);
     console.log(`\n✅ 已寫入一批動畫資料到：${TARGET_PATH}`);

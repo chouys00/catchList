@@ -55,10 +55,21 @@ const liveAction = {
 test("動畫列先顯示評分與名稱，再顯示年份和集數", () => {
   const markup = renderItemTemplate(anime, "anime");
 
-  assert.match(markup, /^<article class="item anime"><span class="score">9\.20<\/span><div class="title title-actions">/);
+  assert.match(markup, /^<article class="item anime" data-anime-row="anime-1">/);
+  assert.match(markup, /class="anime-cover anime-cover-empty"/);
+  assert.ok(markup.indexOf('class="score"') < markup.indexOf('class="title title-actions"'));
   assert.ok(markup.indexOf("2026 年春季") < markup.indexOf("19 · TV"));
   assert.match(markup, /class="game-title-link"[^>]+data-open="https:\/\/www\.google\.com\/search\?q=%E6%B8%AC%E8%A9%A6%E5%8B%95%E7%95%AB"[^>]+aria-label="使用 Google 搜尋 測試動畫"/);
   assert.match(markup, /class="copy-title-button"[^>]+data-copy-title="anime-1"[^>]+aria-label="複製 測試動畫 的名稱"/);
+});
+
+test("動畫封面可放大、宣傳影片需點擊才開啟，補充集數不覆蓋原資料", () => {
+  const markup = renderItemTemplate({ ...anime, animeMedia: { status: "ready", coverUrl: "https://cdn.myanimelist.net/images/test.jpg", trailerUrl: "https://www.youtube.com/watch?v=N5nNKAVB4O4", trailerTitle: "Hyouka Promo", trailerAuthor: "AnimaxAsia", episodes: 22 } }, "anime");
+  assert.match(markup, /data-cover="https:\/\/cdn.myanimelist.net/);
+  assert.match(markup, /觀看宣傳影片/);
+  assert.match(markup, /Hyouka Promo/);
+  assert.match(markup, /19 · TV/);
+  assert.doesNotMatch(markup, /<iframe|autoplay=/);
 });
 
 test("電影列先顯示評分與名稱，再顯示年份、IMDb 與類別", () => {

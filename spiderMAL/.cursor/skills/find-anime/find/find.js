@@ -107,6 +107,7 @@ async function main() {
     printAnimeList(enriched, true);
 
     const items = enriched.map((anime) => ({
+      ...anime,
       name_cn: anime.title_cn || anime.title_japanese || anime.title || null,
       score: anime.score ?? null,
       episodes: anime.episodes ?? null,
