@@ -139,6 +139,27 @@ test("遊戲名稱複製文字以中文在前，並排除空白與重複名稱",
   assert.equal(formatGameTitleCopyText("A&B <遊戲>", "Quote \"Game\""), "A&B <遊戲>\nQuote \"Game\"");
 });
 
+test("遊戲時數按鈕在複製後方，優先搜尋原名並安全編碼", () => {
+  const name = '  A&B: "Game" / 中文? #1  ';
+  const markup = renderItemTemplate({ ...game, originalTitle: name }, "games");
+  assert.ok(markup.indexOf('data-copy-title=') < markup.indexOf('game-time-button'));
+  assert.ok(markup.includes(`data-open="https://howlongtobeat.com/?q=${encodeURIComponent(name.trim()).replaceAll("'", "&#39;")}"`));
+  assert.match(markup, /aria-label="在 HowLongToBeat 查詢 A&amp;B/);
+  assert.match(markup, /title="查詢遊戲時數（HowLongToBeat）"/);
+  assert.match(markup, /data-open="https:\/\/example\.com\/game"/);
+});
+
+test("遊戲缺少原名時以顯示名稱查詢，其他媒體不顯示時數按鈕", () => {
+  for (const originalTitle of [undefined, null, "  "]) {
+    const markup = renderItemTemplate({ ...game, originalTitle, title: " Grunn " }, "games");
+    assert.ok(markup.includes('data-open="https://howlongtobeat.com/?q=Grunn"'));
+  }
+  assert.doesNotMatch(renderItemTemplate({ ...game, title: "", originalTitle: "" }, "games"), /game-time-button/);
+  for (const [entry, media] of [[anime, "anime"], [movie, "movies"], [liveAction, "liveAction"]]) {
+    assert.doesNotMatch(renderItemTemplate(entry, media), /howlongtobeat|game-time-button/);
+  }
+});
+
 test("中文支援圖示涵蓋不支援與待確認狀態", () => {
   const unsupported = renderItemTemplate({ ...game, chineseSupport: "unsupported" }, "games");
   const unknown = renderItemTemplate({ ...game, chineseSupport: "unknown" }, "games");

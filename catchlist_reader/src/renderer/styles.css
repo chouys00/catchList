@@ -152,6 +152,8 @@ button.game-cover:hover { border-color: var(--lime); }
 .copy-title-button { display: grid; flex: 0 0 auto; width: 28px; height: 28px; margin-top: -2px; padding: 0; place-items: center; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--dim); cursor: pointer; transition: color 140ms ease, border-color 140ms ease, background-color 140ms ease; }
 .copy-title-button svg { width: 16px; height: 16px; }
 .copy-title-button:hover { border-color: color-mix(in srgb, var(--lime) 38%, var(--line)); background: color-mix(in srgb, var(--lime) 7%, var(--surface)); color: var(--lime); }
+.game-time-button { color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .game-time-button { transition: none; } }
 .game-facts { display: contents; }
 .language-status { display: grid; width: 32px; height: 32px; place-items: center; justify-self: center; }
 .language-status svg { width: 21px; height: 21px; }

@@ -11,7 +11,8 @@ import { ReportCache } from "./report-cache.js";
 import { VisitHistory } from "./visit-history.js";
 import { ManualGameService } from "./manual-game-service.js";
 import { CoverRequestLog } from "./cover-request-log.js";
-import { AnimeMediaService, trailerUrl } from "./anime-media.js";
+import { AnimeMediaService } from "./anime-media.js";
+import { openExternalUrls } from "./external-links.js";
 import { readAnimeSources, animeSourceKey } from "@catchlist/core/anime-sources.js";
 
 const sourceDir = path.dirname(fileURLToPath(import.meta.url));
@@ -97,12 +98,6 @@ async function resolveGameCovers(appids) {
   return gameCoverService.resolve(appids);
 }
 
-function validExternalUrl(raw) {
-  const url = new URL(raw);
-  if (url.protocol !== "https:") return false;
-  return url.hostname === "www.google.com" || url.hostname === "store.steampowered.com" || url.hostname === "www.imdb.com" || trailerUrl({ url: raw }) === raw;
-}
-
 function registerIpc() {
   ipcMain.handle("anime:resolve-media", (_event, id, retry) => animeService().resolve(animeEntry(id), { retry: retry === true }));
   ipcMain.handle("anime:search-media", (_event, id, query) => { animeEntry(id); return animeService().search(query); });
@@ -184,13 +179,7 @@ function registerIpc() {
     clipboard.writeText(text);
     return true;
   });
-  ipcMain.handle("external:open-urls", async (_event, urls) => {
-    if (!Array.isArray(urls) || urls.length > 250 || urls.some((url) => !validExternalUrl(url))) {
-      throw new Error("外部連結不正確或數量過多");
-    }
-    for (const url of [...new Set(urls)]) await shell.openExternal(url, { activate: false });
-    return true;
-  });
+  ipcMain.handle("external:open-urls", (_event, urls) => openExternalUrls(urls, (url, options) => shell.openExternal(url, options)));
 }
 
 function createWindow() {
