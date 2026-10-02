@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { JsonJournal } from '../../../../../packages/core/json-journal.js';
 import * as OpenCC from 'opencc-js';
 import { BANGUMI_BASE, BANGUMI_REQUEST_DELAY_MS, BANGUMI_CONCURRENCY, MAX_RETRIES, REQUEST_TIMEOUT_MS } from './constants.js';
+import { resolveChineseName, reviewedName } from './chinese-names.js';
 
 export const toTraditional = OpenCC.Converter({ from: 'cn', to: 'tw' });
 
@@ -12,7 +13,7 @@ export async function searchBangumi(rawTitle, { get = axios.get, wait = ms => ne
   let lastErr;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const { data } = await get(url, { params: { type: 2 }, timeout: REQUEST_TIMEOUT_MS });
+      const { data } = await get(url, { params: { type: 2, max_results: 20 }, timeout: REQUEST_TIMEOUT_MS, headers: { 'User-Agent': 'CatchList/1.0 (anime title lookup)' } });
       return data?.list ?? data?.results ?? [];
     } catch (err) {
       lastErr = err;
@@ -43,13 +44,14 @@ export function pickBestMatch(rawTitle, results) {
 const NAME_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 let nameCache;
 function defaultNameCache() {
-  try { return nameCache ??= new JsonJournal(fileURLToPath(new URL('../../../../anime-cache.json', import.meta.url))); }
+  try { return nameCache ??= new JsonJournal(fileURLToPath(new URL('../../../../chinese-name-cache.json', import.meta.url))); }
   catch { return null; }
 }
 
 export async function enrichWithCN(animeList, onProgress, {
   cache = defaultNameCache(), search = searchBangumi, now = Date.now,
   wait = ms => new Promise(resolve => setTimeout(resolve, ms)),
+  resolveName = resolveChineseName,
 } = {}) {
   if (!animeList || animeList.length === 0) return [];
   const results = new Array(animeList.length);
@@ -61,6 +63,24 @@ export async function enrichWithCN(animeList, onProgress, {
       const anime = animeList[i];
       const rawTitle = anime.title_japanese || anime.title;
       onProgress?.(i + 1, animeList.length, rawTitle);
+      if (Number.isSafeInteger(anime.mal_id) && anime.mal_id > 0) {
+        const key = `mal:${anime.mal_id}`;
+        const identity = JSON.stringify([anime.title, anime.aired?.from, anime.type, anime.episodes]);
+        const cachedName = cache?.data?.[key];
+        let name;
+        const reviewed = reviewedName(anime);
+        if (reviewed) name = { ...reviewed, method: 'reviewed' };
+        else if (cachedName?.version === 3 && cachedName.identity === identity && cachedName.title && now() >= cachedName.savedAt && now() - cachedName.savedAt < NAME_CACHE_TTL_MS) name = cachedName;
+        else {
+          try { name = await resolveName(anime, search, { wait }); }
+          catch (error) { name = { title: null, reason: error.message }; }
+        }
+        results[i] = { ...anime, title_cn: name.title ?? null, bangumiId: name.bangumiId ?? null, chineseNameStatus: name.title ? 'resolved' : 'pending', chineseNameSourceUrl: name.sourceUrl ?? null, chineseNameMethod: name.method ?? null, chineseNameReason: name.reason ?? null };
+        if (name.title) {
+          try { cache?.set(key, { ...name, version: 3, identity, savedAt: now() }); } catch { console.warn('中文名稱快取無法儲存，本次仍保留已確認名稱'); }
+        }
+        continue;
+      }
       const cached = cache?.data?.[rawTitle];
       if (cached?.version === 2 && typeof cached.title === 'string' && cached.title.trim() && now() >= cached.savedAt && now() - cached.savedAt < NAME_CACHE_TTL_MS) {
         results[i] = { ...anime, title_cn: cached.title, bangumiId: cached.bangumiId };

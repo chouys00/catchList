@@ -1,0 +1,23 @@
+schema_version: 3
+plan_revision: 1
+profile: audited
+stage_sequence: [A1, A2, A3, A4]
+active_stage: A1
+stage_status: planned
+gate_result: null
+next_stage: A2
+handoff_mode: start-next-stage
+checkpoint_policy: record-only
+blocking_acceptance_open: false
+execution:
+  mode: sequential
+  active_parallel_group: null
+  max_workers: 1
+documents:
+  spec: docs/anime-legacy-enrichment/PROJECT_SPEC.md
+  roadmap: docs/anime-legacy-enrichment/PROJECT_ROADMAP.md
+  status: docs/anime-legacy-enrichment/DEVELOPMENT_STATUS.md
+  log: docs/anime-legacy-enrichment/DEVELOPMENT_LOG.md
+  decisions: docs/anime-legacy-enrichment/DECISIONS.md
+  handoff: docs/anime-legacy-enrichment/NEXT_TASK_HANDOFF.md
+  acceptance: docs/anime-legacy-enrichment/ACCEPTANCE.md

@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { saveAnimeBatch, seasonToZh } from '../lib/writer.js';
 import { TARGET_PATH } from '../lib/constants.js';
+import { requireChineseNames } from '../lib/chinese-names.js';
 
 function loadCache() {
   const cachePath = path.resolve(process.cwd(), 'anime-cache.json');
@@ -29,6 +30,7 @@ function loadCache() {
 async function main() {
   try {
     const cache = loadCache();
+    requireChineseNames(cache.items);
     saveAnimeBatch(TARGET_PATH, cache);
 
     const seasonZh = seasonToZh(cache.season);

@@ -24,3 +24,5 @@ steam_discovery/.local-backups/
 # 效能快取的中斷復原日誌
 .appdetails_cache.json.journal
 anime-cache.json.journal
+chinese-name-cache.json
+chinese-name-cache.json.journal

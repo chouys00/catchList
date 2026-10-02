@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { enrichWithCN, searchBangumi } from "../.cursor/skills/find-anime/lib/bangumi.js";
-import { getSeasonAnime, getSeasonAnimeFromAniList } from "../.cursor/skills/find-anime/lib/jikan.js";
+import { getSeasonAnime } from "../.cursor/skills/find-anime/lib/tenrai.js";
 import { JsonJournal } from "../../packages/core/json-journal.js";
 
 test("中文名成功快取跨實例重用，過期重查且不保存失敗結果", async () => {
@@ -22,15 +22,11 @@ test("中文名成功快取跨實例重用，過期重查且不保存失敗結�
     assert.equal(requests, 4); assert.equal(new JsonJournal(file).data.missing, undefined);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
-test("三個來源全部設定逾時，Jikan 失敗重試次數有上限", async () => {
+test("動畫與中文名稱來源設定逾時，Tenrai 失敗重試次數有上限", async () => {
   let attempts = 0;
   await assert.rejects(() => getSeasonAnime(2025, "spring", { get: async (_url, options) => { assert.equal(options.timeout, 15000); attempts++; throw Error("timeout"); }, wait: async () => {} }), /timeout/);
   assert.equal(attempts, 3);
   const names = await searchBangumi("name", { get: async (_url, options) => { assert.equal(options.timeout, 15000); return { data: { list: [] } }; } });
   assert.deepEqual(names, []);
-  const anime = await getSeasonAnimeFromAniList(2025, "spring", {
-    post: async (_url, _body, options) => { assert.equal(options.timeout, 15000); return { data: { data: { Page: { pageInfo: { hasNextPage: false }, media: [{ idMal: 1, averageScore: 80, title: { native: "動畫" } }] } } } }; },
-    get: async (_url, options) => { assert.equal(options.timeout, 15000); return { data: { data: { title: "test", score: 8 } } }; }, wait: async () => {},
-  });
-  assert.equal(anime[0].score, 8);
+
 });

@@ -4,7 +4,7 @@
 
 | 專案 | 內容 | 輸出 | 資料來源 |
 |------|------|------|----------|
-| `spiderMAL` | 每季動畫(評分 ≥ 7.70) | `動畫.md` | Jikan/MAL + Bangumi 中文名(AniList 備援) |
+| `spiderMAL` | 每季動畫(評分 ≥ 7.70) | `動畫.md` | Tenrai/MAL + Bangumi 中文名 |
 | `imdb_tracker` | 每月電影(豆瓣估算 ≥ 7.0、≥ 30000 票) | `電影.md` | IMDb 公開數據集 + Wikidata/TMDb 翻譯 |
 | `steam_discovery` | 每月優質單機遊戲(壓倒性/極度好評) | `遊戲.md` | Steam 商店搜尋頁 + appdetails API |
 | `live_action_tracker` | 每年真人劇必看（五區各 10 部） | `真人劇年度.md` | AI 年度研究＋IMDb 顯示資訊 |
@@ -21,6 +21,10 @@ npm run update:all
 或直接執行 `run_monthly.bat`(同上,另會把完整輸出寫到 `logs\update-*.log`)。
 
 也可單獨更新某個專案：`npm run update:anime` / `npm run update:movies` / `npm run update:games`。真人劇不列入每月排程；年度研究完成後，以 `npm run update:tv -- --year 2022 --input annual-selections/2022.json` 寫入。
+
+動畫資料改由 Tenrai 提供 MAL 評分與作品資訊；只收當季首播，前季延續作品不重複收錄。`npm run refresh:anime -- --recent 3` 可重新核對最近三個已結束季度，依 MAL 編號只追加缺少作品，保留既有名稱與個人紀錄；每次執行的備份及核對明細保存於 `output/tenrai-migration/`。此回補入口不加入每月排程。
+
+動畫新增前必須完成中文名稱核對：優先依 MAL 編號使用人工確認對照，再以 Bangumi 名稱、首播日期、類型及集數配對；必要時使用 AniList 的同 MAL 編號別名作備援搜尋。未確認中文名稱時，本批停止寫入，原因保存於 `output/anime-name-review/pending.json`，下次重新執行會重查。處理待補時需保留原 MAL 編號、季別、版本及來源網址；不得只憑搜尋排名或自行翻譯套用。只補新增項目，不自動更名既有報告，避免影響個人紀錄鍵。完整流程在 `spiderMAL/CHINESE_NAMES.md`。
 
 ### 執行特性(排程器/agent 須知)
 
@@ -64,3 +68,10 @@ npm run update:all
 - `docs/steam-data-initialization/STAGE_STATE.yaml` 是控制狀態來源。初始化流程與每月更新分開，不得把初始化入口加入 `update:all`。
 - A1 通過前不得實作後續階段。初始化執行期只使用 FronkonGames 與單一 Steam 商店頁面，不得呼叫搜尋頁或 `appdetails`。
 - 完整結果只寫 `steam_discovery/preview/initialization/`；不得覆蓋既有預覽或雲端 `遊戲.md`。
+
+## 舊動畫來源與資訊回補計畫
+
+- 規格、Roadmap、狀態、決策及交接在 docs/anime-legacy-enrichment/；執行前閱讀該資料夾文件。
+- STAGE_STATE.yaml 是控制狀態來源。A1～A3 僅產生隔離預覽，正式報告、來源與個人紀錄不得修改。
+- A4 須先取得使用者對具體預覽及套用列的確認；信心分數不等於正式寫入授權。
+- 預覽輸出在 output/anime-legacy-enrichment/；不可把舊動畫回補加入 update:all。

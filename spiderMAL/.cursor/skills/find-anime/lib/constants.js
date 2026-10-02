@@ -1,7 +1,7 @@
-export const JIKAN_BASE = 'https://api.jikan.moe/v4';
+export const TENRAI_BASE = 'https://api.tenrai.org/v1';
 export const BANGUMI_BASE = 'https://api.bgm.tv';
 export const BANGUMI_REQUEST_DELAY_MS = 300;
-export const JIKAN_REQUEST_DELAY_MS = 700;
+export const TENRAI_REQUEST_DELAY_MS = 1100;
 export const BANGUMI_CONCURRENCY = 3;
 export const MAX_RETRIES = 2;
 export const DEFAULT_MIN_SCORE = 7.70;

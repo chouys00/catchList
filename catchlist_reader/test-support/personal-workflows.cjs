@@ -135,10 +135,11 @@ app.whenReady().then(async () => {
   await until("document.querySelector('#backToTop').getAttribute('aria-hidden') === 'true'");
   win.setContentSize(1440, 900);
   await new Promise((resolve) => setTimeout(resolve, 100));
-  assert.match(await js("document.querySelector('.update-panel summary').textContent"), /1 類更新失敗/);
+  assert.doesNotMatch(await js("document.querySelector('.update-panel summary').textContent"), /更新失敗/);
   const listTopBeforeDetails = await js("document.querySelector('.list').getBoundingClientRect().top");
   await click(".update-panel summary");
-  assert.equal(await js("document.querySelectorAll('.update-row').length"), 4);
+  assert.equal(await js("document.querySelectorAll('.update-overview tbody tr').length"), 3);
+  assert.equal(await js("document.querySelectorAll('.update-annual').length"), 1);
   assert.match(await js("document.querySelector('.update-details').textContent"), /新增 7 筆/);
   assert.equal(await js("document.querySelector('.list').getBoundingClientRect().top"), listTopBeforeDetails, "更新詳情不可推擠列表");
   await js("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))");
@@ -314,6 +315,12 @@ app.whenReady().then(async () => {
     await click(".update-panel summary");
     assert.ok(await js("document.documentElement.scrollWidth <= innerWidth"));
     if (process.env.CATCHLIST_QA_DIR) screenshots.push(await capture(`status-${name}`));
+    await click(".update-checks > summary");
+    assert.equal(await js("document.querySelector('.update-checks').open"), true);
+    assert.match(await js("document.querySelector('.update-checks').textContent"), /測試網路失敗/);
+    assert.ok(await js("document.documentElement.scrollWidth <= innerWidth"));
+    if (process.env.CATCHLIST_QA_DIR) screenshots.push(await capture(`status-records-${name}`));
+    await click(".update-checks > summary");
     await click(".update-panel summary");
   }
   await click('[data-action="toggle-new"]');

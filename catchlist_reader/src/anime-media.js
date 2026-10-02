@@ -106,7 +106,7 @@ export class AnimeMediaService {
     const id = text.match(/^(?:https:\/\/myanimelist\.net\/anime\/)?(\d+)(?:\/[^\s]*)?$/)?.[1];
     if (id) {
       try {
-        const result = await this.request(`https://api.jikan.moe/v4/anime/${id}`);
+        const result = await this.request(`https://api.tenrai.org/v1/anime/${id}`);
         return { candidates: [candidateFromAnime(result.data)], names: [text] };
       } catch {
         const data = await this.anilist(`query ($id: Int) { Media(idMal: $id, type: ANIME) { ${ANILIST_FIELDS} } }`, { id: Number(id) });
@@ -121,12 +121,12 @@ export class AnimeMediaService {
         for (const item of data.list ?? []) {
           if ([item.name_cn, item.name].some(name => normalize(name) === normalize(text)) && item.name) names.push(item.name);
         }
-      } catch { /* Jikan 仍可直接查原名稱。 */ }
+      } catch { /* Tenrai 仍可直接查原名稱。 */ }
     }
     const queryName = names.at(-1);
     let candidates;
     try {
-      const result = await this.request(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(queryName)}&limit=10`);
+      const result = await this.request(`https://api.tenrai.org/v1/anime?q=${encodeURIComponent(queryName)}&limit=10`);
       candidates = (result.data ?? []).map(candidateFromAnime);
     } catch {
       const data = await this.anilist(`query ($search: String) { Page(perPage: 10) { media(search: $search, type: ANIME) { ${ANILIST_FIELDS} } } }`, { search: queryName });
@@ -140,7 +140,7 @@ export class AnimeMediaService {
     if (!Number.isSafeInteger(Number(malId)) || Number(malId) < 1) throw new Error("作品編號不正確");
     let candidate, url, source;
     try {
-      const { data } = await this.request(`https://api.jikan.moe/v4/anime/${Number(malId)}`);
+      const { data } = await this.request(`https://api.tenrai.org/v1/anime/${Number(malId)}`);
       if (!data || data.mal_id !== Number(malId)) throw new Error("來源未回傳正確作品");
       candidate = candidateFromAnime(data);
       url = trailerUrl(data.trailer);
@@ -156,7 +156,7 @@ export class AnimeMediaService {
     let trailerUnavailable = false;
     if (!url && source === "MyAnimeList") {
       try {
-        const videos = await this.request(`https://api.jikan.moe/v4/anime/${Number(malId)}/videos`);
+        const videos = await this.request(`https://api.tenrai.org/v1/anime/${Number(malId)}/videos`);
         const promo = videos.data?.promo?.find(item => trailerUrl(item.trailer));
         if (promo) { url = trailerUrl(promo.trailer); trailerTitle = promo.title || trailerTitle; }
       } catch { trailerUnavailable = true; }

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { parseReport } from "../catchlist_reader/src/library.js";
-import { UPDATE_STATUS_FILE, readUpdateStatusFile } from "../catchlist_reader/src/update-status.js";
+import { UPDATE_STATUS_FILE, readUpdateStatusFile, successfulUpdateFields } from "../catchlist_reader/src/update-status.js";
 
 function snapshot(project) {
   let content;
@@ -32,7 +32,7 @@ export function createUpdateRecorder({ now = () => new Date() } = {}) {
     start(project) {
       const before = snapshot(project);
       const startedAt = now().toISOString();
-      save(project, (previous) => ({ ...previous, status: "running", startedAt, finishedAt: null, addedCount: null, error: null }));
+      save(project, (previous) => ({ ...previous, ...successfulUpdateFields(previous), status: "running", startedAt, finishedAt: null, addedCount: null, error: null }));
       return { before, startedAt };
     },
     finish(project, context, result) {
@@ -42,9 +42,10 @@ export function createUpdateRecorder({ now = () => new Date() } = {}) {
       const after = snapshot(project);
       const addedCount = context ? [...after].filter((key) => !context.before.has(key)).length : null;
       save(project, (previous) => ({
-        ...previous, status: success ? "success" : "failed",
+        ...previous, status: success ? addedCount > 0 ? "success" : addedCount === 0 ? "unchanged" : "unknown" : "failed",
         startedAt: context?.startedAt ?? previous.startedAt ?? null, finishedAt,
-        lastSuccessAt: success ? finishedAt : previous.lastSuccessAt ?? null,
+        ...successfulUpdateFields(previous),
+        ...(success && addedCount > 0 ? { lastSuccessAt: finishedAt, lastSuccessAddedCount: addedCount } : {}),
         addedCount, error: success ? null : `更新程式失敗（結束碼：${result.status ?? "無法啟動"}）`,
       }));
     },

@@ -36,11 +36,23 @@ export function reportCoverage(media, content, now = new Date()) {
   }
   const latest = [...periods.values()].sort((a, b) => b.ordinal - a.ordinal)[0];
   const expected = expectedPeriod(media, now);
+  const earliest = [...periods.values()].filter(entry => !expected || entry.ordinal <= expected.ordinal).sort((a, b) => a.ordinal - b.ordinal)[0];
+  const missing = [];
+  if (expected) {
+    const perYear = media === "anime" ? 4 : 12;
+    for (let ordinal = earliest?.ordinal ?? expected.ordinal; ordinal <= expected.ordinal; ordinal++) {
+      const year = Math.floor((ordinal - 1) / perYear);
+      const entry = period(media, year, ordinal - year * perYear);
+      if (!periods.has(entry.key)) missing.push(entry);
+    }
+  }
   return {
     latestLabel: latest?.label ?? null, latestKey: latest?.key ?? null,
     periodCount: periods.size, expectedLabel: expected?.label ?? null, expectedKey: expected?.key ?? null,
-    // 判斷預期區段是否存在；最新區段較新不代表中間沒有缺漏。
-    isCurrent: expected ? periods.has(expected.key) : null,
+    // 只核對報告既有起點至應收錄期間的區段，不推斷作品或評分已重新抓取。
+    firstLabel: earliest?.label ?? null,
+    missingCount: missing.length, missingLabels: missing.slice(0, 3).map(entry => entry.label),
+    isCurrent: expected ? missing.length === 0 : null,
   };
 }
 
@@ -59,6 +71,14 @@ function timestamp(value) {
   return typeof value === "string" && Number.isFinite(Date.parse(value)) ? value : null;
 }
 
+export function successfulUpdateFields(raw) {
+  const count = Number.isInteger(raw.lastSuccessAddedCount) && raw.lastSuccessAddedCount > 0
+    ? raw.lastSuccessAddedCount : raw.status === "success" && Number.isInteger(raw.addedCount) && raw.addedCount > 0 ? raw.addedCount : null;
+  // 舊版零筆成功的時間只代表檢查完成，不能當成真正新增資料的時間。
+  const legacyEmpty = raw.status === "success" && raw.addedCount === 0 && count === null;
+  return { lastSuccessAt: legacyEmpty ? null : timestamp(raw.lastSuccessAt), lastSuccessAddedCount: count };
+}
+
 export function loadUpdateStatus(dataDir, { now = new Date() } = {}) {
   let saved = { media: {} };
   let warning = null;
@@ -72,8 +92,8 @@ export function loadUpdateStatus(dataDir, { now = new Date() } = {}) {
     try { content = fs.readFileSync(path.join(dataDir, filename), "utf8"); reportExists = true; }
     catch (error) { if (error.code !== "ENOENT") warning = "部分報告無法讀取，收錄進度暫時無法確認。"; }
     media[key] = {
-      status: ["running", "success", "failed"].includes(raw.status) ? raw.status : "unknown",
-      startedAt: timestamp(raw.startedAt), finishedAt: timestamp(raw.finishedAt), lastSuccessAt: timestamp(raw.lastSuccessAt),
+      status: raw.status === "success" && raw.addedCount === 0 ? "unchanged" : ["running", "success", "failed", "unchanged"].includes(raw.status) ? raw.status : "unknown",
+      startedAt: timestamp(raw.startedAt), finishedAt: timestamp(raw.finishedAt), ...successfulUpdateFields(raw),
       addedCount: Number.isInteger(raw.addedCount) && raw.addedCount >= 0 ? raw.addedCount : null,
       error: typeof raw.error === "string" ? raw.error : null,
       coverage: reportCoverage(key, content, now), reportExists,

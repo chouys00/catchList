@@ -30,12 +30,36 @@ test("隱藏搜尋支援大小寫，失效紀錄及名稱不會變成 HTML", () 
 
 test("無紀錄不宣稱成功，失敗摘要與新增零筆如實顯示", () => {
   const initial = updateStatusMarkup({}, "games", false);
-  assert.match(initial, /尚無每月執行紀錄/);
+  assert.match(initial, /尚無檢查紀錄/);
   assert.doesNotMatch(initial, /最近每月執行成功/);
   const failed = updateStatusMarkup({ updateStatus: { media: { games: { status: "failed", addedCount: 0, error: "<network>" } } } }, "games", true);
-  assert.match(failed, /1 類更新失敗/);
+  assert.match(failed, /最近檢查失敗/);
   assert.match(failed, /新增 0 筆/);
   assert.match(failed, /&lt;network&gt;/);
+});
+
+test("零筆顯示無新增，另列最後有新增的成功日期及筆數", () => {
+  const markup = updateStatusMarkup({ updateStatus: { media: {
+    games: { status: 'unchanged', addedCount: 0, finishedAt: '2026-10-02T01:00:00Z', lastSuccessAt: '2026-10-02', lastSuccessAddedCount: 138 },
+  } } }, 'games', true);
+  assert.match(markup, /檢查完成，無新增/);
+  assert.match(markup, /2026\/10\/02<small>詳細時間未留存/);
+  assert.match(markup, /<strong>138<\/strong><span> 筆/);
+  assert.doesNotMatch(markup, /成功 · 新增 0 筆/);
+  assert.doesNotMatch(markup, /最後更新成功：2026\/10\/02 00:00/);
+});
+
+test("收錄狀態與新增紀錄分開，其他類別失敗不污染目前摘要", () => {
+  const markup = updateStatusMarkup({ updateStatus: { media: {
+    games: { status: 'unchanged', coverage: { isCurrent: true, latestLabel: '2026 年 4 月' } },
+    movies: { status: 'failed', error: '網路失敗', coverage: { isCurrent: true } },
+  } } }, 'games', true);
+  assert.match(markup.split('<section')[0], /已補齊收錄期間/);
+  assert.doesNotMatch(markup.split('<section')[0], /failed|失敗/);
+  assert.match(markup, /<details class="update-checks">/);
+  assert.match(markup, /最後一次新增/);
+  assert.match(markup, /待確認/);
+  assert.doesNotMatch(markup, /新增 0 筆/);
 });
 
 

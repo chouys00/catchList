@@ -65,6 +65,7 @@ test("舊中文名稱經原名比對取得媒體，跨程序快取不再查網�
     else if (url.includes("?q=")) body = { data: [anime] };
     else if (url.includes("oembed")) body = { title: "Hyouka Promo V2", author_name: "AnimaxAsia" };
     else body = { data: anime };
+    if (!url.includes("api.bgm.tv") && !url.includes("oembed")) assert.ok(url.startsWith("https://api.tenrai.org/v1/anime"));
     return { ok: true, json: async () => body };
   };
   try {
@@ -82,7 +83,7 @@ test("舊中文名稱經原名比對取得媒體，跨程序快取不再查網�
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 });
 
-test("來源失敗不永久快取，Jikan 失敗使用 AniList，支援手動選定", async () => {
+test("來源失敗不永久快取，Tenrai 失敗使用 AniList，支援手動選定", async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "anime-fallback-"));
   try {
     const service = new AnimeMediaService(path.join(directory, "cache.json"), { interval: 0, fetchImpl: async (url, options) => {

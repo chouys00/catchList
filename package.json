@@ -17,6 +17,7 @@
     "reader:test": "npm test --workspace catchlist-reader",
     "reader:build": "npm run build:portable --workspace catchlist-reader",
     "update:anime": "npm run update --workspace spiderMAL",
+    "refresh:anime": "npm run refresh --workspace spiderMAL --",
     "update:movies": "npm run update --workspace imdb_tracker",
     "update:games": "npm run update --workspace steam_discovery",
     "initialize:games": "npm run initialize --workspace steam_discovery --",

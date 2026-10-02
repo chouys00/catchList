@@ -2,8 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { SEASONS, ZH_TO_EN, DEFAULT_MIN_SCORE, TARGET_PATH } from '../lib/constants.js';
-import { getSeasonAnime, getSeasonAnimeFromAniList } from '../lib/jikan.js';
+import { getSeasonAnime, selectSeasonAnime } from '../lib/tenrai.js';
 import { enrichWithCN } from '../lib/bangumi.js';
+import { requireChineseNames } from '../lib/chinese-names.js';
 import { saveAnimeBatch } from '../lib/writer.js';
 
 function monthToSeasonIndex(month) {
@@ -98,14 +99,8 @@ async function main() {
     console.log(`🔍 正在搜尋 ${year} ${season}...`);
 
     try {
-      // 1. Fetch from Jikan API
-      let animeList;
-      try {
-        animeList = await getSeasonAnime(year, season);
-      } catch (err) {
-        console.warn(`   ⚠️ Jikan 官方季度 API 獲取失敗 (${err.message || err})，正在切換至 AniList 備用機制...`);
-        animeList = await getSeasonAnimeFromAniList(year, season);
-      }
+      // 完整取得所有分頁後才篩選；任何來源失敗都不寫入本季。
+      let animeList = selectSeasonAnime(await getSeasonAnime(year, season), year, season);
 
       // 2. Sort by score descending
       animeList.sort((a, b) => {
@@ -135,6 +130,7 @@ async function main() {
         );
       });
       process.stdout.write('\r' + ' '.repeat(60) + '\r');
+      requireChineseNames(enriched);
 
       // 5. Build items for batch text
       const items = enriched.map((anime) => ({

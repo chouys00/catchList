@@ -24,6 +24,7 @@ test("紀錄開始、成功、新增數與失敗，失敗保留上次成功時�
   let status = loadUpdateStatus(dir).media.anime;
   assert.equal(status.status, "success");
   assert.equal(status.addedCount, 1);
+  assert.equal(status.lastSuccessAddedCount, 1);
   assert.equal(status.lastSuccessAt, "2026-09-16T00:00:00.000Z");
   context = recorder.start(project);
   recorder.finish(project, context, { status: 1 });
@@ -33,11 +34,13 @@ test("紀錄開始、成功、新增數與失敗，失敗保留上次成功時�
   assert.equal(status.lastSuccessAt, "2026-09-16T00:00:00.000Z");
 });
 
-test("整合執行僅寫入注入的報告資料夾，無新增也是成功", async (t) => {
+test("整合執行僅寫入注入的報告資料夾，無新增為檢查完成", async (t) => {
   const { dir, project } = setup(t);
   const result = await runAllUpdates({ projects: [project], rootDir: dir, platform: "linux", log() {}, error() {}, spawn() { return { status: 0 }; } });
   assert.equal(result.exitCode, 0);
   assert.equal(loadUpdateStatus(dir).media.anime.addedCount, 0);
+  assert.equal(loadUpdateStatus(dir).media.anime.status, "unchanged");
+  assert.equal(loadUpdateStatus(dir).media.anime.lastSuccessAt, null);
   assert.equal(fs.existsSync(path.join(dir, UPDATE_STATUS_FILE)), true);
 });
 
@@ -69,8 +72,33 @@ test("不同輸出資料夾分別保存，同資料夾的各類紀錄不互相�
     spawn() { calls += 1; return { status: calls === 2 ? 1 : 0 }; },
   });
   assert.deepEqual(result.failures, ["電影"]);
-  assert.equal(loadUpdateStatus(dir).media.anime.status, "success");
+  assert.equal(loadUpdateStatus(dir).media.anime.status, "unchanged");
   assert.equal(loadUpdateStatus(dir).media.movies.status, "failed");
   assert.equal(loadUpdateStatus(dir).media.games.status, "unknown");
-  assert.equal(loadUpdateStatus(gameDir).media.games.status, "success");
+  assert.equal(loadUpdateStatus(gameDir).media.games.status, "unchanged");
+});
+
+test("有新增的成功時間與筆數不被零筆、執行中、失敗或部分寫入覆蓋", (t) => {
+  const { project, dir } = setup(t);
+  let date = '2026-10-02T00:00:00Z';
+  const recorder = createUpdateRecorder({ now: () => new Date(date) });
+  let context = recorder.start(project);
+  fs.writeFileSync(project.outputFile, '2026 夏 >7.70\n- 第一部 **8.2** (12 · TV)\n');
+  recorder.finish(project, context, { status: 0 });
+  date = '2026-10-02T01:00:00Z';
+  context = recorder.start(project);
+  assert.equal(loadUpdateStatus(dir).media.anime.lastSuccessAddedCount, 1);
+  recorder.finish(project, context, { status: 0 });
+  let state = loadUpdateStatus(dir).media.anime;
+  assert.equal(state.status, 'unchanged');
+  assert.equal(state.lastSuccessAt, '2026-10-02T00:00:00.000Z');
+  assert.equal(state.lastSuccessAddedCount, 1);
+  date = '2026-10-02T02:00:00Z';
+  context = recorder.start(project);
+  fs.appendFileSync(project.outputFile, '- 部分成功 **8.5** (12 · TV)\n');
+  recorder.finish(project, context, { status: 1 });
+  state = loadUpdateStatus(dir).media.anime;
+  assert.equal(state.status, 'failed'); assert.equal(state.addedCount, 1);
+  assert.equal(state.lastSuccessAt, '2026-10-02T00:00:00.000Z');
+  assert.equal(state.lastSuccessAddedCount, 1);
 });

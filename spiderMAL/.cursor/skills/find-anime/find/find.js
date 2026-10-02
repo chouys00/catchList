@@ -2,8 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { DEFAULT_MIN_SCORE } from '../lib/constants.js';
-import { getSeasonAnime } from '../lib/jikan.js';
+import { getSeasonAnime, selectSeasonAnime } from '../lib/tenrai.js';
 import { enrichWithCN } from '../lib/bangumi.js';
+import { requireChineseNames } from '../lib/chinese-names.js';
 
 const COL_TITLE_WIDTH = 36;
 const COL_TYPE_WIDTH = 8;
@@ -83,8 +84,8 @@ async function main() {
   try {
     logStep(1, TOTAL_STEPS, `解析參數：${year} ${season}，評分 >= ${minScore}\n`);
 
-    logStep(2, TOTAL_STEPS, '正在從 Jikan 取得季節動畫...');
-    let animeList = await getSeasonAnime(year, season);
+    logStep(2, TOTAL_STEPS, '正在從 Tenrai 取得季節動畫...');
+    let animeList = selectSeasonAnime(await getSeasonAnime(year, season), year, season, minScore);
 
     animeList.sort((a, b) => {
       if (a.score == null && b.score == null) return 0;
@@ -105,6 +106,7 @@ async function main() {
 
     logStep(5, TOTAL_STEPS, '輸出清單');
     printAnimeList(enriched, true);
+    requireChineseNames(enriched);
 
     const items = enriched.map((anime) => ({
       ...anime,

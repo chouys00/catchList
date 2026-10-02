@@ -49,19 +49,33 @@ export function hiddenListMarkup(records, query, reason = "all") {
 export function updateStatusMarkup(payload, active, open) {
   const status = payload?.updateStatus;
   const current = status?.media?.[active];
-  const failed = Object.values(status?.media ?? {}).filter((item) => item.status === "failed").length;
   const coverage = current?.coverage;
   const headline = coverage?.latestLabel ? `收錄至 ${coverage.latestLabel}` : "收錄範圍尚無紀錄";
-  const stateLabel = active === "liveAction" ? "年度清單另行整理" : current?.status === "success" ? "最近每月執行成功" : current?.status === "failed" ? "最近每月執行失敗" : current?.status === "running" ? "上次更新尚未記錄完成" : "尚無每月執行紀錄";
+  const noNew = item => item?.status === "unchanged" || (item?.status === "success" && item?.addedCount === 0);
+  const dataState = item => item?.status === "failed" ? ["待確認", "failed"]
+    : item?.status === "running" ? ["檢查中", ""]
+      : item?.coverage?.isCurrent === true ? ["已補齊收錄期間", "current"]
+        : item?.coverage?.isCurrent === false ? ["有待補期間", "pending"] : ["收錄狀態待確認", ""];
+  const [stateLabel, stateClass] = active === "liveAction" ? ["年度清單", ""] : dataState(current);
   const labels = { games: "遊戲", anime: "動畫", movies: "電影", liveAction: "真人劇" };
-  const rows = Object.entries(labels).map(([media, label]) => {
+  const rows = Object.entries(labels).filter(([media]) => media !== "liveAction").map(([media, label]) => {
     const item = status?.media?.[media];
     const file = payload?.libraries?.find((library) => library.media === media);
-    const result = media === "liveAction" ? "年度研究後另行更新" : ({ success: "成功", failed: "失敗", running: "尚未記錄完成" })[item?.status] ?? "尚無執行紀錄";
     const progress = item?.coverage;
-    const expected = progress?.expectedLabel ? `依收錄規則應到 ${progress.expectedLabel}${progress.isCurrent === false ? "，尚有待補資料" : ""}` : "";
-    const count = Number.isInteger(item?.addedCount) ? ` · 新增 ${item.addedCount} 筆` : "";
-    return `<div class="update-row"><strong>${label}</strong><div><span>${escapeHtml(progress?.latestLabel ? `收錄至 ${progress.latestLabel}` : file?.exists ? "報告尚無可辨識區段" : "找不到報告")}</span><small>${escapeHtml(expected)}</small><small>檔案修改：${escapeHtml(dateLabel(file?.updatedAt))}</small></div><div class="update-result${item?.status === "failed" ? " failed" : ""}"><span>${result}${count}</span>${media !== "liveAction" ? `<small>最近執行：${escapeHtml(dateLabel(item?.finishedAt ?? item?.startedAt))}</small><small>上次成功：${escapeHtml(dateLabel(item?.lastSuccessAt))}</small>` : ""}${item?.error ? `<small>${escapeHtml(item.error)}</small>` : ""}</div></div>`;
+    const [state, tone] = dataState(item);
+    const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(item?.lastSuccessAt ?? "");
+    const successDate = dateOnly ? item.lastSuccessAt.replaceAll("-", "/") : dateLabel(item?.lastSuccessAt);
+    const count = item?.lastSuccessAt && item.lastSuccessAddedCount > 0 ? item.lastSuccessAddedCount.toLocaleString("zh-TW") : null;
+    const missing = progress?.missingCount > 0 ? `<small class="update-gap">缺 ${progress.missingCount} 個${media === "anime" ? "季度" : "月份"}：${escapeHtml(progress.missingLabels?.join("、"))}${progress.missingCount > 3 ? "等" : ""}</small>` : "";
+    return `<tr><th scope="row">${label}</th><td><strong class="update-data-state ${tone}">${escapeHtml(state)}</strong><small>${escapeHtml(progress?.latestLabel ? `收錄至 ${progress.latestLabel}` : file?.exists ? "報告尚無可辨識區段" : "找不到報告")}</small>${missing}${item?.status === "failed" ? '<small>最近檢查失敗，請展開檢查紀錄</small>' : ""}</td><td class="update-added-date" data-label="最後一次新增">${escapeHtml(successDate)}${dateOnly ? '<small>詳細時間未留存</small>' : ""}</td><td class="update-added-count" data-label="新增筆數">${count ? `<strong>${count}</strong><span> 筆</span>` : '<span class="update-unrecorded">未留存</span>'}</td></tr>`;
   }).join("");
-  return `<details class="update-panel" ${open ? "open" : ""}><summary><span>${escapeHtml(headline)}</span><span class="update-summary-state${failed ? " failed" : ""}">${failed ? `${failed} 類更新失敗` : stateLabel}</span><span class="update-details-label">更新詳情</span></summary><div class="update-details">${status?.warning ? `<p class="status-warning" role="alert">${escapeHtml(status.warning)}</p>` : ""}${rows}<p class="update-note">執行紀錄由每月整批更新產生；單獨更新請以執行輸出為準。電影、遊戲延後六個月收錄，動畫收錄到上一季。Google Drive 上傳狀態請至同步程式確認。</p></div></details>`;
+  const records = Object.entries(labels).filter(([media]) => media !== "liveAction").map(([media, label]) => {
+    const item = status?.media?.[media];
+    const file = payload?.libraries?.find(library => library.media === media);
+    const result = noNew(item) ? "檢查完成，無新增" : ({ success: "更新完成", failed: "檢查失敗", running: "檢查中，尚未完成" })[item?.status] ?? "尚無檢查紀錄";
+    const count = !noNew(item) && Number.isInteger(item?.addedCount) ? ` · 新增 ${item.addedCount} 筆${item.status === "failed" && item.addedCount > 0 ? "（部分完成）" : ""}` : "";
+    return `<div class="update-check-row"><strong>${label}</strong><div><span class="${item?.status === "failed" ? "failed" : ""}">${escapeHtml(result + count)}</span><small>最近檢查：${escapeHtml(dateLabel(item?.finishedAt ?? item?.startedAt))}</small>${item?.coverage?.expectedLabel ? `<small>目前應收錄至 ${escapeHtml(item.coverage.expectedLabel)}</small>` : ""}<small>檔案修改：${escapeHtml(dateLabel(file?.updatedAt))}</small>${item?.error ? `<p class="update-error">${escapeHtml(item.error)}</p>` : ""}</div></div>`;
+  }).join("");
+  const annual = status?.media?.liveAction?.coverage?.latestLabel;
+  return `<details class="update-panel" ${open ? "open" : ""}><summary><span>${escapeHtml(headline)}</span><span class="update-summary-state ${stateClass}">${escapeHtml(stateLabel)}</span><span class="update-details-label">更新詳情</span></summary><section class="update-details" aria-label="資料更新詳情"><div class="update-intro"><h2>資料更新</h2><p>最後一次新增會保留，檢查沒有新資料時不會被取代。</p></div>${status?.warning ? `<p class="status-warning" role="alert">${escapeHtml(status.warning)}</p>` : ""}<table class="update-overview"><caption class="sr-only">目前收錄狀態與最後一次新增紀錄</caption><thead><tr><th scope="col">項目</th><th scope="col">目前資料狀態</th><th scope="col">最後一次新增</th><th scope="col">新增筆數</th></tr></thead><tbody>${rows}</tbody></table><div class="update-annual"><strong>真人劇</strong><div>${escapeHtml(annual ? `收錄至 ${annual}` : "尚無年度清單")}<small>年度研究後另行整理，不列入每月更新。</small></div></div><p class="update-note">電影、遊戲延後六個月收錄；動畫收錄到上一季。「已補齊」表示從報告既有起點到應收錄期間沒有缺段，不代表所有作品與評分都重新核對過。</p><details class="update-checks"><summary>檢查紀錄<span>最近執行結果與錯誤原因</span></summary>${records}<p class="update-note">執行紀錄來自整批更新或動畫回補；其他單獨更新請以執行輸出為準。Google Drive 上傳狀態請至同步程式確認。</p></details></section></details>`;
 }

@@ -1,11 +1,12 @@
 {
   "name": "spidermal",
   "version": "1.0.0",
-  "description": "MAL(Jikan)季節動畫評分抓取,Bangumi 補中文名",
+  "description": "MAL(Tenrai)季節動畫評分抓取,Bangumi 補中文名",
   "main": "index.js",
   "type": "module",
   "scripts": {
     "update": "node .cursor/skills/find-anime/update/update.js",
+    "refresh": "node refresh-recent.js",
     "find": "node .cursor/skills/find-anime/find/find.js"
   },
   "keywords": [],
