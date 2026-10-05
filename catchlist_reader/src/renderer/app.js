@@ -1,6 +1,6 @@
 import { collectTagOptionsFromIndex, createTagIndex, createGameQuery, ratingRangeError } from "./game-browser.js";
 import { openManualGamePanel } from "./manual-game-panel.js";
-import { formatGameTitleCopyText, renderItemTemplate } from "./item-template.js";
+import { formatGameTitleCopyText, renderItemTemplate, renderGameTags } from "./item-template.js";
 import { entriesForView, viewNavigation, hiddenListMarkup, updateStatusMarkup, hiddenReasons, reasonOptions } from "./personal-ui.js";
 
 import { catalogGames } from "./catalog-search.js";
@@ -56,6 +56,26 @@ const coverTitle = document.querySelector("#coverTitle");
 const toast = document.querySelector("#toast");
 const backToTop = document.querySelector("#backToTop");
 const animeMediaUI = new AnimeMediaUI(app, (message) => showToast(message));
+// 僅保留本次視窗的閱讀位置，不寫入個人紀錄。
+const mediaPositions = new Map();
+let loadRequest = 0;
+
+function rememberMediaPosition() {
+  mediaPositions.set(state.active, { top: window.scrollY, gameCount: state.visibleGameCount });
+}
+
+function restoreMediaPosition(top) {
+  // 遊戲可能只剩首批或篩選後的較短清單；先補足可捲動的內容。
+  if (state.active === "games" && state.view !== "hidden") {
+    while (document.documentElement.scrollHeight - window.innerHeight < top) {
+      const previousCount = state.visibleGameCount;
+      appendNextGameBatch();
+      if (state.visibleGameCount === previousCount) break;
+    }
+  }
+  window.scrollTo({ top, behavior: "instant" });
+  syncBackToTop();
+}
 
 function searchingCatalog() { return state.active === "games" && state.catalogSearch; }
 
@@ -317,7 +337,8 @@ function setupGameAutoLoad() {
     return;
   }
   state.gameLoadObserver = new IntersectionObserver((entries) => {
-    if (entries.some((entry) => entry.isIntersecting)) void appendNextGameBatch();
+    if (sentinel.isConnected && app.querySelector("[data-game-load-sentinel]") === sentinel
+      && entries.some((entry) => entry.isIntersecting)) void appendNextGameBatch();
   }, { rootMargin: "360px 0px" });
   state.gameLoadObserver.observe(sentinel);
 }
@@ -369,6 +390,7 @@ function refreshResults({ hydrateCovers = true, resetGames = true } = {}) {
     return;
   }
   list.innerHTML = entriesMarkup(entries);
+  if (state.active === "anime") animeMediaUI.attach(entries);
 }
 
 function refreshTagPanel() {
@@ -576,7 +598,20 @@ function syncBackToTop() {
 
 async function load() {
   const media = state.active;
-  try { const payload = await window.catchList.load(media); if (state.active !== media) return false; state.payload = payload; animeMediaUI.reset(); render(); return true; } catch (error) { showToast(error.message); return false; }
+  const request = ++loadRequest;
+  try {
+    const payload = await window.catchList.load(media);
+    if (request !== loadRequest || state.active !== media) return false;
+    const top = window.scrollY;
+    state.payload = payload;
+    animeMediaUI.reset();
+    render();
+    restoreMediaPosition(top);
+    return true;
+  } catch (error) {
+    if (request === loadRequest && state.active === media) showToast(error.message);
+    return false;
+  }
 }
 
 async function openBatch(urls, label) {
@@ -610,10 +645,15 @@ document.addEventListener("click", async (event) => {
   if (cover) { showCover(cover.dataset.cover, cover.dataset.coverTitle); return; }
   const media = event.target.closest("[data-media]")?.dataset.media;
   if (media) {
+    if (media === state.active) return;
+    rememberMediaPosition();
     state.catalogSearch = false;
     state.active = media;
     if (media !== "games" && Object.hasOwn(hiddenReasons, state.view)) state.view = "all";
-    if (media === "games") state.visibleGameCount = GAME_BATCH_SIZE;
+    const position = mediaPositions.get(media);
+    if (media === "games") state.visibleGameCount = position?.gameCount ?? GAME_BATCH_SIZE;
+    render();
+    restoreMediaPosition(position?.top ?? 0);
     await load();
     return;
   }
@@ -624,11 +664,32 @@ document.addEventListener("click", async (event) => {
     refreshGameBrowser();
     return;
   }
-  const expandKey = event.target.closest("[data-expand-tags]")?.dataset.expandTags;
+  const expandButton = event.target.closest("[data-expand-tags]");
+  const expandKey = expandButton?.dataset.expandTags;
   if (expandKey) {
     const key = String(expandKey);
     if (state.expandedGameTags.has(key)) state.expandedGameTags.delete(key); else state.expandedGameTags.add(key);
-    refreshResults({ hydrateCovers: false, resetGames: false });
+    const entry = library().entries.find(entry => String(entry.appid ?? entry.id) === key);
+    const tags = expandButton.closest(".game-tags");
+    if (entry && tags) {
+      const top = window.scrollY;
+      const template = document.createElement("template");
+      template.innerHTML = renderGameTags(entry, {
+        catalogSearch: searchingCatalog(),
+        selectedTags: searchingCatalog() ? [] : state.filters.games.tags,
+        expanded: state.expandedGameTags.has(key), tagLimit: gameTagLimit(),
+      });
+      const replacement = template.content.querySelector(".game-tags");
+      const nextButton = replacement.querySelector("[data-expand-tags]");
+      const restoreFocus = document.activeElement === expandButton;
+      // 保留原按鈕，鍵盤焦點、列節點與封面皆不受標籤更新影響。
+      for (const attribute of nextButton.attributes) expandButton.setAttribute(attribute.name, attribute.value);
+      expandButton.textContent = nextButton.textContent;
+      nextButton.replaceWith(expandButton);
+      tags.replaceChildren(...replacement.childNodes);
+      if (restoreFocus) expandButton.focus({ preventScroll: true });
+      window.scrollTo({ top, behavior: "instant" });
+    }
     return;
   }
   const action = event.target.closest("[data-action]")?.dataset.action;

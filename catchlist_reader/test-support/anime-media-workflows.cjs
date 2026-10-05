@@ -16,16 +16,19 @@ app.whenReady().then(async () => {
     { id: "medalist", title: "金牌得主", year: 2025, periodLabel: "2025 年冬季", season: "冬", score: 8.37, episodes: null, format: null },
     { id: "missing", title: "同名作品與續作，需要選擇正確版本的動畫", year: 2024, periodLabel: "2024 年春季", season: "春", score: 8.1 },
     { id: "error", title: "暫時無法取得資料的作品", year: 2024, periodLabel: "2024 年夏季", season: "夏", score: 8.0 },
+    ...Array.from({ length: 40 }, (_, index) => ({ id: `filler-${index}`, title: `測試動畫填充 ${index}`, year: 2024, periodLabel: "2024 年秋季", season: "秋", score: 7.9 })),
+    { id: "offscreen", title: "搜尋後才載入的動畫", year: 2023, periodLabel: "2023 年秋季", season: "秋", score: 7.7 },
   ].map(e => ({ ...e, media: "anime", searchUrl: `https://www.google.com/search?q=${encodeURIComponent(e.title)}` }));
   const media = {
     hyouka: { status: "ready", malId: 12189, title: "氷菓", originalTitle: "Hyouka", year: 2012, format: "TV", episodes: 22, coverUrl: "https://cdn.myanimelist.net/images/anime/13/50521l.jpg", trailerUrl: "https://www.youtube.com/watch?v=N5nNKAVB4O4", trailerTitle: "Hyouka Promo V2", trailerAuthor: "AnimaxAsia" },
     medalist: { status: "ready", malId: 55318, title: "メダリスト", originalTitle: "Medalist", year: 2025, format: "TV", episodes: 13, coverUrl: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx165171-an9pyRXwVxJS.jpg", trailerUrl: "https://www.youtube.com/watch?v=yotDEXGaP9k", trailerTitle: "TVアニメ『メダリスト』PV第3弾｜ED主題歌：ねぐせ。「アタシのドレス」", trailerAuthor: "アニメ『メダリスト』公式チャンネル" },
+    offscreen: { status: "ready", malId: 60001, title: "検索後才載入的動畫", originalTitle: "Search Target", year: 2023, format: "TV", episodes: 12, coverUrl: "https://cdn.myanimelist.net/images/anime/13/50521l.jpg", trailerUrl: "https://www.youtube.com/watch?v=N5nNKAVB4O4", trailerTitle: "Search Target Promo", trailerAuthor: "Test" },
     missing: { status: "unmatched", candidates: [] }, error: { status: "error" },
   };
   const opened = [], requested = [];
   const snapshot = () => ({ dataDir: temp, appVersion: "test", libraries: [ { media: "games", entries: [], sections: [], exists: true }, { media: "anime", entries, sections: [], exists: true } ], hiddenEntries: [] });
   ipcMain.handle("library:load", snapshot);
-  ipcMain.handle("anime:resolve-media", (_, id, retry) => { requested.push({ id, retry }); return retry ? media.hyouka : media[id]; });
+  ipcMain.handle("anime:resolve-media", (_, id, retry) => { requested.push({ id, retry }); return retry ? media.hyouka : media[id] ?? { status: "unmatched", candidates: [] }; });
   ipcMain.handle("anime:search-media", () => ({ candidates: [media.hyouka, media.medalist] }));
   ipcMain.handle("anime:select-media", (_, id, malId) => Object.values(media).find(m => m.malId === malId));
   ipcMain.handle("external:open-urls", (_, urls) => { opened.push(...urls); return true; });
@@ -39,8 +42,22 @@ app.whenReady().then(async () => {
   await win.loadFile(path.join(root, "src/renderer/index.html"));
   await until("document.querySelector('[data-media=anime]') !== null");
   await click('[data-media="anime"]');
-  await until("document.querySelectorAll('.anime-trailer-link').length === 2");
+  await until("document.querySelector('[data-anime-row=hyouka] .anime-trailer-link') !== null");
   await until("[...document.querySelectorAll('.anime-cover img')].every(img => img.complete && img.naturalWidth > 0)");
+  await until("document.querySelector('[data-anime-row=offscreen]')?.getBoundingClientRect().top > innerHeight");
+  assert.equal(requested.some(r => r.id === "offscreen"), false, "清單底部作品在搜尋前尚未觸發媒體查詢");
+  await js(`(() => { const input = document.querySelector('input[data-filter="query"]'); input.value = "搜尋後才載入的動畫"; input.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+  await until("document.querySelector('[data-anime-row=offscreen] .anime-cover img') !== null");
+  assert.ok(requested.some(r => r.id === "offscreen"), "搜尋後確實觸發該作品的媒體查詢");
+  assert.equal(await js("document.querySelector('[data-anime-row=offscreen] .anime-trailer-link') !== null"), true);
+  const offscreenRequests = requested.filter(r => r.id === "offscreen").length;
+  await click('[data-action="clear-search"]');
+  await until("document.querySelector('[data-anime-row=offscreen]') !== null");
+  await js(`(() => { const input = document.querySelector('input[data-filter="query"]'); input.value = "搜尋後才載入的動畫"; input.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+  await until("document.querySelector('[data-anime-row=offscreen] .anime-cover img') !== null");
+  assert.equal(requested.filter(r => r.id === "offscreen").length, offscreenRequests, "重複搜尋使用既有結果，沒有再次請求");
+  await click('[data-action="clear-search"]');
+  await until("document.querySelectorAll('[data-anime-row]').length === 45");
   await js("Promise.all([...document.querySelectorAll('.anime-cover img')].map(img => img.decode()))");
   win.setContentSize(1440, 1000);
   await new Promise(r => setTimeout(r, 500));

@@ -70,7 +70,7 @@ function deleteIcon() {
   return '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>';
 }
 
-function renderGameTags(entry, view = {}) {
+export function renderGameTags(entry, view = {}) {
   const selectedTags = Array.isArray(view.selectedTags) ? view.selectedTags : [];
   const expanded = view.expanded === true;
   const tagLimit = Number.isInteger(view.tagLimit) && view.tagLimit > 0 ? view.tagLimit : 6;
