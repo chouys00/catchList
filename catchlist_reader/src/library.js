@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { hasLegacyCommunityTags } from "./legacy-game-tags.js";
 import { classifyPlayerMode } from "./game-features.js";
 import { readGameFeatures } from "./game-feature-store.js";
 import { MANUAL_GAMES_FILE, readManualGames, manualEntry, manualJson, commitGameFiles, recoverGameTransaction, readOptional } from "./manual-games.js";
@@ -283,6 +284,8 @@ function parseGames(lines, { legacyInitialization = false } = {}) {
     let end = urlIndex + 1;
     if (lines[end] === "") end += 1;
     const badges = clean(titleMatch[3]).split("|").map(clean).filter(Boolean);
+    const detailLabels = detailMatch[4].split(",").map(clean).filter(Boolean);
+    const embeddedTags = !tagLine && hasLegacyCommunityTags(detailLabels, legacyInitialization);
     entries.push(finalizeEntry("games", section, raw, occurrence, { start: index, end }, {
       title: clean(titleMatch[1]),
       originalTitle: clean(titleMatch[2]),
@@ -293,10 +296,10 @@ function parseGames(lines, { legacyInitialization = false } = {}) {
       releaseDate: detailMatch[1],
       score: Number(detailMatch[2]),
       reviews: Number(detailMatch[3].replace(/,/g, "")),
-      genres: legacyInitialization && !tagLine ? [] : detailMatch[4].split(",").map(clean).filter(Boolean),
+      genres: embeddedTags ? [] : detailLabels,
       tags: tagLine
         ? (clean(tagLine[1]) === MISSING_COMMUNITY_TAGS ? [] : normalizeTags(tagLine[1].split(",")))
-        : (legacyInitialization ? normalizeTags(detailMatch[4].split(",")) : []),
+        : (embeddedTags ? normalizeTags(detailLabels) : []),
       month: section.month,
       appid: urlMatch[2],
       url: urlMatch[1],
