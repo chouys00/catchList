@@ -73,7 +73,10 @@ app.whenReady().then(async () => {
   assert.equal(await js("document.querySelector('#advancedFilters').hidden"), true);
   assert.ok(await js("document.querySelector('.list').getBoundingClientRect().top < 240"), "桌面首筆結果應位於 240px 內，包含新增的工具列留白");
   await capture("compact-desktop");
-  const select = (key, value) => js(`(() => { const el = document.querySelector('[data-filter="${key}"]'); el.value = '${value}'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  const select = async (key, value) => {
+    await js(`(() => { const el = document.querySelector('[data-filter="${key}"]'); el.value = el.tagName === 'SELECT' && '${key}' === 'sort' && document.querySelector('.item.games') ? '${value}:desc' : '${value}'; el.dispatchEvent(new Event(el.tagName === 'INPUT' ? 'input' : 'change', { bubbles: true })); })()`);
+    if (key === 'min' || key === 'max') await new Promise(resolve => setTimeout(resolve, 200));
+  };
   await select("sort", "score");
   assert.equal(await js("document.querySelector('.item .rating strong').textContent"), "99%");
   await select("sort", "reviews");
@@ -110,7 +113,7 @@ app.whenReady().then(async () => {
   await capture("filters-desktop");
   await click('[data-action="clear-filters"]');
   await click('[data-action="toggle-filters"]');
-  assert.deepEqual(await js("[...document.querySelectorAll('.game-column-header > span')].map((item) => item.textContent)"), ["封面", "遊戲名稱", "好評率", "發售日", "中文", "模式", "社群標籤", "管理"]);
+  assert.deepEqual(await js("[...document.querySelector('.game-column-header').children].map((item) => item.firstChild.textContent)"), ["封面", "遊戲名稱", "好評率", "發售日", "中文", "模式", "社群標籤", "管理"]);
   assert.deepEqual(await js("[...document.querySelector('.item.games .game-facts').children].map((item) => item.classList[0])"), ["rating", "meta", "language-status", "language-status"]);
   assert.deepEqual(await js("(() => { const button = document.querySelector('#backToTop'); return { hidden: button.getAttribute('aria-hidden'), tabIndex: button.tabIndex }; })()"), { hidden: "true", tabIndex: -1 });
   win.setContentSize(1440, 280);
@@ -239,10 +242,10 @@ app.whenReady().then(async () => {
     await click('[data-restore]'); await until("document.querySelectorAll('.hidden-row').length === 0");
     await click('[data-view="all"]'); await click('[data-action="toggle-filters"]');
     await select('min', '90'); await select('max', '95');
-    assert.ok(await js("[...document.querySelectorAll('.rating strong')].every(el => parseInt(el.textContent) >= 90 && parseInt(el.textContent) < 95)"));
+    assert.ok(await js("[...document.querySelectorAll('.rating strong')].every(el => parseInt(el.textContent) >= 90 && parseInt(el.textContent) <= 95)"));
     await capture(`classification-range-${label}`);
-    await select('min', '95');
-    assert.match(await js("document.querySelector('[data-rating-error]').textContent"), /上限必須大於/);
+    await select('min', '96');
+    assert.match(await js("document.querySelector('[data-rating-error]').textContent"), /上限須大於或等於/);
     assert.equal(await js("document.querySelectorAll('.item.games').length"), 7);
     await click('[data-action="clear-filters"]');
     assert.equal(await js("document.querySelector('[data-filter=max]').value"), '');
@@ -267,8 +270,8 @@ app.whenReady().then(async () => {
       await fill('[data-filter="query"]', '');
       await select('sort', 'score');
       await click('[data-action="toggle-filters"]');
-      await select('min', '97'); await select('max', '97');
-      assert.match(await js("document.querySelector('[data-rating-error]').textContent"), /上限必須大於/);
+      await select('min', '98'); await select('max', '97');
+      assert.match(await js("document.querySelector('[data-rating-error]').textContent"), /上限須大於或等於/);
       await click('[data-action="clear-filters"]'); await click('[data-action="toggle-filters"]');
       await click('[data-favorite]');
       await until("document.querySelector('[data-favorite]').getAttribute('aria-pressed') === 'true'");

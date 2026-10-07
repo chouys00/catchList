@@ -41,7 +41,10 @@ app.whenReady().then(async () => {
   const until = async (code) => { for (let i = 0; i < 120; i++) { if (await js(code)) return; await new Promise((r) => setTimeout(r, 25)); } throw new Error(`等待畫面逾時：${code}`); };
   const click = async (selector) => { await js(`document.querySelector(${JSON.stringify(selector)}).click()`); };
   const fill = (selector, value) => js(`(() => { const input = document.querySelector(${JSON.stringify(selector)}); input.value = ${JSON.stringify(value)}; input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
-  const select = (key, value) => js(`(() => { const input = document.querySelector('[data-filter="${key}"]'); input.value = '${value}'; input.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  const select = async (key, value) => {
+    await js(`(() => { const input = document.querySelector('[data-filter="${key}"]'); input.value = '${value}'; input.dispatchEvent(new Event(input.tagName === 'INPUT' ? 'input' : 'change', { bubbles: true })); })()`);
+    if (key === 'min' || key === 'max') await new Promise(resolve => setTimeout(resolve, 200));
+  };
   const capture = async (name) => {
     if (!process.env.CATCHLIST_QA_DIR) return;
     win.showInactive();

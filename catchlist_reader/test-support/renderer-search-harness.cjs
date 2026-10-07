@@ -342,7 +342,7 @@ async function run() {
       openLabel: document.querySelector('[data-action="open-filtered"]')?.textContent ?? null,
       hideCount: document.querySelectorAll('[data-hide]').length,
       hasReviewFilter: Boolean(document.querySelector('[data-filter="minReviews"]')),
-      scoreOptions: Array.from(document.querySelector('[data-filter="min"]')?.options ?? []).map((option) => option.value),
+      scoreInput: (() => { const input = document.querySelector('[data-filter="min"]'); return { type: input.type, min: input.min, max: input.max, value: input.value }; })(),
       communityTagCount: document.querySelectorAll('[data-game-tag]').length,
       copyButtonCount: document.querySelectorAll('[data-copy-title]').length,
       brand: document.querySelector('.brand strong')?.textContent ?? null,

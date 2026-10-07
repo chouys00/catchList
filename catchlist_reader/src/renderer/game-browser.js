@@ -1,5 +1,12 @@
 import { entriesForView } from "./personal-ui.js";
 
+const titleCollator = new Intl.Collator("zh-Hant");
+const descendingDate = (left, right) => left === right ? 0 : left < right ? 1 : -1;
+
+function ratingBound(value) {
+  return cleanText(value) === "" ? null : Number(value);
+}
+
 function cleanText(value) {
   return String(value ?? "").trim();
 }
@@ -38,8 +45,8 @@ function normalizeList(values) {
 
 export function filterAndSortGames(entries, filters = {}, prepared = null) {
   const query = normalizedQuery(filters.query);
-  const min = Number(filters.min || 0);
-  const max = filters.max ? Number(filters.max) : null;
+  const min = ratingBound(filters.min);
+  const max = ratingBound(filters.max);
   const validRange = !ratingRangeError(filters);
   const minReviews = Number(filters.minReviews || 0);
   const selectedTags = normalizeList(filters.tags);
@@ -50,10 +57,8 @@ export function filterAndSortGames(entries, filters = {}, prepared = null) {
       if (filters.manualOnly === "manual" && !entry.manualAdded) return false;
       if (query && !(prepared?.get(entry)?.searchText ?? gameSearchText(entry)).includes(query)) return false;
       if (filters.newOnly && !entry.isNew) return false;
-      if (filters.year && filters.year !== "all" && entry.year !== Number(filters.year)) return false;
-      if (filters.month && filters.month !== "all" && entry.month !== Number(filters.month)) return false;
       if (filters.chinese && filters.chinese !== "all" && entry.chineseSupport !== filters.chinese) return false;
-      if (validRange && (min > 0 || max !== null) && (entry.score == null || entry.score < min || (max !== null && entry.score >= max))) return false;
+      if (validRange && (min !== null || max !== null) && (entry.score == null || (min !== null && entry.score < min) || (max !== null && entry.score > max))) return false;
       if (minReviews > 0 && (entry.reviews == null || entry.reviews < minReviews)) return false;
       const tags = prepared?.get(entry)?.tags ?? normalizeList(entry.tags);
       return selectedTags.every((tag) => tags.includes(tag));
@@ -61,14 +66,15 @@ export function filterAndSortGames(entries, filters = {}, prepared = null) {
     .sort((left, right) => {
       const key = filters.sort === "score" ? "score" : filters.sort === "reviews" ? "reviews" : "releaseDate";
       if ((left[key] == null) !== (right[key] == null)) return left[key] == null ? 1 : -1;
-      const scoreDifference = Number(right.score ?? 0) - Number(left.score ?? 0);
-      const reviewDifference = Number(right.reviews ?? 0) - Number(left.reviews ?? 0);
-      if (filters.sort === "score" && scoreDifference) return scoreDifference;
-      if (filters.sort === "reviews" && reviewDifference) return reviewDifference;
-      return String(right.releaseDate ?? "").localeCompare(String(left.releaseDate ?? ""))
+      const direction = filters.sortDirection === "asc" ? -1 : 1;
+      const primary = key === "releaseDate"
+        ? descendingDate(String(left.releaseDate ?? ""), String(right.releaseDate ?? ""))
+        : Number(right[key] ?? 0) - Number(left[key] ?? 0);
+      if (primary) return direction * primary;
+      return descendingDate(String(left.releaseDate ?? ""), String(right.releaseDate ?? ""))
         || Number(right.score ?? 0) - Number(left.score ?? 0)
         || Number(right.reviews ?? 0) - Number(left.reviews ?? 0)
-        || String(left.title ?? "").localeCompare(String(right.title ?? ""), "zh-Hant");
+        || titleCollator.compare(String(left.title ?? ""), String(right.title ?? ""));
     });
 }
 
@@ -141,7 +147,7 @@ export function createGameQuery() {
       prepared = new Map(entries.map(entry => [entry, { searchText: gameSearchText(entry), tags: normalizeList(entry.tags) }]));
       previousKey = null;
     }
-    const key = JSON.stringify([view, filters.query, filters.year, filters.month, filters.min, filters.max, filters.minReviews, filters.chinese, filters.playerMode, filters.manualOnly, filters.newOnly, filters.sort, filters.tags]);
+    const key = JSON.stringify([view, filters.query, filters.min, filters.max, filters.minReviews, filters.chinese, filters.playerMode, filters.manualOnly, filters.newOnly, filters.sort, filters.sortDirection, filters.tags]);
     if (key !== previousKey) {
       result = filterAndSortGames(entriesForView(entries, view), filters, prepared);
       previousKey = key;
@@ -151,8 +157,9 @@ export function createGameQuery() {
 }
 
 export function ratingRangeError(filters) {
-  const min = Number(filters.min || 0);
-  const max = filters.max ? Number(filters.max) : null;
-  return !Number.isFinite(min) || min < 0 || min > 100 || (max !== null && (!Number.isFinite(max) || max <= min || max > 100))
-    ? "上限必須大於下限，且介於 0～100%；目前不套用好評率條件。" : "";
+  const min = ratingBound(filters.min);
+  const max = ratingBound(filters.max);
+  return [min, max].some(value => value !== null && (!Number.isFinite(value) || value < 0 || value > 100))
+    || (min !== null && max !== null && min > max)
+    ? "請輸入 0～100%，上限須大於或等於下限；目前不套用好評率條件。" : "";
 }

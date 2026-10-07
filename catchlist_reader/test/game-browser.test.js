@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createGameQuery, collectTagOptions, collectTagOptionsFromIndex, createTagIndex, filterAndSortGames, visibleGameTags } from "../src/renderer/game-browser.js";
+import { createGameQuery, collectTagOptions, collectTagOptionsFromIndex, createTagIndex, filterAndSortGames, ratingRangeError, visibleGameTags } from "../src/renderer/game-browser.js";
 
 test("三種排序保留篩選與新收錄條件，不修改來源陣列", () => {
   const source = [
@@ -96,7 +96,7 @@ test("標籤使用 AND 並依日期、好評率、評論數排序", () => {
   assert.deepEqual(result.map(({ appid }) => appid), ["newer", "older"]);
 });
 
-test("名稱、年份、月份與最低好評率可組合篩選", () => {
+test("名稱與好評率可組合篩選，舊年份月份條件不再限制遊戲", () => {
   const result = filterAndSortGames(entries, {
     query: "deck",
     year: "2024",
@@ -105,7 +105,7 @@ test("名稱、年份、月份與最低好評率可組合篩選", () => {
     tags: ["牌組製作"],
   });
 
-  assert.deepEqual(result.map(({ appid }) => appid), ["query-only"]);
+  assert.deepEqual(result.map(({ appid }) => appid), ["newer", "older", "query-only"]);
 });
 
 test("一般搜尋可用 Steam AppID 找到遊戲", () => {
@@ -186,10 +186,49 @@ test("篩選結果跨續載重用，條件、收藏與新快照變更後重新�
   assert.deepEqual(first, filterAndSortGames(source.filter(e => !e.favorite), filters));
   assert.equal(query(source, { ...filters, tagsOpen: true }), first);
   assert.deepEqual(query(source, filters, "favorites"), filterAndSortGames(source.filter(e => e.favorite), filters));
-  for (const change of [{ query: "牌組" }, { tags: ["策略"] }, { year: "2026" }, { minReviews: "20000" }, { newOnly: true }, { chinese: "supported" }, { sort: "reviews" }, { manualOnly: "manual" }]) {
+  for (const change of [{ query: "牌組" }, { tags: ["策略"] }, { sortDirection: "asc" }, { minReviews: "20000" }, { newOnly: true }, { chinese: "supported" }, { sort: "reviews" }, { manualOnly: "manual" }]) {
     const next = { ...filters, ...change };
     assert.deepEqual(query(source, next), filterAndSortGames(source.filter(e => !e.favorite), next));
   }
   const nextSource = source.map(e => ({ ...e, title: "更名", favorite: !e.favorite }));
   assert.deepEqual(query(nextSource, { query: "更名" }), filterAndSortGames(nextSource.filter(e => !e.favorite), { query: "更名" }));
+});
+
+test("自由好評率區間包含兩端，空白不限，明確輸入零仍套用", () => {
+  const source = [null, 0, 89.5, 90, 95, 100].map((score, id) => ({ score, id }));
+  const scores = filters => filterAndSortGames(source, { sort: "score", sortDirection: "asc", ...filters }).map(e => e.score);
+  assert.deepEqual(scores({ min: "", max: "" }), [0, 89.5, 90, 95, 100, null]);
+  assert.deepEqual(scores({ min: "0" }), [0, 89.5, 90, 95, 100]);
+  assert.deepEqual(scores({ max: "0" }), [0]);
+  assert.deepEqual(scores({ min: "89.5", max: "95" }), [89.5, 90, 95]);
+  assert.deepEqual(scores({ min: "95", max: "95" }), [95]);
+  assert.deepEqual(scores({ max: "100" }), [0, 89.5, 90, 95, 100]);
+  assert.deepEqual(scores({ min: "100" }), [100]);
+  for (const filters of [{ min: "-1" }, { max: "101" }, { min: "96", max: "95" }, { max: "NaN" }]) {
+    assert.ok(ratingRangeError(filters));
+    assert.equal(scores(filters).length, source.length);
+  }
+  assert.equal(ratingRangeError({ min: "0", max: "0" }), "");
+  assert.equal(ratingRangeError({ min: "", max: "" }), "");
+});
+
+test("日期與數值雙向排序、缺值置底、同值保持固定次序", () => {
+  const source = [
+    { title: "乙", score: 90, reviews: 10, releaseDate: "2025-01-01" },
+    { title: "甲", score: 90, reviews: 20, releaseDate: "2025-01-01" },
+    { title: "新", score: 95, reviews: 5, releaseDate: "2026-01-01" },
+    { title: "缺", score: null, reviews: null, releaseDate: null },
+  ];
+  const titles = filters => filterAndSortGames(source, filters).map(e => e.title);
+  for (const sort of ["date", "score"]) {
+    assert.deepEqual(titles({ sort }), ["新", "甲", "乙", "缺"]);
+    assert.deepEqual(titles({ sort, sortDirection: "asc" }), ["甲", "乙", "新", "缺"]);
+  }
+  assert.deepEqual(titles({ sort: "reviews" }), ["甲", "乙", "新", "缺"]);
+  const query = createGameQuery();
+  const descending = query(source, { sort: "score" });
+  const ascending = query(source, { sort: "score", sortDirection: "asc" });
+  assert.notEqual(descending, ascending);
+  assert.equal(query(source, { sort: "score", sortDirection: "asc", year: "2020", month: "1" }), ascending);
+  assert.deepEqual(source.map(e => e.title), ["乙", "甲", "新", "缺"]);
 });

@@ -10,6 +10,7 @@ import { resolveSteamCover } from "./steam-covers.js";
 import { ReportCache } from "./report-cache.js";
 import { VisitHistory } from "./visit-history.js";
 import { ManualGameService } from "./manual-game-service.js";
+import { GameBatchService } from "./game-batch-service.js";
 import { CoverRequestLog } from "./cover-request-log.js";
 import { AnimeMediaService } from "./anime-media.js";
 import { openExternalUrls } from "./external-links.js";
@@ -39,6 +40,7 @@ function animeEntry(id) {
 const visits = new VisitHistory();
 const reportCache = new ReportCache(parseReport);
 const manualGames = new ManualGameService();
+const gameBatch = new GameBatchService();
 let activeMedia = "games";
 
 function settingsPath() {
@@ -99,6 +101,19 @@ async function resolveGameCovers(appids) {
 }
 
 function registerIpc() {
+  ipcMain.handle("games:cancel-batch", () => gameBatch.cancel());
+  ipcMain.handle("games:preview-batch", (_event, appids, action, reason) => {
+    if (!dataDir || activeMedia !== "games") throw new Error("請先開啟遊戲頁並選擇資料夾");
+    return gameBatch.prepare(dataDir, appids, action, reason);
+  });
+  ipcMain.handle("games:apply-batch", (_event, token) => {
+    if (!dataDir || activeMedia !== "games") throw new Error("請先開啟遊戲頁");
+    const result = gameBatch.apply(dataDir, token);
+    if (result.action === "hide" && result.changedCount) lastOperation = { kind: "batch-hide", operation: result.operation };
+    else if (result.action === "delete") lastOperation = null;
+    const { operation, ...batchResult } = result;
+    return { ...snapshot(), batchResult };
+  });
   ipcMain.handle("anime:resolve-media", (_event, id, retry) => animeService().resolve(animeEntry(id), { retry: retry === true }));
   ipcMain.handle("anime:search-media", (_event, id, query) => { animeEntry(id); return animeService().search(query); });
   ipcMain.handle("anime:select-media", (_event, id, malId) => animeService().select(animeEntry(id), malId));
@@ -113,6 +128,7 @@ function registerIpc() {
     return { ...snapshot(), addedAppid: appid };
   });
   ipcMain.handle("library:load", (_event, media) => {
+    gameBatch.cancel();
     if (media !== "games") manualGames.cancel();
     if (["games", "anime", "movies", "liveAction"].includes(media)) activeMedia = media;
     return snapshot();
@@ -148,6 +164,7 @@ function registerIpc() {
     const selected = result.filePaths[0];
     if (!hasReportFiles(selected)) throw new Error("這個資料夾找不到 CatchList 報告或手動遊戲清單");
     manualGames.cancel();
+    gameBatch.cancel();
     dataDir = selected;
     saveDirectory(dataDir);
     lastOperation = null;
@@ -166,7 +183,7 @@ function registerIpc() {
   });
   ipcMain.handle("library:undo-last-operation", () => {
     if (!lastOperation) throw new Error("沒有可復原的操作");
-    const restored = lastOperation.kind === "reason" ? undoHiddenReason(dataDir, lastOperation.operation) : undoHide(dataDir, lastOperation.operation);
+    const restored = lastOperation.kind === "batch-hide" ? gameBatch.undo(dataDir, lastOperation.operation) : lastOperation.kind === "reason" ? undoHiddenReason(dataDir, lastOperation.operation) : undoHide(dataDir, lastOperation.operation);
     lastOperation = null;
     return { ...snapshot(), restored };
   });

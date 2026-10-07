@@ -384,7 +384,7 @@ button.game-cover:hover { border-color: var(--lime); }
   .browse-toolbar .button { padding-inline: 10px; }
 }
 
-.games-toolbar { grid-template-columns: minmax(180px, 1fr) 156px auto auto auto; }
+.games-toolbar { grid-template-columns: minmax(180px, 1fr) 156px auto auto auto auto; }
 .add-game-button { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; min-height: 44px; padding: 10px 16px; border-color: #566044; background: var(--surface-2); color: var(--lime); white-space: nowrap; font-size: 14px; }
 .add-game-button:hover { border-color: var(--lime); background: var(--surface-3); }
 .browse-heading .update-panel summary > span:first-child { color: var(--muted); }
@@ -451,7 +451,7 @@ button.game-cover:hover { border-color: var(--lime); }
 .mode-option { border: 0; min-height: 32px; padding-inline: 16px; background: transparent; color: var(--muted); font-size: 13px; transition: background-color 140ms, color 140ms; }
 .mode-option[aria-pressed="true"] { background: var(--lime); color: var(--lime-ink); font-weight: 700; }
 .mode-option:hover:not([aria-pressed="true"]) { background: var(--surface-3); color: var(--ink); }
-#advancedFilters .toolbar.game-filter-fields { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+#advancedFilters .toolbar.game-filter-fields { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; align-items: start; }
 .filter-field { display: grid; min-width: 0; gap: 6px; }
 .filter-field .field { min-width: 0; padding-inline: 10px; font-size: 13px; }
 .game-filter-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
@@ -486,8 +486,29 @@ button.game-cover:hover { border-color: var(--lime); }
 .hidden-row:has(.hidden-reason) { grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 16px; }
 /* 延用清單的深色表面、細框與萊姆綠焦點。 */
 .rating-range { grid-column: span 2; }
-.rating-bounds { display: flex; gap: 8px; }
-.rating-bounds .field { min-width: 0; flex: 1; }
+.rating-bounds { display: flex; gap: 8px; align-items: center; }
+.rating-input { position: relative; flex: 1; min-width: 0; }
+.rating-input .field { width: 100%; min-width: 0; padding-right: 58px; font-variant-numeric: tabular-nums; }
+.rating-percent { position: absolute; right: 36px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.rating-dropdown { position: absolute; right: 1px; top: 1px; bottom: 1px; width: 30px; display: grid; place-items: center; color: var(--muted); background: transparent; border: 0; border-radius: 3px; cursor: pointer; }
+.rating-dropdown svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.rating-dropdown:hover, .rating-dropdown[aria-expanded="true"] { color: var(--lime); background: var(--surface-3); }
+.rating-dropdown:focus-visible { outline: 2px solid var(--lime); outline-offset: -2px; }
+.rating-options { position: absolute; top: calc(100% + 6px); left: 0; right: 0; padding: 4px; z-index: 20; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); box-shadow: 0 8px 24px #0008; }
+.rating-options.above { top: auto; bottom: calc(100% + 6px); }
+.rating-option { display: flex; align-items: center; justify-content: space-between; min-height: 36px; padding: 6px 10px; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--ink); border-radius: 2px; cursor: pointer; }
+.rating-option > span { color: var(--muted); }
+.rating-option.highlighted, .rating-option:hover { background: var(--surface-3); color: var(--lime); }
+.rating-option[aria-selected="true"] { color: var(--lime); }
+.rating-input input { appearance: textfield; }
+.rating-input input::-webkit-inner-spin-button, .rating-input input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.rating-input input[aria-invalid="true"] { border-color: var(--danger); }
+.rating-separator { color: var(--dim); }
+.column-sort { display: inline-flex; gap: 6px; align-items: center; justify-self: start; padding: 6px 0; margin: -6px 0; color: var(--muted); font: inherit; letter-spacing: inherit; border: 0; background: transparent; cursor: pointer; white-space: nowrap; }
+.column-sort .sort-arrow { font-size: 15px; line-height: 1; }
+.column-sort.active, .column-sort:hover { color: var(--lime); }
+.column-sort:focus-visible { outline: 2px solid var(--lime); outline-offset: 4px; border-radius: 2px; }
+@media (max-width: 560px) { .rating-input .field, .rating-option { min-height: 44px; } }
 [data-rating-error]:empty { display: none; }
 [data-rating-error] { color: var(--danger); line-height: 1.5; }
 .hidden-reason-filter { width: auto; min-width: 150px; margin: 0 0 16px 8px; }
@@ -575,3 +596,42 @@ button.anime-cover:hover { border-color: var(--lime); }
   .anime-candidate { gap: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { button.anime-cover { transition: none; } }
+
+/* 篩選展開後集中呈現；多選工具只在需要時出現。 */
+#advancedFilters:has(.game-filter-layout) { padding: 14px 0; border-bottom: 0; }
+.game-filter-layout { gap: 0; padding: 14px 16px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; }
+.filter-panel-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.filter-panel-heading strong { font-size: 13px; color: var(--muted); letter-spacing: .06em; }
+.game-filter-layout .game-filter-primary { margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.game-filter-layout .game-filter-actions { margin-left: auto; }
+.select-toggle[aria-pressed="true"] { color: var(--lime); border-color: var(--lime); }
+.game-batch-toolbar { position: sticky; top: calc(var(--reader-header-height, 64px) + 8px); z-index: 12; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; padding: 12px 16px; margin: 12px 0; border: 1px solid #687d41; border-radius: 6px; background: #1a2117; box-shadow: 0 6px 18px #0005; }
+.game-batch-toolbar[hidden] { display: none; }
+.batch-selection, .batch-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.batch-selection strong { color: var(--lime); min-width: 80px; font-variant-numeric: tabular-nums; }
+.batch-actions { margin-left: auto; }
+.batch-actions select { width: 130px; }
+.game-batch-toolbar > small { flex-basis: 100%; color: #bbc4ae; }
+.item.games.selectable { position: relative; padding-left: 34px; }
+.item.games.selected-game { background: #c8f1690c; box-shadow: inset 3px 0 var(--lime); }
+.game-selection-checkbox { position: absolute; left: 6px; top: 26px; display: flex; align-items: center; justify-content: center; width: 24px; height: 30px; cursor: pointer; }
+.game-selection-checkbox input { width: 18px; height: 18px; margin: 0; accent-color: var(--lime); cursor: pointer; }
+.game-selection-checkbox:focus-within { outline: 2px solid var(--lime); outline-offset: 2px; }
+.item.games.selectable .game-management { visibility: hidden; }
+.batch-dialog { max-width: 620px; max-height: calc(100vh - 32px); overflow-y: auto; }
+.batch-dialog h2 { font-size: 25px; }
+.batch-preview-list { max-height: min(38vh, 330px); overflow: auto; padding: 0 10px 0 34px; border-block: 1px solid var(--line); }
+.batch-preview-list li { padding: 9px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.batch-preview-list li:last-child { border-bottom: 0; }
+.batch-preview-list strong, .batch-preview-list small { display: block; line-height: 1.55; }
+.batch-preview-list small, .batch-sources { color: var(--muted); font-size: 12px; }
+.backup-path, .toast span { overflow-wrap: anywhere; }
+.backup-path { padding: 12px; border: 1px solid var(--line); user-select: text; }
+@media (max-width: 760px) {
+  .game-filter-layout { padding: 12px; }
+  .game-batch-toolbar { top: calc(var(--reader-header-height, 104px) + 4px); padding: 10px; gap: 8px; }
+  .batch-actions { margin-left: 0; }
+  .game-batch-toolbar .button { padding-inline: 10px; }
+  .game-batch-toolbar > small { font-size: 11px; line-height: 1.5; }
+  .batch-dialog form { padding: 20px; }
+}

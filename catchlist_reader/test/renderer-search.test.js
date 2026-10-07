@@ -42,7 +42,7 @@ test("搜尋欄位在輸入、刪除、游標編輯、分頁切換與清除後�
     hideCount: 7,
     hasReviewFilter: true,
     copyButtonCount: 7,
-    scoreOptions: ["0", "85", "90", "95", "97"],
+    scoreInput: { type: "number", min: "0", max: "100", value: "" },
     brand: "CatchList test-version",
     fixtureGames: [
       { title: "HER TREES : PUZZLE DREAM", releaseDate: "2026-02-10", score: "97%", reviews: "(1,768)" },

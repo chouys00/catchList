@@ -46,18 +46,18 @@ test('舊隱藏只讀相容、三種原因、切換、復原與候補收藏', t 
   assert.ok(!lib.loadLibrary(dir, 'games').entries.some(e => e.id === game.id));
 });
 
-test('好評率含下限、不含上限、無評分及無效區間與查詢快取', () => {
+test('好評率包含上下限、無評分及無效區間與查詢快取', () => {
   const entries = [null, 89, 90, 94, 95, 100].map((score, i) => ({ id: i, score }));
   const scores = f => filterAndSortGames(entries, f).map(e => e.score).sort((a,b) => a-b);
-  assert.deepEqual(scores({ min: '90', max: '95' }), [90, 94]);
-  assert.deepEqual(scores({ max: '90' }), [89]);
+  assert.deepEqual(scores({ min: '90', max: '95' }), [90, 94, 95]);
+  assert.deepEqual(scores({ max: '90' }), [89, 90]);
   assert.equal(scores({}).length, 6);
   assert.equal(scores({ min: '95', max: '90' }).length, 6);
-  assert.equal(scores({ min: '95', max: '95' }).length, 6);
+  assert.deepEqual(scores({ min: '95', max: '95' }), [95]);
   assert.deepEqual(scores({ min: '97' }), [100]);
   const query = createGameQuery();
   assert.equal(query(entries, { min: '90' }).length, 4);
-  assert.equal(query(entries, { min: '90', max: '95' }).length, 2);
+  assert.equal(query(entries, { min: '90', max: '95' }).length, 3);
 });
 
 test('每月寫入與手動合併保留分類收藏，重複更新不重複', t => {
