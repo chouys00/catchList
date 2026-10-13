@@ -14,6 +14,67 @@
   --sans: "Segoe UI", "Noto Sans TC", sans-serif;
 }
 
+/* Screening uses the reader's existing surface, ink and lime tokens. */
+.screening-launch { border-color: var(--lime); color: var(--lime); }
+.screening-dialog { width: min(1180px, calc(100vw - 40px)); max-width: none; max-height: calc(100dvh - 40px); padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); overflow-y: auto; }
+.screening-dialog::backdrop { background: #000b; backdrop-filter: blur(6px); }
+.screening-dialog[open] { display: flex; flex-direction: column; height: min(850px, calc(100dvh - 40px)); overflow: hidden; }
+body:has(.screening-dialog[open]) { overflow: hidden; }
+.screening-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.screening-header .eyebrow, .screening-info .eyebrow { font-size: 12px; letter-spacing: .06em; margin-bottom: 8px; }
+.screening-header h2 { font-size: 20px; margin: 0; font-weight: 600; }
+.screening-dialog kbd { font-family: var(--sans); font-size: 12px; padding: 3px 6px; border: 1px solid currentColor; border-radius: 4px; opacity: .85; }
+.screening-progress { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; margin: 22px 0; color: var(--muted); font-size: 13px; }
+.screening-progress progress { width: 100%; height: 4px; border: 0; accent-color: var(--lime); }
+.screening-progress progress::-webkit-progress-bar { background: var(--line); border-radius: 3px; }
+.screening-progress progress::-webkit-progress-value { background: var(--lime); border-radius: 3px; }
+.screening-layout { display: grid; grid-template-columns: minmax(0, 2.4fr) minmax(220px, 1fr); gap: 28px; flex: 1; min-height: 0; overflow-y: auto; }
+.screening-images { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 2fr) minmax(0, 1fr); gap: 10px; height: min(54dvh, 520px); }
+.screening-shot { display: block; width: 100%; height: 100%; padding: 0; border: 1px solid var(--line); background: var(--surface-2); border-radius: 8px; overflow: hidden; cursor: zoom-in; }
+.screening-shot:first-child { grid-column: 1 / -1; }
+.screening-shot img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.screening-image-state { grid-column: 1 / -1; min-height: 360px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; text-align: center; background: var(--surface-2); color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; }
+.screening-shot-failed { color: var(--muted); cursor: pointer; padding: 12px; }
+.screening-info { min-width: 0; }
+.screening-info h3 { font-size: 25px; line-height: 1.35; overflow-wrap: anywhere; margin: 0 0 8px; }
+.screening-original { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; margin: 0 0 22px; }
+.screening-facts { display: grid; gap: 12px; font-size: 13px; }
+.screening-facts span { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); }
+.screening-facts strong { color: var(--ink); font-weight: 500; }
+.screening-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 22px 0; }
+.screening-tags span { font-size: 12px; color: var(--ink); background: var(--surface-3); border: 1px solid var(--line); border-radius: 5px; padding: 5px 8px; }
+.screening-help { font-size: 13px; line-height: 1.7; color: var(--muted); margin-top: 20px; }
+.screening-footer { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 16px; flex-shrink: 0; }
+.screening-header, .screening-progress { flex-shrink: 0; }
+.screening-decisions { display: flex; gap: 12px; }
+.screening-decisions .button { flex: 1; min-height: 48px; justify-content: center; gap: 10px; font-size: 15px; }
+.screening-reject { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 50%, var(--line)); }
+.screening-footer-note { display: flex; justify-content: space-between; align-items: center; gap: 10px; color: var(--muted); margin-top: 14px; font-size: 12px; }
+.screening-empty { padding: 60px 20px; text-align: center; }
+.screening-empty p { color: var(--muted); line-height: 1.7; }
+.screening-empty .button { margin: 6px; }
+.screening-dialog button:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
+.screening-notice { color: var(--danger); font-size: 13px; flex-shrink: 0; }
+@media (max-width: 700px) {
+  .screening-dialog { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); padding: 16px; border-radius: 10px; }
+  .screening-dialog[open] { height: calc(100dvh - 16px); }
+  .screening-header { align-items: flex-start; }
+  .screening-header h2 { font-size: 17px; }
+  .screening-header > button { font-size: 12px; padding: 8px; flex-shrink: 0; }
+  .screening-header > button kbd { display: none; }
+  .screening-layout { grid-template-columns: 1fr; gap: 20px; }
+  .screening-images { height: 280px; }
+  .screening-info h3 { font-size: 21px; }
+  .screening-info .eyebrow { display: none; }
+  .screening-facts { gap: 8px; }
+  .screening-image-state { min-height: 200px; }
+  .screening-tags { margin: 14px 0; }
+  .screening-decisions { flex-wrap: wrap; gap: 8px; }
+  .screening-decisions .button { font-size: 14px; flex: 1 1 40%; padding: 10px 8px; }
+  .screening-decisions .button:last-child { flex-basis: 100%; }
+  .screening-footer-note { flex-wrap: wrap; }
+}
+
 * { box-sizing: border-box; }
 .game-search-group { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .game-search-group .search-control { flex: 1; }
@@ -325,7 +386,7 @@ button.game-cover:hover { border-color: var(--lime); }
 /* 緊湊閱讀工具：常用操作兩列，更新細節浮層、篩選按需展開。 */
 .content { padding-top: 10px; }
 .browse-heading { position: relative; display: flex; align-items: center; gap: 24px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
-.browse-tools { display: flex; align-items: center; justify-content: flex-end; gap: 24px; min-width: 0; }
+.browse-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; min-width: 0; }
 .browse-heading .library-views { flex: 1; margin: 0; border: 0; gap: 20px; flex-wrap: wrap; }
 .browse-heading .view-button { min-height: 42px; font-size: 14px; }
 .browse-heading .update-panel { margin: 0; border: 0; background: none; }

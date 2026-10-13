@@ -12,6 +12,7 @@ import { VisitHistory } from "./visit-history.js";
 import { ManualGameService } from "./manual-game-service.js";
 import { GameBatchService } from "./game-batch-service.js";
 import { CoverRequestLog } from "./cover-request-log.js";
+import { GameScreenshots } from "./game-screenshots.js";
 import { AnimeMediaService } from "./anime-media.js";
 import { openExternalUrls } from "./external-links.js";
 import { readAnimeSources, animeSourceKey } from "@catchlist/core/anime-sources.js";
@@ -25,6 +26,7 @@ let lastOperation;
 let gameCoverService;
 let coverRequestLog;
 let animeMediaService;
+let gameScreenshots;
 
 function animeService() {
   return animeMediaService ??= new AnimeMediaService(path.join(app.getPath("userData"), "anime-media-cache.json"));
@@ -101,6 +103,11 @@ async function resolveGameCovers(appids) {
 }
 
 function registerIpc() {
+  ipcMain.handle("games:screenshots", (_event, appid) => {
+    if (!dataDir || !sourceEntries(dataDir, "games", { reportCache }).entries.some(entry => String(entry.appid) === String(appid))) throw new Error("遊戲已不在目前清單中");
+    gameScreenshots ??= new GameScreenshots(path.join(app.getPath("userData"), "steam-screenshots.json"));
+    return gameScreenshots.resolve(appid);
+  });
   ipcMain.handle("games:cancel-batch", () => gameBatch.cancel());
   ipcMain.handle("games:preview-batch", (_event, appids, action, reason) => {
     if (!dataDir || activeMedia !== "games") throw new Error("請先開啟遊戲頁並選擇資料夾");

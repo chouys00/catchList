@@ -1,5 +1,6 @@
 // 真實 Chromium、正式 preload 與資料服務；Steam 回應固定，僅寫隔離資料。
 const { app, BrowserWindow, ipcMain, session } = require("electron");
+app.commandLine.appendSwitch("force-device-scale-factor", "1");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");

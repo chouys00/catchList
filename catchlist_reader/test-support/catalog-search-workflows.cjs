@@ -1,5 +1,6 @@
 // 在隔離資料夾驗證正式 preload、資料層與 Chromium 畫面，不存取雲端或開啟外部連結。
 const { app, BrowserWindow, ipcMain, session } = require("electron");
+app.commandLine.appendSwitch("force-device-scale-factor", "1");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
