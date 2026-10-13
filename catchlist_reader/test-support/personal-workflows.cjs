@@ -1,5 +1,6 @@
 // 在隔離資料夾驗證正式 preload、資料層與 Chromium 畫面，不存取雲端或開啟外部連結。
 const { app, BrowserWindow, ipcMain, session } = require("electron");
+app.commandLine.appendSwitch("force-device-scale-factor", "1");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -44,7 +45,7 @@ app.whenReady().then(async () => {
   ipcMain.handle("library:resolve-game-covers", (_, appids) => Object.fromEntries(appids.map(appid => [appid, coverFixture])));
   ipcMain.handle("external:open-urls", () => { throw new Error("測試不得開啟外部連結"); });
   session.defaultSession.webRequest.onBeforeRequest({ urls: ["http://*/*", "https://*/*"] }, (_, callback) => callback({ cancel: true }));
-  const win = new BrowserWindow({ show: false, width: 1440, height: 900, webPreferences: { preload: path.join(readerRoot, "src/preload.cjs"), contextIsolation: true, sandbox: true } });
+  const win = new BrowserWindow({ show: false, width: 1440, height: 900, webPreferences: { preload: path.join(readerRoot, "src/preload.cjs"), contextIsolation: true, sandbox: true, offscreen: true, backgroundThrottling: false } });
   const js = async (code) => { try { return await win.webContents.executeJavaScript(code); } catch (error) { throw new Error(`${error.message}\n程式：${code}`); } };
   const until = async (condition) => {
     for (let attempt = 0; attempt < 150; attempt++) {
@@ -120,6 +121,7 @@ app.whenReady().then(async () => {
   await new Promise((resolve) => setTimeout(resolve, 100));
   await js("window.scrollTo(0, document.documentElement.scrollHeight)");
   await until("document.querySelector('#backToTop').getAttribute('aria-hidden') === 'false'");
+  await until("document.querySelector('#backToTop').getAnimations().every(animation => animation.playState === 'finished')");
   const floatingControl = await js(`(() => {
     const button = document.querySelector('#backToTop');
     const buttonRect = button.getBoundingClientRect();
@@ -302,6 +304,7 @@ app.whenReady().then(async () => {
     if (name === "mobile") {
       await js("window.scrollTo(0, document.documentElement.scrollHeight)");
       await until("document.querySelector('#backToTop').getAttribute('aria-hidden') === 'false'");
+      await until("document.querySelector('#backToTop').getAnimations().every(animation => animation.playState === 'finished')");
       const mobileButton = await js("(() => { const rect = document.querySelector('#backToTop').getBoundingClientRect(); return { width: Math.round(rect.width), height: Math.round(rect.height), rightGap: Math.round(document.documentElement.clientWidth - rect.right), bottomGap: Math.round(innerHeight - rect.bottom) }; })()");
       assert.deepEqual(mobileButton, { width: 48, height: 48, rightGap: 14, bottomGap: 14 });
       screenshots.push(await capture("back-to-top-mobile"));

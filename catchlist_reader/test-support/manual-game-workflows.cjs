@@ -1,5 +1,6 @@
 // 真實 Chromium、正式 preload 與資料服務；Steam 回應固定，僅寫隔離資料。
 const { app, BrowserWindow, ipcMain, session } = require("electron");
+app.commandLine.appendSwitch("force-device-scale-factor", "1");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -15,7 +16,7 @@ app.whenReady().then(async () => {
   const reportCache = new ReportCache(lib.parseReport);
   const { ManualGameService } = await import(pathToFileURL(path.join(root, "src/manual-game-service.js")));
   const { VisitHistory } = await import(pathToFileURL(path.join(root, "src/visit-history.js")));
-  const visits = new VisitHistory(); let active = "games"; let now = Date.now();
+  const visits = new VisitHistory(); let active = "games"; let lastOperation; let now = Date.now();
   const game = (appid) => ({ appid, title: "朋友推薦的未發售遊戲：很長的遊戲名稱也要完整顯示", releaseDate: null, releaseLabel: "即將推出", score: null, reviews: 0, tags: ["探索", "合作"], genres: ["冒險"], chineseSupport: "unknown", fetchedAt: new Date().toISOString(), warnings: [] });
   const service = new ManualGameService({ now: () => now += 2000, lookup: async (appid) => {
     if (appid === "999") throw new Error("Steam 暫時限制請求，請稍後重試");
@@ -32,9 +33,12 @@ app.whenReady().then(async () => {
   ipcMain.handle("library:favorite-backlog", (_, id) => { lib.favoriteBacklogEntry(temp, id); return snapshot(); });
   ipcMain.handle("library:set-hidden-reason", (_, key, reason) => { lib.setHiddenReason(temp, key, reason); return snapshot(); });
   ipcMain.handle("library:set-favorite", (_, media, id, value) => { lib.setFavorite(temp, media, id, value); return snapshot(); });
-  ipcMain.handle("library:hide-entry", (_, media, id, reason) => { lib.hideEntry(temp, media, id, reason); return snapshot(); });
+  ipcMain.handle("library:hide-entry", (_, media, id, reason) => { lastOperation = lib.hideEntry(temp, media, id, reason); return snapshot(); });
   ipcMain.handle("library:restore-hidden", (_, key) => { lib.restoreHiddenEntry(temp, key); return snapshot(); });
   ipcMain.handle("library:delete-entry", (_, media, id) => { lib.deleteEntry(temp, media, id); return snapshot(); });
+  const screenshotRequests = [];
+  ipcMain.handle("games:screenshots", (_, appid) => { screenshotRequests.push(String(appid)); return ["data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540"><rect width="960" height="540" fill="#233c46"/><text x="40" y="270" fill="#f0eadf" font-size="32">Merged screening fixture</text></svg>')]; });
+  ipcMain.handle("library:undo-last-operation", () => { const restored = lib.undoHide(temp, lastOperation); return { ...snapshot(), restored }; });
   ipcMain.handle("library:resolve-game-covers", () => ({}));
   ipcMain.handle("external:open-urls", () => { throw new Error("測試不得開啟外部連結"); });
   session.defaultSession.webRequest.onBeforeRequest({ urls: ["https://*/*", "http://*/*"] }, (_, callback) => callback({ cancel: true }));
@@ -166,6 +170,33 @@ app.whenReady().then(async () => {
   await click('[data-game-row="789"] [data-favorite]');
   await until('!document.querySelector("[data-game-row=\\"789\\"]")');
   assert.equal(lib.loadHiddenEntries(temp).some(e => e.entry?.appid === "789"), false);
+  assert.equal(lib.loadLibrary(temp, "games").entries.find(e => e.appid === "789").favorite, true);
+  assert.equal(fs.readFileSync(path.join(temp, "遊戲.md"), "utf8"), fixture);
+  // 同一正式 preload 與隔離資料驗證快篩和待觀察共存。
+  await click('[data-view="watchlist"]');
+  assert.equal(await js('document.querySelector("[data-action=screen-games]").disabled'), true);
+  await click('[data-view="all"]');
+  assert.equal(await js('document.querySelector("[data-action=screen-games]").disabled'), false);
+  await click('[data-action="screen-games"]');
+  await until('document.querySelectorAll(".screening-shot").length === 1');
+  const screeningTitle = await js('document.querySelector(".screening-info h3").textContent');
+  for (const width of [1440, 390]) {
+    win.setContentSize(width, 900); await new Promise(r => setTimeout(r, 150));
+    assert.equal(await js('document.querySelector(".screening-dialog").scrollWidth > document.querySelector(".screening-dialog").clientWidth + 1'), false);
+    await capture(`merged-screening-${width}`);
+  }
+  await click('[data-screen="favorite"]');
+  await until('document.querySelector(".screening-info h3").textContent !== ' + JSON.stringify(screeningTitle));
+  await click('[data-screen="undo"]');
+  await until('document.querySelector(".screening-info h3").textContent === ' + JSON.stringify(screeningTitle));
+  await click('[data-screen="hide"]');
+  await until('document.querySelector(".screening-info h3").textContent !== ' + JSON.stringify(screeningTitle));
+  assert.ok(lib.loadHiddenEntries(temp).some(e => e.reason === "not_interested"));
+  await click('[data-screen="undo"]');
+  await until('document.querySelector(".screening-info h3").textContent === ' + JSON.stringify(screeningTitle));
+  await click('[data-screen="close"]');
+  assert.ok(!screenshotRequests.includes("456") && !screenshotRequests.includes("789"));
+  assert.equal(lib.loadHiddenEntries(temp).find(e => e.entry?.appid === "456").reason, "backlog");
   assert.equal(lib.loadLibrary(temp, "games").entries.find(e => e.appid === "789").favorite, true);
   assert.equal(fs.readFileSync(path.join(temp, "遊戲.md"), "utf8"), fixture);
   console.log(JSON.stringify({ success: true, widths: [1440, 1024, 390], reportUnchanged: true, manualFlows: true }));

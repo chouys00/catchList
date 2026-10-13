@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, session } = require("electron");
+app.commandLine.appendSwitch("force-device-scale-factor", "1");
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
@@ -26,7 +27,7 @@ app.whenReady().then(async () => {
   ipcMain.handle("library:resolve-game-covers", () => ({}));
   ipcMain.handle("anime:resolve-media", () => ({ status: "unmatched", candidates: [] }));
   const win = new BrowserWindow({ show: false, width: 1440, height: 900, webPreferences: {
-    backgroundThrottling: false, preload: path.join(root, "src/preload.cjs"), sandbox: true, contextIsolation: true,
+    offscreen: true, backgroundThrottling: false, preload: path.join(root, "src/preload.cjs"), sandbox: true, contextIsolation: true,
   } });
   const js = code => win.webContents.executeJavaScript(code, true);
   const wait = () => new Promise(r => setTimeout(r, 50));

@@ -4,6 +4,7 @@ import { formatGameTitleCopyText, renderItemTemplate, renderGameTags } from "./i
 import { entriesForView, viewNavigation, hiddenListMarkup, updateStatusMarkup, hiddenReasons, reasonOptions } from "./personal-ui.js";
 
 import { catalogGames } from "./catalog-search.js";
+import { GameScreening } from "./game-screening.js";
 import { AnimeMediaUI } from "./anime-media-ui.js";
 import { RatingInputs, ratingInputMarkup } from "./rating-input.js";
 
@@ -81,6 +82,13 @@ function restoreMediaPosition(top) {
   window.scrollTo({ top, behavior: "instant" });
   syncBackToTop();
 }
+
+const gameScreening = new GameScreening({
+  bridge: window.catchList,
+  getEntries: () => filteredEntries(),
+  apply: payload => { clearGameSelection(); state.payload = payload; render(); },
+  notify: message => showToast(message),
+});
 
 function searchingCatalog() { return state.active === "games" && state.catalogSearch; }
 
@@ -403,6 +411,8 @@ function refreshResults({ hydrateCovers = true, resetGames = true } = {}) {
   if (state.view === "hidden" && !searchingCatalog()) return;
   const entries = filteredEntries();
   const count = app.querySelector("[data-result-count]");
+  const screeningLaunch = app.querySelector('[data-action="screen-games"]');
+  if (screeningLaunch) screeningLaunch.disabled = state.view !== "all" || searchingCatalog() || !entries.length;
   const openFiltered = app.querySelector('[data-action="open-filtered"]');
   const list = app.querySelector(".list");
   if (!count || !list) return;
@@ -566,7 +576,7 @@ function render() {
   const hidden = (state.payload.hiddenEntries ?? []).filter((entry) => entry.media === state.active);
   const navigation = viewNavigation(searchingCatalog() ? "catalog" : state.view, state.active, state.payload.libraries.find(item => item.media === state.active)?.entries ?? [], hidden.length, Object.fromEntries(Object.keys(hiddenReasons).map(reason => [reason, hidden.filter(record => (record.reason ?? "played") === reason && record.available).length])));
   const update = updateStatusMarkup(state.payload, state.active, state.statusOpen);
-  const operations = state.active === "games" ? `${state.view === "hidden" && !searchingCatalog() ? catalogSwitch() : ""}<button class="button add-game-button" type="button" data-action="add-game" ${data.warning ? "disabled" : ""}><span aria-hidden="true">＋</span>新增遊戲</button>` : "";
+  const operations = state.active === "games" ? `${state.view === "hidden" && !searchingCatalog() ? catalogSwitch() : ""}<button class="button screening-launch" type="button" data-action="screen-games" ${state.view !== "all" || searchingCatalog() || !filteredEntries().length ? "disabled" : ""}>截圖快篩 <span aria-hidden="true">→</span></button><button class="button add-game-button" type="button" data-action="add-game" ${data.warning ? "disabled" : ""}><span aria-hidden="true">＋</span>新增遊戲</button>` : "";
   const heading = `<div class="browse-heading">${navigation}<div class="browse-tools">${update}${operations}</div></div>${data.warning ? `<p class="status-warning" role="alert">${escapeHtml(data.warning)}</p>` : ""}${data.integrityWarning ? `<p class="status-warning" role="alert">${escapeHtml(data.integrityWarning)}</p>` : ""}`;
   stopGameAutoLoad();
   if (state.view === "hidden" && !searchingCatalog()) {
@@ -853,6 +863,7 @@ document.addEventListener("click", async (event) => {
       return;
     }
     if (action === "home" || action === "back-to-top") scrollToTop();
+    if (action === "screen-games") { clearGameSelection(); gameScreening.open(filteredEntries(), state.payload.dataDir); }
     if (action === "choose-folder") { clearGameSelection(); state.payload = await window.catchList.chooseDirectory(); state.expandedGameTags.clear(); state.visibleGameCount = GAME_BATCH_SIZE; render(); }
     if (action === "toggle-tags") { state.filters.games.tagsOpen = !state.filters.games.tagsOpen; refreshTagPanel(); }
     if (action === "close-tag-panel") { state.filters.games.tagsOpen = false; refreshTagPanel(); }

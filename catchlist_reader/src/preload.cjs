@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("catchList", {
+  resolveGameScreenshots: (appid) => ipcRenderer.invoke("games:screenshots", appid),
   previewGameBatch: (appids, action, reason) => ipcRenderer.invoke("games:preview-batch", appids, action, reason),
   cancelGameBatchPreview: () => ipcRenderer.invoke("games:cancel-batch"),
   applyGameBatch: (token) => ipcRenderer.invoke("games:apply-batch", token),

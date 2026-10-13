@@ -4,6 +4,8 @@ const http = require("node:http");
 const path = require("node:path");
 
 const { app, BrowserWindow } = electron;
+app.commandLine.appendSwitch("force-device-scale-factor", "1");
+app.disableHardwareAcceleration();
 const rendererRoot = path.resolve(__dirname, "../src/renderer");
 
 function contentType(filepath) {
@@ -177,7 +179,7 @@ async function captureResponsiveQa(window) {
   await new Promise((resolve) => setTimeout(resolve, 100));
   await window.webContents.executeJavaScript(`document.querySelector('[data-action="toggle-filters"][aria-expanded="true"]')?.click()`);
   await new Promise((resolve) => setTimeout(resolve, 100));
-  await window.webContents.executeJavaScript(`document.querySelector('.item.games')?.scrollIntoView({ block: 'center' })`);
+  await window.webContents.executeJavaScript(`document.querySelector('.item.games')?.scrollIntoView({ block: 'center', behavior: 'instant' })`);
   await new Promise((resolve) => setTimeout(resolve, 100));
   const mobileList = await window.webContents.capturePage();
   fs.writeFileSync(path.join(outputDir, "task-5-mobile-list.png"), mobileList.toPNG());
@@ -188,7 +190,7 @@ async function captureResponsiveQa(window) {
     for (const [size, width, height] of [["desktop", 1440, 900], ["mobile", 390, 844]]) {
       window.setContentSize(width, height);
       await new Promise((resolve) => setTimeout(resolve, 180));
-      await window.webContents.executeJavaScript(`document.querySelector('.item')?.scrollIntoView({ block: 'center' })`);
+      await window.webContents.executeJavaScript(`document.querySelector('.item')?.scrollIntoView({ block: 'center', behavior: 'instant' })`);
       const image = await window.webContents.capturePage();
       fs.writeFileSync(path.join(outputDir, `title-${media}-${size}.png`), image.toPNG());
       results.titleRows[media][size] = await window.webContents.executeJavaScript(`(() => ({
@@ -208,7 +210,7 @@ async function waitForGameCount(window, expected) {
     const check = () => {
       const count = document.querySelectorAll('.item.games').length;
       if (count === ${expected}) return resolve();
-      if (Date.now() > deadline) return reject(new Error('遊戲列數未變為 ${expected}，目前為 ' + count));
+      if (Date.now() > deadline) return reject(new Error('遊戲列數未變為 ${expected}，目前為 ' + count + ' ' + JSON.stringify({ scrollY, height: innerHeight, sentinel: document.querySelector('[data-game-load-sentinel]')?.getBoundingClientRect().toJSON() })));
       setTimeout(check, 25);
     };
     check();
@@ -216,7 +218,7 @@ async function waitForGameCount(window, expected) {
 }
 
 async function runLargeGameBatchTest(address) {
-  const window = new BrowserWindow({ show: false, webPreferences: { contextIsolation: true, sandbox: true } });
+  const window = new BrowserWindow({ show: false, webPreferences: { contextIsolation: true, sandbox: true, offscreen: true, backgroundThrottling: false } });
   try {
     await window.loadURL(`http://127.0.0.1:${address.port}?largeGames=1`);
     await waitForGameCount(window, 50);
@@ -230,7 +232,7 @@ async function runLargeGameBatchTest(address) {
       };
     })()`);
 
-    await window.webContents.executeJavaScript(`document.querySelector('[data-game-load-sentinel]')?.scrollIntoView({ block: 'center' })`);
+    await window.webContents.executeJavaScript(`document.querySelector('[data-game-load-sentinel]')?.scrollIntoView({ block: 'center', behavior: 'instant' })`);
     await waitForGameCount(window, 100);
     const afterFirstAppend = await window.webContents.executeJavaScript(`(() => ({
       itemCount: document.querySelectorAll('.item.games').length,
@@ -238,7 +240,10 @@ async function runLargeGameBatchTest(address) {
       fiftiethNodePreserved: document.querySelectorAll('.item.games')[49] === window.__fiftiethGameRow,
     }))()`);
 
-    await window.webContents.executeJavaScript(`document.querySelector('[data-game-load-sentinel]')?.scrollIntoView({ block: 'center' })`);
+    // Let IntersectionObserver observe leaving the sentinel before the next scroll.
+    await window.webContents.executeJavaScript(`window.scrollTo({ top: 0, behavior: 'instant' })`);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    await window.webContents.executeJavaScript(`document.querySelector('[data-game-load-sentinel]')?.scrollIntoView({ block: 'center', behavior: 'instant' })`);
     await waitForGameCount(window, 150);
     const afterSecondAppend = await window.webContents.executeJavaScript(`(() => ({
       itemCount: document.querySelectorAll('.item.games').length,
@@ -275,7 +280,7 @@ async function runLargeGameBatchTest(address) {
 }
 
 async function runCoverUpdateTest(address) {
-  const window = new BrowserWindow({ show: false, webPreferences: { contextIsolation: true, sandbox: true } });
+  const window = new BrowserWindow({ show: false, webPreferences: { contextIsolation: true, sandbox: true, offscreen: true, backgroundThrottling: false } });
   try {
     await window.loadURL(`http://127.0.0.1:${address.port}?largeGames=1&coverTest=1`);
     await waitForGameCount(window, 50);
