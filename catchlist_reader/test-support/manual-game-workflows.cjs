@@ -29,6 +29,8 @@ app.whenReady().then(async () => {
   ipcMain.handle("games:preview", (_, input) => service.prepare(temp, input));
   ipcMain.handle("games:cancel-preview", () => service.cancel());
   ipcMain.handle("games:add", (_, token, destination) => { const addedAppid = service.commit(temp, token, destination); return { ...snapshot(), addedAppid }; });
+  ipcMain.handle("library:favorite-backlog", (_, id) => { lib.favoriteBacklogEntry(temp, id); return snapshot(); });
+  ipcMain.handle("library:set-hidden-reason", (_, key, reason) => { lib.setHiddenReason(temp, key, reason); return snapshot(); });
   ipcMain.handle("library:set-favorite", (_, media, id, value) => { lib.setFavorite(temp, media, id, value); return snapshot(); });
   ipcMain.handle("library:hide-entry", (_, media, id, reason) => { lib.hideEntry(temp, media, id, reason); return snapshot(); });
   ipcMain.handle("library:restore-hidden", (_, key) => { lib.restoreHiddenEntry(temp, key); return snapshot(); });
@@ -143,6 +145,29 @@ app.whenReady().then(async () => {
   assert.equal(await js('document.querySelector("[data-view=backlog]").classList.contains("active")'), true);
   assert.ok(await js(`!!document.querySelector('[data-game-row="456"]')`));
   await capture("manual-backlog-result");
+  await click('[data-view="watchlist"]');
+  await openPanel(); await preview("789");
+  assert.equal(await js('document.querySelector("[data-panel-save]").textContent'), "加入待觀察");
+  await capture("watchlist-add-mobile");
+  await click('[data-panel-save]'); await until('document.querySelector("[data-panel-save]").textContent === "查看新增遊戲"');
+  assert.equal(lib.loadHiddenEntries(temp).find(e => e.entry?.appid === "789").reason, "watchlist");
+  assert.ok(!lib.loadLibrary(temp, "games").entries.some(e => e.appid === "789"));
+  await click('[data-panel-save]'); await until('!document.querySelector("#manualGameDialog")');
+  assert.equal(await js('document.querySelector("[data-view=watchlist]").classList.contains("active")'), true);
+  for (const width of [1440, 390]) {
+    win.setContentSize(width, 900); await js('window.scrollTo(0, 0)'); await new Promise(r => setTimeout(r, 150));
+    assert.equal(await js('document.documentElement.scrollWidth > innerWidth'), false);
+    assert.ok(await js('!!document.querySelector(".watchlist-note")'));
+    await capture(`watchlist-${width}`);
+  }
+  win.reload(); await until('!!document.querySelector("[data-view=watchlist]")');
+  await click('[data-view="watchlist"]');
+  assert.ok(await js(`!!document.querySelector('[data-game-row="789"]')`));
+  await click('[data-game-row="789"] [data-favorite]');
+  await until('!document.querySelector("[data-game-row=\\"789\\"]")');
+  assert.equal(lib.loadHiddenEntries(temp).some(e => e.entry?.appid === "789"), false);
+  assert.equal(lib.loadLibrary(temp, "games").entries.find(e => e.appid === "789").favorite, true);
+  assert.equal(fs.readFileSync(path.join(temp, "遊戲.md"), "utf8"), fixture);
   console.log(JSON.stringify({ success: true, widths: [1440, 1024, 390], reportUnchanged: true, manualFlows: true }));
   clearTimeout(deadline); win.destroy(); app.exit(0);
 }).catch((error) => { console.error(error); clearTimeout(deadline); app.exit(1); });

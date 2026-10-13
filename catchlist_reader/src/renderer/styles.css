@@ -635,3 +635,14 @@ button.anime-cover:hover { border-color: var(--lime); }
   .game-batch-toolbar > small { font-size: 11px; line-height: 1.5; }
   .batch-dialog form { padding: 20px; }
 }
+
+/* 待觀察沿用清單架構，以暖色提示尚待評估的狀態。 */
+:root { --watchlist: #e9bd79; }
+.watchlist-note { margin: 0 0 20px; padding: 18px 22px; border-left: 3px solid var(--watchlist); background: var(--surface-2); }
+.watchlist-note strong { color: var(--watchlist); font-size: 17px; }
+.watchlist-note p { margin: 8px 0; color: var(--ink); line-height: 1.7; }
+.watchlist-note small { display: block; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.manual-destination-options .watchlist-destination { grid-column: 1 / -1; }
+.manual-destination-options .watchlist-destination:has(:checked) { border-color: var(--watchlist); }
+.watchlist-destination input { accent-color: var(--watchlist); }
+@media (max-width: 560px) { .watchlist-note { padding: 14px 16px; } }

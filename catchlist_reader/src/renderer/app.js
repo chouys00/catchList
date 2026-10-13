@@ -302,7 +302,7 @@ function entriesMarkup(entries) {
   const visibleEntries = displayedEntries(entries);
   return visibleEntries.length
     ? visibleEntries.map((entry) => renderItemTemplate(entry, state.active, state.active === "games" ? {
-      backlog: searchingCatalog() ? entry.catalogReason === "backlog" : state.view === "backlog",
+      backlog: searchingCatalog() ? ["backlog", "watchlist"].includes(entry.catalogReason) : ["backlog", "watchlist"].includes(state.view),
       catalogSearch: searchingCatalog(),
       selectMode: state.selectMode,
       selected: state.selectedGames.has(String(entry.appid)),
@@ -310,7 +310,7 @@ function entriesMarkup(entries) {
       expanded: state.expandedGameTags.has(String(entry.appid ?? entry.id)),
       tagLimit: gameTagLimit(),
     } : undefined)).join("")
-    : `<div class="empty">${searchingCatalog() ? (state.catalogQuery.trim() ? "全部收錄中沒有符合的遊戲。<br>可試試原文名稱或 Steam AppID。" : "輸入遊戲名稱或 Steam AppID<br>一次查詢全部、收藏、候補、玩過了與暫不考慮。") : state.view === "favorites" ? "目前沒有符合條件的收藏。<br>可調整篩選，或回到全部清單按作品旁的書籤加入收藏。" : "目前沒有符合條件的作品。<br>可調整搜尋文字或篩選條件。"}</div>`;
+    : `<div class="empty">${searchingCatalog() ? (state.catalogQuery.trim() ? "全部收錄中沒有符合的遊戲。<br>可試試原文名稱或 Steam AppID。" : "輸入遊戲名稱或 Steam AppID<br>一次查詢全部、收藏、待觀察、候補、玩過了與暫不考慮。") : state.view === "favorites" ? "目前沒有符合條件的收藏。<br>可調整篩選，或回到全部清單按作品旁的書籤加入收藏。" : "目前沒有符合條件的作品。<br>可調整搜尋文字或篩選條件。"}</div>`;
 }
 
 function gameLoadControlMarkup(visibleCount, totalCount) {
@@ -580,7 +580,7 @@ function render() {
   if (isGames) syncGameTagViewport();
   const openLabel = state.active === "liveAction" ? `開啟目前結果 ${entries.length}` : `搜尋目前結果 ${entries.length}`;
   stopGameAutoLoad();
-  app.innerHTML = `<div class="layout"><section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1>${heading}${toolbar(viewData, entries.length, openLabel)}${state.payload.visitWarning ? `<p class="status-warning" role="alert">${escapeHtml(state.payload.visitWarning)}</p>` : ""}${state.filters[state.active].newOnly && !searchingCatalog() ? '<p class="new-note">顯示本次來訪新增的作品。首次使用先建立基準；重新讀取不會清除本次標記。</p>' : ""}${isGames ? batchToolbar() + gameColumnHeader() : ""}<div class="list">${isGames ? gameListMarkup(entries) : entriesMarkup(entries)}</div></section></div>`;
+  app.innerHTML = `<div class="layout"><section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1>${heading}${isGames && state.view === "watchlist" && !searchingCatalog() ? `<aside class="watchlist-note" aria-label="待觀察說明"><div><strong>先留住興趣，之後再決定</strong><p>未上市、上市未滿六個月，或想再看看評價的遊戲，先放在這裡。一般列表不會顯示。</p><small>點遊戲名稱到 Steam 查看最新評價；決定想玩時，按書籤移到待玩收藏。手動資料保留加入時的評價，月報收錄後才會改用報告資料。</small></div></aside>` : ""}${toolbar(viewData, entries.length, openLabel)}${state.payload.visitWarning ? `<p class="status-warning" role="alert">${escapeHtml(state.payload.visitWarning)}</p>` : ""}${state.filters[state.active].newOnly && !searchingCatalog() ? '<p class="new-note">顯示本次來訪新增的作品。首次使用先建立基準；重新讀取不會清除本次標記。</p>' : ""}${isGames ? batchToolbar() + gameColumnHeader() : ""}<div class="list">${isGames ? gameListMarkup(entries) : entriesMarkup(entries)}</div></section></div>`;
   if (isGames) {
     syncTagOptionsOverflow();
     setupGameAutoLoad();
@@ -809,7 +809,7 @@ document.addEventListener("click", async (event) => {
       return;
     }
     if (action === "add-game" && state.active === "games") {
-      openManualGamePanel({ onSaved: (payload) => { clearGameSelection(); const y = window.scrollY; state.payload = payload; toast.classList.remove("show"); render(); window.scrollTo({ top: y, behavior: "instant" }); }, onView: viewGame });
+      openManualGamePanel({ destination: state.view === "watchlist" ? "watchlist" : "backlog", onSaved: (payload) => { clearGameSelection(); const y = window.scrollY; state.payload = payload; toast.classList.remove("show"); render(); window.scrollTo({ top: y, behavior: "instant" }); }, onView: viewGame });
     }
     if (action === "toggle-filters") {
       state.filtersOpen = !state.filtersOpen;
@@ -838,7 +838,7 @@ document.addEventListener("click", async (event) => {
         if (favoriteId) {
           const entry = library().entries.find((item) => item.id === favoriteId);
           if (!entry) throw new Error("作品已變更，請重新讀取");
-          const fromBacklog = searchingCatalog() ? entry.catalogReason === "backlog" : state.view === "backlog";
+          const fromBacklog = searchingCatalog() ? ["backlog", "watchlist"].includes(entry.catalogReason) : ["backlog", "watchlist"].includes(state.view);
           state.payload = fromBacklog ? await window.catchList.favoriteBacklog(favoriteId) : await window.catchList.setFavorite(state.active, favoriteId, !entry.favorite);
           render();
           app.querySelector(`[data-favorite="${CSS.escape(favoriteId)}"]`)?.focus({ preventScroll: true });

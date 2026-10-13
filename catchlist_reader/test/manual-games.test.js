@@ -92,8 +92,8 @@ test("取消遲到的預覽不能確認加入", async (t) => {
   await assert.rejects(request, /取消/); assert.equal(readManualGames(dir).entries.length, 0);
 });
 
-test("新增必須選候補或收藏，分類與手動資料一起保存", async (t) => {
-  for (const destination of ["backlog", "favorites"]) {
+test("新增可選待觀察、候補或收藏，分類與手動資料一起保存", async (t) => {
+  for (const destination of ["backlog", "favorites", "watchlist"]) {
     const dir = fixture(t);
     const service = new ManualGameService({ lookup: async () => game() });
     const preview = await service.prepare(dir, "123");
@@ -101,15 +101,15 @@ test("新增必須選候補或收藏，分類與手動資料一起保存", async
     assert.equal(readManualGames(dir).entries.length, 0);
     service.commit(dir, preview.token, destination);
     assert.equal(readManualGames(dir).entries.length, 1);
-    if (destination === "backlog") {
+    if (destination !== "favorites") {
       assert.equal(loadLibrary(dir, "games").entries.length, 0);
-      assert.equal(loadHiddenEntries(dir)[0].reason, "backlog");
+      assert.equal(loadHiddenEntries(dir)[0].reason, destination);
     } else assert.equal(loadLibrary(dir, "games").entries[0].favorite, true);
     deleteEntry(dir, "games", `manual-123`);
     const second = new ManualGameService({ lookup: async () => game() });
     const again = await second.prepare(dir, "123");
-    second.commit(dir, again.token, destination === "backlog" ? "favorites" : "backlog");
-    if (destination === "backlog") {
+    second.commit(dir, again.token, destination !== "favorites" ? "favorites" : "backlog");
+    if (destination !== "favorites") {
       assert.equal(loadLibrary(dir, "games").entries[0].favorite, true);
       assert.equal(loadHiddenEntries(dir).length, 0);
     } else {

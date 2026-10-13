@@ -81,3 +81,13 @@ test("復原遇到所選紀錄後續變更時整批停止", t => {
   assert.throws(() => service.undo(dir, result.operation), /已變更/);
   assert.equal(fs.readFileSync(path.join(dir, ".catchlist-hidden.json"), "utf8"), before);
 });
+
+test("批次移入待觀察可復原，保留報告", t => {
+  const dir = fixture(t), service = new GameBatchService(), before = raw(dir);
+  const result = service.apply(dir, service.prepare(dir, ["123", "456"], "hide", "watchlist").token);
+  assert.equal(readHiddenEntries(dir).length, 2);
+  assert.ok(readHiddenEntries(dir).every(entry => entry.reason === "watchlist"));
+  assert.equal(raw(dir), before);
+  service.undo(dir, result.operation);
+  assert.equal(readHiddenEntries(dir).length, 0);
+});

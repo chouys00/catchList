@@ -35,7 +35,7 @@ export class GameBatchService {
   prepare(directory, appids, action, reason) {
     this.cancel();
     if (!directory || !Array.isArray(appids) || !appids.length || appids.some(id => typeof id !== "string" || !/^[1-9]\d{0,9}$/.test(id))) throw new Error("請先勾選有效的遊戲");
-    if (!["hide", "delete"].includes(action) || (action === "hide" && !["backlog", "played", "not_interested"].includes(reason))) throw new Error("批次操作不正確");
+    if (!["hide", "delete"].includes(action) || (action === "hide" && !["backlog", "watchlist", "played", "not_interested"].includes(reason))) throw new Error("批次操作不正確");
     directory = path.resolve(directory);
     recoverGameTransaction(directory);
     const originals = this.versions(directory);

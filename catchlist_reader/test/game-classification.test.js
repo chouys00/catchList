@@ -8,7 +8,7 @@ import { addManualRecord } from '../src/manual-games.js';
 import { filterAndSortGames, createGameQuery } from '../src/renderer/game-browser.js';
 import { updateReport } from '../../steam_discovery/writer.js';
 
-test('舊隱藏只讀相容、三種原因、切換、復原與候補收藏', t => {
+test('舊隱藏只讀相容、四種原因、切換、復原與候補收藏', t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'classification-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.copyFileSync(new URL('../test-data/steam-tags-2026-02/遊戲.md', import.meta.url), path.join(dir, '遊戲.md'));
@@ -22,7 +22,7 @@ test('舊隱藏只讀相容、三種原因、切換、復原與候補收藏', t 
   const change = lib.setHiddenReason(dir, game.hideKey, 'backlog');
   lib.undoHiddenReason(dir, change);
   assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).entries[0].reason, undefined);
-  for (const reason of ['not_interested', 'backlog', 'played']) {
+  for (const reason of ['not_interested', 'backlog', 'watchlist', 'played']) {
     lib.setHiddenReason(dir, game.hideKey, reason);
     const record = lib.loadHiddenEntries(dir)[0];
     assert.equal(record.reason, reason); assert.equal(record.hiddenAt, old.hiddenAt);
@@ -31,12 +31,13 @@ test('舊隱藏只讀相容、三種原因、切換、復原與候補收藏', t 
   assert.throws(() => lib.setHiddenReason(dir, game.hideKey, 'bad'));
   lib.restoreHiddenEntry(dir, game.hideKey);
   assert.equal(lib.loadLibrary(dir, 'games').entries[0].favorite, true);
-  for (const reason of ['not_interested', 'backlog', 'played']) {
+  for (const reason of ['not_interested', 'backlog', 'watchlist', 'played']) {
     const operation = lib.hideEntry(dir, 'games', game.id, reason);
     assert.equal(lib.loadHiddenEntries(dir)[0].reason, reason);
     lib.undoHide(dir, operation);
   }
-  lib.hideEntry(dir, 'games', game.id, 'backlog');
+  lib.hideEntry(dir, 'games', game.id, 'watchlist');
+  assert.equal(lib.loadLibrary(dir, 'games').entries.length, 6);
   lib.favoriteBacklogEntry(dir, game.id);
   assert.equal(lib.loadHiddenEntries(dir).length, 0);
   assert.equal(lib.loadLibrary(dir, 'games').entries[0].favorite, true);
@@ -66,7 +67,7 @@ test('每月寫入與手動合併保留分類收藏，重複更新不重複', t 
   const manual = { appid: '123', title: '手動遊戲', score: 90, reviews: 10, releaseDate: null, releaseLabel: '未定', tags: [], genres: [], chineseSupport: 'unknown', addedAt: '2026-01-01', fetchedAt: '2026-01-01' };
   addManualRecord(dir, manual, null);
   const game = lib.loadLibrary(dir, 'games').entries[0];
-  lib.setFavorite(dir, 'games', game.id, true); lib.hideEntry(dir, 'games', game.id, 'backlog');
+  lib.setFavorite(dir, 'games', game.id, true); lib.hideEntry(dir, 'games', game.id, 'watchlist');
   const before = fs.readFileSync(path.join(dir, lib.HIDDEN_ENTRIES_FILE), 'utf8');
   const favorite = fs.readFileSync(path.join(dir, lib.FAVORITES_FILE), 'utf8');
   const data = [{ year: 2026, month: 2, games: ['123', '456'].map(appid => ({ appid, englishName: 'Monthly ' + appid, totalReviews: 1000, reviewScore: 9, positivePct: 94, releaseDate: '2026-02-01', genres: [], communityTags: [] })) }];
@@ -74,7 +75,7 @@ test('每月寫入與手動合併保留分類收藏，重複更新不重複', t 
   updateReport(data, path.join(dir, '遊戲.md'));
   assert.equal(lib.loadLibrary(dir, 'games').entries.length, 1);
   assert.equal(lib.loadLibrary(dir, 'games').entries[0].appid, '456');
-  assert.equal(lib.loadHiddenEntries(dir)[0].reason, 'backlog');
+  assert.equal(lib.loadHiddenEntries(dir)[0].reason, 'watchlist');
   assert.equal(fs.readFileSync(path.join(dir, lib.HIDDEN_ENTRIES_FILE), 'utf8'), before);
   assert.equal(fs.readFileSync(path.join(dir, lib.FAVORITES_FILE), 'utf8'), favorite);
   lib.restoreHiddenEntry(dir, game.hideKey);

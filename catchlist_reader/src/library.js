@@ -496,7 +496,7 @@ function writeHiddenEntries(dataDir, entries) {
 }
 
 export function setHiddenReason(dataDir, hideKey, reason) {
-  if (!["not_interested", "backlog", "played"].includes(reason)) throw new Error("隱藏原因不正確");
+  if (!["not_interested", "backlog", "watchlist", "played"].includes(reason)) throw new Error("隱藏原因不正確");
   const records = readHiddenEntries(dataDir);
   const record = records.find(item => item.hideKey === hideKey && item.media === "games");
   if (!record) throw new Error("隱藏紀錄已不存在");
@@ -519,14 +519,14 @@ export function undoHiddenReason(dataDir, operation) {
 }
 
 export function favoriteBacklogEntry(dataDir, entryId) {
-  const record = loadHiddenEntries(dataDir).find(item => item.media === "games" && item.reason === "backlog" && item.entry?.id === entryId);
-  if (!record) throw new Error("候補遊戲已變更，請重新讀取");
+  const record = loadHiddenEntries(dataDir).find(item => item.media === "games" && ["backlog", "watchlist"].includes(item.reason) && item.entry?.id === entryId);
+  if (!record) throw new Error("候補或待觀察遊戲已變更，請重新讀取");
   setFavorite(dataDir, "games", entryId, true);
   restoreHiddenEntry(dataDir, record.hideKey);
 }
 
 export function hideEntry(dataDir, media, entryId, reason = "played") {
-  if (media === "games" && !["not_interested", "backlog", "played"].includes(reason)) throw new Error("隱藏原因不正確");
+  if (media === "games" && !["not_interested", "backlog", "watchlist", "played"].includes(reason)) throw new Error("隱藏原因不正確");
   const parsed = sourceEntries(dataDir, media);
   const entry = parsed.entries.find((item) => item.id === entryId);
   if (!entry) throw new Error("作品已變更或不存在，請重新載入清單");
