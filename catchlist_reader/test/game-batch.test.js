@@ -57,15 +57,16 @@ test("備份失敗零刪除；第二來源寫入失敗整批復原，備份保�
   assert.equal(raw(dir), before); assert.equal(readManualGames(dir).entries.length, 1);
   assert.ok(fs.existsSync(path.join(dir, ".catchlist-backups"))); assert.ok(!fs.existsSync(path.join(dir, ".catchlist-game-transaction.json")));
 });
-test("批次隱藏保留時間與收藏，略過相同分類；整批復原保留無關紀錄", t => {
+test("批次隱藏取消收藏並保留既有時間，略過相同分類；整批復原還原收藏並保留無關紀錄", t => {
   const dir = fixture(t), service = new GameBatchService();
   const entries = sourceEntries(dir, "games").entries;
   hideEntry(dir, "games", entries[0].id, "played");
-  const original = readHiddenEntries(dir)[0]; setFavorite(dir, "games", entries[0].id, true);
+  const original = readHiddenEntries(dir)[0]; setFavorite(dir, "games", entries[1].id, true);
   const fav = fs.readFileSync(path.join(dir, ".catchlist-favorites.json"), "utf8");
   const result = service.apply(dir, service.prepare(dir, ["123", "456"], "hide", "backlog").token);
   assert.equal(readHiddenEntries(dir)[0].hiddenAt, original.hiddenAt);
   assert.equal(readHiddenEntries(dir)[0].reason, "backlog");
+  assert.equal(JSON.parse(fs.readFileSync(path.join(dir, ".catchlist-favorites.json"))).entries.length, 0);
   assert.equal(service.prepare(dir, ["123", "456"], "hide", "backlog").skippedCount, 2);
   const extra = { hideKey: "other", media: "anime", title: "其他", hiddenAt: "now" };
   fs.writeFileSync(path.join(dir, ".catchlist-hidden.json"), JSON.stringify({ version: 1, entries: [...readHiddenEntries(dir), extra] }));
@@ -90,4 +91,24 @@ test("批次移入待觀察可復原，保留報告", t => {
   assert.equal(raw(dir), before);
   service.undo(dir, result.operation);
   assert.equal(readHiddenEntries(dir).length, 0);
+});
+
+test("批次取消收藏寫入失敗會還原兩份狀態，復原保留其他收藏", t => {
+  const dir = fixture(t);
+  const entries = sourceEntries(dir, "games").entries;
+  setFavorite(dir, "games", entries[0].id, true);
+  const favoritesBefore = fs.readFileSync(path.join(dir, ".catchlist-favorites.json"), "utf8");
+  const failing = new GameBatchService({ commit: (directory, changes) => {
+    let n = 0;
+    commitGameFiles(directory, changes, (file, content) => { if (++n === 2) throw Error("模擬寫入失敗"); atomicText(file, content); });
+  } });
+  assert.throws(() => failing.apply(dir, failing.prepare(dir, ["123"], "hide", "played").token), /寫入失敗/);
+  assert.deepEqual(readHiddenEntries(dir), []);
+  assert.equal(fs.readFileSync(path.join(dir, ".catchlist-favorites.json"), "utf8"), favoritesBefore);
+  const service = new GameBatchService();
+  const result = service.apply(dir, service.prepare(dir, ["123"], "hide", "played").token);
+  setFavorite(dir, "games", entries[1].id, true);
+  service.undo(dir, result.operation);
+  assert.deepEqual(readHiddenEntries(dir), []);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(dir, ".catchlist-favorites.json"))).entries.length, 2);
 });

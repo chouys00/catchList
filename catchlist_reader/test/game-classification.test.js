@@ -30,7 +30,7 @@ test('舊隱藏只讀相容、四種原因、切換、復原與候補收藏', t 
   }
   assert.throws(() => lib.setHiddenReason(dir, game.hideKey, 'bad'));
   lib.restoreHiddenEntry(dir, game.hideKey);
-  assert.equal(lib.loadLibrary(dir, 'games').entries[0].favorite, true);
+  assert.equal(lib.loadLibrary(dir, 'games').entries[0].favorite, false);
   for (const reason of ['not_interested', 'backlog', 'watchlist', 'played']) {
     const operation = lib.hideEntry(dir, 'games', game.id, reason);
     assert.equal(lib.loadHiddenEntries(dir)[0].reason, reason);
@@ -61,7 +61,7 @@ test('好評率包含上下限、無評分及無效區間與查詢快取', () =>
   assert.equal(query(entries, { min: '90', max: '95' }).length, 3);
 });
 
-test('每月寫入與手動合併保留分類收藏，重複更新不重複', t => {
+test('每月寫入與手動合併保留單一分類，重複更新不重複', t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'classification-monthly-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const manual = { appid: '123', title: '手動遊戲', score: 90, reviews: 10, releaseDate: null, releaseLabel: '未定', tags: [], genres: [], chineseSupport: 'unknown', addedAt: '2026-01-01', fetchedAt: '2026-01-01' };
@@ -81,6 +81,6 @@ test('每月寫入與手動合併保留分類收藏，重複更新不重複', t 
   lib.restoreHiddenEntry(dir, game.hideKey);
   const merged = lib.loadLibrary(dir, 'games').entries;
   assert.equal(merged.length, 2);
-  assert.ok(merged.find(e => e.appid === '123').favorite);
+  assert.equal(merged.find(e => e.appid === '123').favorite, false);
   assert.ok(merged.find(e => e.appid === '123').manualAdded);
 });

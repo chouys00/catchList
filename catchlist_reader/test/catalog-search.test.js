@@ -13,7 +13,9 @@ test("合併收藏與有效隱藏資料，排除失效紀錄並依 AppID 去重"
   const games = catalogGames(payload);
   assert.equal(games.length, 1);
   assert.equal(games[0].hiddenKey, "steam:1");
-  assert.deepEqual(catalogLabels(games[0]), ["待玩收藏", "玩過了"]);
+  assert.equal(games[0].favorite, false);
+  assert.deepEqual(catalogLabels(games[0]), ["玩過了"]);
+  assert.deepEqual(catalogLabels({ favorite: true, catalogReason: "backlog" }), ["候補"]);
   assert.equal(catalogGames(payload), games);
   assert.notEqual(catalogGames({ ...payload }), games);
   assert.equal(entry.catalogReason, undefined);

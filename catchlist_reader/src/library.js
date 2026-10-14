@@ -435,11 +435,17 @@ export function setFavorite(dataDir, media, entryId, favorite) {
   const records = readFavorites(dataDir);
   const keys = new Set(stateKeys(entry));
   const exists = records.some((record) => keys.has(record.key));
-  if (exists === favorite) return;
+  const hidden = media === "games" && favorite ? readHiddenEntries(dataDir) : null;
+  const nextHidden = hidden?.filter(record => !keys.has(record.hideKey));
+  if (exists === favorite && (!hidden || nextHidden.length === hidden.length)) return;
   const entries = favorite
-    ? [...records, { key: entry.hideKey, media, title: entry.title, savedAt: new Date().toISOString() }]
+    ? exists ? records : [...records, { key: entry.hideKey, media, title: entry.title, savedAt: new Date().toISOString() }]
     : records.filter((record) => !keys.has(record.key));
-  atomicWrite(path.join(path.resolve(dataDir), FAVORITES_FILE), `${JSON.stringify({ version: 1, entries }, null, 2)}\n`);
+  if (hidden) {
+    const changes = [{ name: FAVORITES_FILE, before: readOptional(path.join(dataDir, FAVORITES_FILE)), after: personalJson(entries) }];
+    if (nextHidden.length !== hidden.length) changes.push({ name: HIDDEN_ENTRIES_FILE, before: readOptional(path.join(dataDir, HIDDEN_ENTRIES_FILE)), after: personalJson(nextHidden) });
+    commitGameFiles(dataDir, changes);
+  } else atomicWrite(path.join(path.resolve(dataDir), FAVORITES_FILE), personalJson(entries));
 }
 
 export function loadHiddenEntries(dataDir, reportCache = null) {
@@ -452,7 +458,7 @@ export function loadHiddenEntries(dataDir, reportCache = null) {
       byMedia.set(record.media, new Map(entries.flatMap((entry) => stateKeys(entry).map((key) => [key, entry]))));
     }
     const entry = byMedia.get(record.media).get(record.hideKey);
-    return { ...record, ...(record.media === "games" ? { reason: record.reason ?? "played" } : {}), title: entry?.title ?? record.title, periodLabel: entry?.periodLabel ?? "", available: Boolean(entry), entry: entry ? { ...entry, hiddenKey: record.hideKey, favorite: stateKeys(entry).some(key => favorites.has(key)) } : null };
+    return { ...record, ...(record.media === "games" ? { reason: record.reason ?? "played" } : {}), title: entry?.title ?? record.title, periodLabel: entry?.periodLabel ?? "", available: Boolean(entry), entry: entry ? { ...entry, hiddenKey: record.hideKey, favorite: record.media !== "games" && stateKeys(entry).some(key => favorites.has(key)) } : null };
   }).sort((a, b) => String(b.hiddenAt).localeCompare(String(a.hiddenAt)));
 }
 
@@ -489,9 +495,22 @@ export function readHiddenEntries(dataDir) {
   );
 }
 
-function writeHiddenEntries(dataDir, entries) {
+const personalJson = entries => `${JSON.stringify({ version: 1, entries }, null, 2)}\n`;
+
+function writeHiddenEntries(dataDir, entries, removedFavorites = [], restoredFavorites = [], exclusiveKeys = []) {
   const filepath = path.join(path.resolve(dataDir), HIDDEN_ENTRIES_FILE);
-  atomicWrite(filepath, `${JSON.stringify({ version: 1, entries }, null, 2)}\n`);
+  const changes = [{ name: HIDDEN_ENTRIES_FILE, before: readOptional(filepath), after: personalJson(entries) }];
+  const gameKeys = new Set(exclusiveKeys);
+  if (!gameKeys.size && !restoredFavorites.length) {
+    commitGameFiles(dataDir, changes);
+    return filepath;
+  }
+  const favorites = readFavorites(dataDir);
+  removedFavorites.push(...favorites.filter(record => record.media === "games" && gameKeys.has(record.key)));
+  const nextFavorites = favorites.filter(record => record.media !== "games" || !gameKeys.has(record.key));
+  for (const record of restoredFavorites) if (!nextFavorites.some(item => item.key === record.key) && !gameKeys.has(record.key)) nextFavorites.push(record);
+  if (removedFavorites.length || restoredFavorites.length) changes.push({ name: FAVORITES_FILE, before: readOptional(path.join(dataDir, FAVORITES_FILE)), after: personalJson(nextFavorites) });
+  commitGameFiles(dataDir, changes);
   return filepath;
 }
 
@@ -500,7 +519,7 @@ export function setHiddenReason(dataDir, hideKey, reason) {
   const records = readHiddenEntries(dataDir);
   const record = records.find(item => item.hideKey === hideKey && item.media === "games");
   if (!record) throw new Error("隱藏紀錄已不存在");
-  writeHiddenEntries(dataDir, records.map(item => item === record ? { ...item, reason } : item));
+  writeHiddenEntries(dataDir, records.map(item => item === record ? { ...item, reason } : item), [], [], [hideKey]);
   return { ...record, previousReason: record.reason, changedReason: reason };
 }
 
@@ -522,7 +541,6 @@ export function favoriteBacklogEntry(dataDir, entryId) {
   const record = loadHiddenEntries(dataDir).find(item => item.media === "games" && ["backlog", "watchlist"].includes(item.reason) && item.entry?.id === entryId);
   if (!record) throw new Error("候補或待觀察遊戲已變更，請重新讀取");
   setFavorite(dataDir, "games", entryId, true);
-  restoreHiddenEntry(dataDir, record.hideKey);
 }
 
 export function hideEntry(dataDir, media, entryId, reason = "played") {
@@ -538,7 +556,8 @@ export function hideEntry(dataDir, media, entryId, reason = "played") {
   }
   const hiddenAt = new Date().toISOString();
   const record = { hideKey: entry.hideKey, media, title: entry.title, hiddenAt, ...(media === "games" ? { reason } : {}) };
-  const hiddenFilepath = writeHiddenEntries(dataDir, [...entries, record]);
+  const removedFavorites = [];
+  const hiddenFilepath = writeHiddenEntries(dataDir, [...entries, record], removedFavorites, [], media === "games" ? [...keys] : []);
   return {
     media,
     entryId,
@@ -546,15 +565,19 @@ export function hideEntry(dataDir, media, entryId, reason = "played") {
     hideKey: entry.hideKey,
     hiddenFilepath,
     hiddenAt,
+    removedFavorites,
+    record,
   };
 }
 
 export function undoHide(dataDir, operation) {
   if (!operation?.hideKey) throw new Error("沒有可復原的隱藏操作");
   const entries = readHiddenEntries(dataDir);
+  if (operation.record && JSON.stringify(entries.find(entry => entry.hideKey === operation.hideKey)) !== JSON.stringify(operation.record)) throw new Error("隱藏紀錄已變更，未覆蓋後續操作");
   const nextEntries = entries.filter((entry) => entry.hideKey !== operation.hideKey);
   if (nextEntries.length === entries.length) throw new Error("隱藏紀錄已不存在");
-  writeHiddenEntries(dataDir, nextEntries);
+  const removed = entries.find(entry => entry.hideKey === operation.hideKey);
+  writeHiddenEntries(dataDir, nextEntries, [], operation.removedFavorites ?? [], !operation.record && removed?.media === "games" ? [removed.hideKey] : []);
   return { media: operation.media, title: operation.title };
 }
 

@@ -28,7 +28,7 @@ test("手動遊戲可獨立讀取、收藏、隱藏、恢復及刪除，不建�
   assert.equal(loadLibrary(dir, "games").entries.length, 0);
   assert.equal(loadHiddenEntries(dir)[0].available, true);
   restoreHiddenEntry(dir, entry.hideKey);
-  assert.equal(loadLibrary(dir, "games").entries[0].favorite, true);
+  assert.equal(loadLibrary(dir, "games").entries[0].favorite, false);
   deleteEntry(dir, "games", entry.id);
   assert.equal(readManualGames(dir).entries.length, 0);
   assert.equal(fs.existsSync(path.join(dir, "遊戲.md")), false);

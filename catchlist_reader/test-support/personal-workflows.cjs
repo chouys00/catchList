@@ -173,6 +173,12 @@ app.whenReady().then(async () => {
     await click("[data-restore]");
     await until("document.querySelectorAll('.hidden-row').length === 0");
     await click('[data-view="favorites"]');
+    if (media === "games") {
+      assert.equal(await js("document.querySelectorAll('.item').length"), 0);
+      await click('[data-view="all"]');
+      await click('[data-favorite]');
+      await click('[data-view="favorites"]');
+    }
     assert.equal(await js("document.querySelectorAll('.item').length"), 1);
     flows.push(media);
   }
@@ -187,6 +193,10 @@ app.whenReady().then(async () => {
   assert.equal(await js("document.querySelectorAll('.hidden-row').length"), 1);
   await click("[data-restore]");
   await until("document.querySelectorAll('.hidden-row').length === 0");
+  await click('[data-view="favorites"]');
+  assert.equal(await js("document.querySelectorAll('.item').length"), 0);
+  await click('[data-view="all"]');
+  await click('[data-favorite]');
   await click('[data-view="favorites"]');
   assert.equal(await js("document.querySelectorAll('.item').length"), 1);
   await click("[data-favorite]");
@@ -275,15 +285,13 @@ app.whenReady().then(async () => {
       await select('min', '98'); await select('max', '97');
       assert.match(await js("document.querySelector('[data-rating-error]').textContent"), /上限須大於或等於/);
       await click('[data-action="clear-filters"]'); await click('[data-action="toggle-filters"]');
-      await click('[data-favorite]');
-      await until("document.querySelector('[data-favorite]').getAttribute('aria-pressed') === 'true'");
-      assert.equal(await js("document.querySelectorAll('.item.games').length"), 1, '收藏切換保留原分類');
       await capture(`${reason}-${label}`);
       assert.ok(await js("document.documentElement.scrollWidth <= innerWidth"));
-      await click('[data-hide]'); await click('[data-reason="restore"]');
+      await click('[data-favorite]');
       await until("document.querySelectorAll('.item.games').length === 0");
       await click('[data-view="favorites"]');
       assert.equal(await js("document.querySelectorAll('.item.games').length"), 1);
+      assert.equal(await js("document.querySelector('[data-favorite]').getAttribute('aria-pressed')"), 'true');
       await click('[data-favorite]'); await until("document.querySelectorAll('.item.games').length === 0");
       await click(`[data-view="${reason}"]`); await click('[data-media="anime"]');
       assert.equal(await js("document.querySelector('[data-view=all]').getAttribute('aria-pressed')"), 'true');

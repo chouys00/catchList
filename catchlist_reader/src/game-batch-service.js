@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { sourceEntries, parseReport, readHiddenEntries, HIDDEN_ENTRIES_FILE } from "./library.js";
+import { sourceEntries, parseReport, readHiddenEntries, readFavorites, HIDDEN_ENTRIES_FILE, FAVORITES_FILE } from "./library.js";
 import { MANUAL_GAMES_FILE, readOptional, readManualGames, manualJson, gameKey, commitGameFiles, recoverGameTransaction } from "./manual-games.js";
 
-const names = ["遊戲.md", MANUAL_GAMES_FILE, HIDDEN_ENTRIES_FILE];
+const names = ["遊戲.md", MANUAL_GAMES_FILE, HIDDEN_ENTRIES_FILE, FAVORITES_FILE];
 const digest = raw => crypto.createHash("sha256").update(raw, "utf8").digest("hex");
 const json = entries => `${JSON.stringify({ version: 1, entries }, null, 2)}\n`;
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -69,16 +69,21 @@ export class GameBatchService {
       if (existing.size !== records.length) throw new Error("隱藏紀錄重複，請先檢查紀錄；整批未套用");
       const edits = [];
       const hiddenAt = new Date().toISOString();
+      const favorites = readFavorites(directory);
+      const selectedKeys = new Set(selected.map(entry => gameKey(entry.appid)));
+      const removedFavorites = favorites.filter(record => record.media === "games" && selectedKeys.has(record.key));
+      const favoriteKeys = new Set(removedFavorites.map(record => record.key));
       for (const entry of selected) {
         const key = gameKey(entry.appid);
         const before = existing.get(key) ?? null;
-        if (before && (before.reason ?? "played") === reason) { skippedCount++; continue; }
+        if (before && (before.reason ?? "played") === reason && !favoriteKeys.has(key)) { skippedCount++; continue; }
         const after = before ? { ...before, reason } : { hideKey: key, media: "games", title: entry.title, hiddenAt, reason };
         edits.push({ key, before, after });
         existing.set(key, after);
       }
       if (edits.length) changes.push({ name: HIDDEN_ENTRIES_FILE, before: originals[HIDDEN_ENTRIES_FILE], after: json([...existing.values()]) });
-      operation = { directory, edits };
+      if (removedFavorites.length) changes.push({ name: FAVORITES_FILE, before: originals[FAVORITES_FILE], after: json(favorites.filter(record => !removedFavorites.includes(record))) });
+      operation = { directory, edits, removedFavorites };
     }
     this.check(directory, originals);
     const token = crypto.randomUUID();
@@ -117,8 +122,15 @@ export class GameBatchService {
     const records = this.hiddenRecords(directory);
     const current = new Map(records.map(record => [record.hideKey, record]));
     for (const edit of operation.edits) if (!same(current.get(edit.key), edit.after)) throw new Error("這批遊戲的隱藏紀錄已變更，未覆蓋後續操作");
+    const favorites = readFavorites(directory);
+    const removedFavorites = operation.removedFavorites ?? [];
+    if (removedFavorites.some(record => favorites.some(item => item.key === record.key))) throw new Error("這批遊戲的收藏紀錄已變更，未覆蓋後續操作");
     for (const edit of operation.edits) { if (edit.before) current.set(edit.key, edit.before); else current.delete(edit.key); }
-    if (operation.edits.length) this.commitFiles(directory, [{ name: HIDDEN_ENTRIES_FILE, before, after: json([...current.values()]) }]);
+    const changes = operation.edits.length ? [{ name: HIDDEN_ENTRIES_FILE, before, after: json([...current.values()]) }] : [];
+    // 舊版重疊紀錄仍以隱藏分類為準；只恢復原本沒有隱藏的收藏。
+    const restored = removedFavorites.filter(record => !current.has(record.key));
+    if (restored.length) changes.push({ name: FAVORITES_FILE, before: readOptional(path.join(directory, FAVORITES_FILE)), after: json([...favorites, ...restored]) });
+    if (changes.length) this.commitFiles(directory, changes);
     return { media: "games", count: operation.edits.length, title: `${operation.edits.length} 款遊戲` };
   }
 }

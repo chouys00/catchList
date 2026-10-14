@@ -103,15 +103,17 @@ app.whenReady().then(async () => {
   await until('!document.querySelector("[data-game-row=\\"123\\"]")');
   await openPanel(); await preview("123"); assert.equal(await js('document.querySelector("[data-panel-save]").textContent'), "恢復並查看");
   await click('[data-panel-save]'); await until('!document.querySelector("#manualGameDialog")');
-  assert.equal(await js('document.querySelector("[data-game-row=\\"123\\"] [data-favorite]").getAttribute("aria-pressed")'), "true");
+  assert.equal(await js('document.querySelector("[data-game-row=\\"123\\"] [data-favorite]").getAttribute("aria-pressed")'), "false");
   await click('[data-action="toggle-filters"]'); await select("manualOnly", "manual"); assert.equal(await js('document.querySelectorAll(".item.games").length'), 1);
   await select("min", "85"); assert.equal(await js('document.querySelectorAll(".item.games").length'), 0);
-  await click('[data-action="clear-filters"]'); assert.equal(await js('document.querySelectorAll(".item.games").length'), 1);
+  await click('[data-action="clear-filters"]'); assert.equal(await js('document.querySelectorAll(".item.games").length'), 8);
   for (const width of [1440, 1024, 390]) {
     win.setContentSize(width, 900); await js('window.scrollTo(0, 0)'); await new Promise((r) => setTimeout(r, 100));
     assert.equal(await js('document.documentElement.scrollWidth > innerWidth'), false);
     await capture(`manual-list-${width}`);
   }
+  await click('[data-game-row="123"] [data-favorite]');
+  await until('!document.querySelector("[data-game-row=\\"123\\"]")');
   await openPanel(); await preview("123"); assert.equal(await js('document.querySelector("[data-panel-save]").textContent'), "查看遊戲");
   await click('[data-panel-close]'); await until('!document.querySelector("#manualGameDialog")');
   await openPanel(); await fill('#steamGameInput', "777"); await js('document.querySelector("#manualGameLookup").requestSubmit()');

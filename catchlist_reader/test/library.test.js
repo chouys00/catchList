@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { deleteEntry, hideEntry, loadLibrary, parseReport, readHiddenEntries, undoHide, setFavorite, readFavorites, loadHiddenEntries, restoreHiddenEntry } from "../src/library.js";
+import { deleteEntry, hideEntry, loadLibrary, parseReport, readHiddenEntries, undoHide, setFavorite, readFavorites, loadHiddenEntries, restoreHiddenEntry, setHiddenReason } from "../src/library.js";
 
 const anime = `2025  春  >7.70    (更新時間: 2025-07-01)\n\n- 測試動畫  **8.20**  (12 · TV)\n- 測試動畫  **8.20**  (12 · TV)\n------------------------------\n`;
 const mixedAnime = `2024  春  >7.70    (更新時間: 2025-07-01)\n\n- 完整動畫  **8.20**  (12 · TV)\n- 舊格式動畫  **8.10**\n\n------------------------------\n\n劇場版  (更新時間: 2025-07-01)\n\n- 無評分劇場版  **--**  (1 · Movie)\n- 有評分劇場版  **7.44**  (1 · Movie)\n`;
@@ -224,7 +224,7 @@ test("四類收藏獨立持久化，重讀與評分更新後保留，不修改�
   assert.deepEqual(readFavorites(directory), []);
 });
 
-test("收藏遊戲在隱藏、重新讀取與恢復後仍保留，其他隱藏紀錄不受影響", () => {
+test("收藏遊戲轉隱藏會取消收藏，恢復後尚未分類，其他隱藏紀錄不受影響", () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "catchlist-personal-"));
   fs.writeFileSync(path.join(directory, "遊戲.md"), games);
   fs.writeFileSync(path.join(directory, "動畫.md"), anime);
@@ -234,9 +234,11 @@ test("收藏遊戲在隱藏、重新讀取與恢復後仍保留，其他隱藏�
   hideEntry(directory, "anime", loadLibrary(directory, "anime").entries[0].id);
   const record = loadHiddenEntries(directory).find((entry) => entry.media === "games");
   assert.equal(record.available, true);
+  assert.equal(record.entry.favorite, false);
+  assert.equal(readFavorites(directory).length, 0);
   assert.equal(loadLibrary(directory, "games").entries.length, 0);
   restoreHiddenEntry(directory, record.hideKey);
-  assert.equal(loadLibrary(directory, "games").entries[0].favorite, true);
+  assert.equal(loadLibrary(directory, "games").entries[0].favorite, false);
   assert.equal(readHiddenEntries(directory).length, 1);
 });
 
@@ -253,6 +255,52 @@ test("失效隱藏紀錄可清除，不重建或修改報告", () => {
   restoreHiddenEntry(directory, record.hideKey);
   assert.deepEqual(loadHiddenEntries(directory), []);
   assert.equal(fs.readFileSync(filepath, "utf8"), original);
+});
+
+test("四種遊戲隱藏分類與收藏互斥，復原隱藏會還原原收藏時間", t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "catchlist-exclusive-"));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(directory, "遊戲.md"), games);
+  const game = loadLibrary(directory, "games").entries[0];
+  for (const reason of ["played", "backlog", "watchlist", "not_interested"]) {
+    setFavorite(directory, "games", game.id, true);
+    const original = readFavorites(directory);
+    const operation = hideEntry(directory, "games", game.id, reason);
+    assert.deepEqual(readFavorites(directory), []);
+    assert.equal(loadHiddenEntries(directory)[0].entry.favorite, false);
+    undoHide(directory, operation);
+    assert.deepEqual(readFavorites(directory), original);
+    hideEntry(directory, "games", game.id, reason);
+    setFavorite(directory, "games", game.id, true);
+    assert.deepEqual(readHiddenEntries(directory), []);
+    assert.equal(loadLibrary(directory, "games").entries[0].favorite, true);
+  }
+  assert.equal(fs.readFileSync(path.join(directory, "遊戲.md"), "utf8"), games);
+});
+
+test("舊版重疊紀錄以隱藏為準，重新收藏與改分類皆清除衝突", t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "catchlist-legacy-exclusive-"));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(directory, "遊戲.md"), games);
+  const game = loadLibrary(directory, "games").entries[0];
+  setFavorite(directory, "games", game.id, true);
+  const favorites = fs.readFileSync(path.join(directory, ".catchlist-favorites.json"), "utf8");
+  const overlap = () => {
+    hideEntry(directory, "games", game.id, "played");
+    fs.writeFileSync(path.join(directory, ".catchlist-favorites.json"), favorites);
+    assert.equal(loadHiddenEntries(directory)[0].entry.favorite, false);
+  };
+  overlap();
+  setFavorite(directory, "games", game.id, true);
+  assert.deepEqual(readHiddenEntries(directory), []);
+  assert.equal(readFavorites(directory).length, 1);
+  overlap();
+  setHiddenReason(directory, game.hideKey, "watchlist");
+  assert.deepEqual(readFavorites(directory), []);
+  restoreHiddenEntry(directory, game.hideKey);
+  overlap();
+  restoreHiddenEntry(directory, game.hideKey);
+  assert.equal(loadLibrary(directory, "games").entries[0].favorite, false);
 });
 
 test("損壞的收藏紀錄不會被新收藏覆蓋", () => {

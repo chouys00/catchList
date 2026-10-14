@@ -73,7 +73,9 @@ app.whenReady().then(async () => {
   const games = lib.loadAllLibraries(temp).find(l => l.media === "games").entries;
   lib.setFavorite(temp, "games", games[0].id, true);
   for (const [index, reason] of [[1,"backlog"],[2,"played"],[3,"not_interested"]]) lib.hideEntry(temp,"games",games[index].id,reason);
-  lib.setFavorite(temp, "games", games[2].id, true);
+  // 模擬舊版留下的收藏與玩過重疊紀錄。
+  const oldFavorites = lib.readFavorites(temp);
+  fs.writeFileSync(path.join(temp, lib.FAVORITES_FILE), JSON.stringify({ version: 1, entries: [...oldFavorites, { key: games[2].hideKey, media: "games", title: games[2].title, savedAt: timestamp }] }));
   await win.loadFile(path.join(readerRoot, "src/renderer/index.html"));
   await until("document.querySelectorAll('.item.games').length === 3");
   await capture("catalog-off-desktop");
@@ -92,7 +94,13 @@ app.whenReady().then(async () => {
     assert.ok(await js("document.querySelectorAll('.item.games').length >= 1"));
   }
   await fill(search,games[2].appid);
-  assert.match(await js("document.querySelector('.catalog-classification').textContent"), /待玩收藏.*玩過了/);
+  assert.match(await js("document.querySelector('.catalog-classification').textContent"), /玩過了/);
+  assert.doesNotMatch(await js("document.querySelector('.catalog-classification').textContent"), /待玩收藏/);
+  assert.equal(await js("document.querySelector('[data-favorite]').getAttribute('aria-pressed')"), 'false');
+  await click('[data-favorite]');
+  await until("document.querySelector('.catalog-classification')?.textContent.includes('待玩收藏') && !document.querySelector('.catalog-classification')?.textContent.includes('玩過了')");
+  await click('[data-hide]'); await click('[data-reason=played]');
+  await until("document.querySelector('.catalog-classification')?.textContent.includes('玩過了') && !document.querySelector('.catalog-classification')?.textContent.includes('待玩收藏')");
   await capture('catalog-on-desktop');
   // 候補轉收藏必須走正式轉移流程，不能只切換書籤。
   await fill(search,games[1].appid);
@@ -105,7 +113,6 @@ app.whenReady().then(async () => {
   await until("document.querySelector('.catalog-classification')?.textContent.includes('候補')");
   await click('[data-hide]'); await click('[data-reason=restore]');
   await until("!document.querySelector('.catalog-classification')?.textContent.includes('候補')");
-  await click('[data-favorite]');
   await until("document.querySelector('.catalog-classification')?.textContent.includes('尚未分類')");
   await click('[data-action=clear-search]');
   assert.equal(await js("document.querySelectorAll('.item.games').length"),0);
