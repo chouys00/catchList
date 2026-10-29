@@ -1,3 +1,4 @@
+import { installListKeyboard } from "./list-keyboard.js";
 import { openGameNote } from "./game-note-ui.js";
 import { collectTagOptionsFromIndex, createTagIndex, createGameQuery, ratingRangeError } from "./game-browser.js";
 import { openManualGamePanel } from "./manual-game-panel.js";
@@ -93,6 +94,56 @@ const gameScreening = new GameScreening({
   apply: payload => { clearGameSelection(); state.payload = payload; render(); },
   notify: message => showToast(message),
 });
+
+const listKeyboard = installListKeyboard({
+  getContext: () => ({
+    list: app.querySelector(".list, .hidden-list"),
+    entries: state.active === "games" && state.view !== "hidden" ? filteredEntries() : null,
+  }),
+  appendBatch: context => {
+    if (!context.entries || state.visibleGameCount >= context.entries.length) return false;
+    const before = state.visibleGameCount;
+    appendNextGameBatch({ lazyCovers: true });
+    return state.visibleGameCount > before;
+  },
+});
+let lazyCoverObserver = null;
+
+function resetLazyGameCovers() {
+  lazyCoverObserver?.disconnect();
+  lazyCoverObserver = null;
+}
+
+function hydrateVisibleLazyCovers() {
+  if (lazyCoverObserver) return;
+  const visible = [...app.querySelectorAll("[data-lazy-game-cover]")].filter(node => {
+    const rect = node.getBoundingClientRect();
+    return rect.bottom > 0 && rect.top < innerHeight;
+  });
+  for (const node of visible) node.removeAttribute("data-lazy-game-cover");
+  void hydrateGameCovers(visible.map(node => ({ appid: node.dataset.gameAppid })));
+}
+
+function observeLazyGameCovers(entries) {
+  if (!lazyCoverObserver && typeof IntersectionObserver === "function") {
+    const observer = new IntersectionObserver(records => {
+      const visible = records.filter(record => record.isIntersecting && record.target.isConnected);
+      for (const { target } of visible) {
+        observer.unobserve(target);
+        target.removeAttribute("data-lazy-game-cover");
+      }
+      void hydrateGameCovers(visible.map(({ target }) => ({ appid: target.dataset.gameAppid })));
+    });
+    lazyCoverObserver = observer;
+  }
+  for (const entry of entries) {
+    const node = app.querySelector(`.game-cover-loading[data-game-appid="${CSS.escape(String(entry.appid))}"]`);
+    if (!node) continue;
+    node.setAttribute("data-lazy-game-cover", "");
+    lazyCoverObserver?.observe(node);
+  }
+  hydrateVisibleLazyCovers();
+}
 
 function searchingCatalog() { return state.active === "games" && state.catalogSearch; }
 
@@ -383,7 +434,7 @@ function setupGameAutoLoad() {
   state.gameLoadObserver.observe(sentinel);
 }
 
-function appendNextGameBatch() {
+function appendNextGameBatch({ lazyCovers = false } = {}) {
   if (state.active !== "games" || state.gameLoadInFlight) return;
   const entries = filteredEntries();
   const previousCount = Math.min(state.visibleGameCount, entries.length);
@@ -404,10 +455,13 @@ function appendNextGameBatch() {
     if (progress) progress.textContent = `已顯示 ${nextCount}／${entries.length} 筆`;
   }
   state.gameLoadInFlight = false;
-  void hydrateGameCovers(nextEntries);
+  if (lazyCovers) observeLazyGameCovers(nextEntries);
+  else void hydrateGameCovers(nextEntries);
 }
 
 function refreshResults({ hydrateCovers = true, resetGames = true } = {}) {
+  listKeyboard.cancel();
+  resetLazyGameCovers();
   const rangeError = app.querySelector("[data-rating-error]");
   if (rangeError) rangeError.textContent = ratingRangeError(state.filters.games);
   for (const input of app.querySelectorAll('.rating-input input')) input.setAttribute("aria-invalid", String(Boolean(ratingRangeError(state.filters.games))));
@@ -557,6 +611,8 @@ async function runGameBatch(action) {
 }
 
 function render() {
+  listKeyboard.cancel();
+  resetLazyGameCovers();
   document.documentElement.style.setProperty("--reader-header-height", `${document.querySelector(".topbar").getBoundingClientRect().height}px`);
   ratingInputs.close();
   ratingInputs.resetWheel();
@@ -1045,6 +1101,7 @@ window.addEventListener("scroll", () => {
   backToTopFrame = window.requestAnimationFrame(() => {
     backToTopFrame = null;
     syncBackToTop();
+    hydrateVisibleLazyCovers();
   });
 }, { passive: true });
 
