@@ -1,3 +1,5 @@
+import { favoriteIcon, favoriteKind, favoriteNames } from "./favorite-ui.js";
+
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 }
@@ -12,16 +14,23 @@ export const hiddenReasons = { not_interested: "暫不考慮", backlog: "候補"
 export function reasonOptions(selected) { return Object.entries(hiddenReasons).map(([key, label]) => `<option value="${key}" ${key === selected ? "selected" : ""}>${label}</option>`).join(""); }
 
 export function entriesForView(entries, view) {
-  if (view === "favorites") return entries.filter((entry) => entry.favorite);
+  if (view === "favorites") return entries.filter((entry) => favoriteKind(entry) === "personal");
+  if (view === "shared") return entries.filter((entry) => favoriteKind(entry) === "shared");
   if (view === "all") return entries.filter((entry) => !entry.favorite);
   return entries;
 }
 
 export function viewNavigation(view, media, entries, hiddenCount, reasonCounts = {}) {
   const favoriteCount = entries.filter((entry) => entry.favorite).length;
-  const tabs = [["all", "全部", entries.length - favoriteCount], ["favorites", media === "games" ? "待玩收藏" : "待看收藏", favoriteCount], ["hidden", "隱藏管理", hiddenCount]];
-  if (media === "games") tabs.splice(2, 0, ...["watchlist", "backlog", "played", "not_interested"].map(reason => [reason, hiddenReasons[reason], reasonCounts[reason] ?? 0]));
-  return `<nav class="library-views" aria-label="清單檢視">${tabs.map(([key, label, count]) => `<button type="button" class="view-button${view === key ? " active" : ""}" data-view="${key}" aria-pressed="${view === key}">${label}<span>${count}</span></button>`).join("")}</nav>`;
+  const games = media === "games";
+  const tabs = games
+    ? [["all", "全部", entries.length - favoriteCount], ["favorites", "個人", entriesForView(entries, "favorites").length], ["shared", "共樂", entriesForView(entries, "shared").length], ...["watchlist", "backlog", "played", "not_interested"].map(reason => [reason, ({ watchlist: "觀察", backlog: "候補", played: "玩過", not_interested: "不考慮" })[reason], reasonCounts[reason] ?? 0])]
+    : [["all", "全部", entries.length - favoriteCount], ["favorites", "待看收藏", favoriteCount], ["hidden", "隱藏管理", hiddenCount]];
+  return `<nav class="library-views${games ? " game-views" : ""}" aria-label="清單檢視">${tabs.map(([key, label, count]) => {
+    const kind = key === "favorites" ? "personal" : key === "shared" ? "shared" : null;
+    const fullName = games ? kind ? favoriteNames[kind] : hiddenReasons[key] ?? label : label;
+    return `<button type="button" class="view-button${view === key ? " active" : ""}" data-view="${key}" aria-pressed="${view === key}"${games ? ` aria-label="${fullName}，${count} 款" title="${fullName}"` : ""}>${games && kind ? favoriteIcon(kind) : ""}${label}<span>${count}</span></button>`;
+  }).join("")}</nav>`;
 }
 
 function hiddenRatings(record) {

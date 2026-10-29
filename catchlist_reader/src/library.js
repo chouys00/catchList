@@ -3,7 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { hasLegacyCommunityTags } from "./legacy-game-tags.js";
 import { classifyPlayerMode } from "./game-features.js";
+import { readGameRefresh } from "./game-refresh-store.js";
 import { readGameFeatures } from "./game-feature-store.js";
+import { readGameNotes, saveGameNote } from "./game-notes.js";
 import { MANUAL_GAMES_FILE, readManualGames, manualEntry, manualJson, commitGameFiles, recoverGameTransaction, readOptional } from "./manual-games.js";
 
 export const MEDIA_CONFIG = {
@@ -366,9 +368,12 @@ export function sourceEntries(dataDir, media, { strict = false, reportCache = nu
     merged.set(entry.appid, { ...entry, officialFeatureIds: entry.officialFeatureIds ?? previous?.officialFeatureIds,
       reportSource: true, manualAdded: Boolean(previous?.manualAdded), addedAt: previous?.addedAt });
   }
+  let refreshed = {};
+  try { refreshed = readGameRefresh(dataDir); }
+  catch (error) { if (strict) throw error; warning = [warning, error.message].filter(Boolean).join("；"); }
   const entries = [...merged.values()].map((entry) => {
     const officialFeatureIds = entry.officialFeatureIds ?? features[entry.appid]?.featureIds;
-    return { ...entry, officialFeatureIds, playerMode: classifyPlayerMode(officialFeatureIds) };
+    return { ...entry, ...refreshed[entry.appid], officialFeatureIds, playerMode: classifyPlayerMode(officialFeatureIds) };
   });
   return { ...parsed, entries, warning, exists: parsed.exists || manual.length > 0 };
 }
@@ -393,7 +398,8 @@ export function loadLibrary(dataDir, media, hiddenKeys, favorites, reportCache =
   }
   const stat = fs.existsSync(filepath) ? fs.statSync(filepath) : null;
   const effectiveHiddenKeys = hiddenKeys ?? new Set(readHiddenEntries(dataDir).map((entry) => entry.hideKey));
-  const favoriteKeys = favorites ?? new Set(readFavorites(dataDir).map((entry) => entry.key));
+  const favoriteKeys = favorites ?? new Map(readFavorites(dataDir).map((entry) => [entry.key, entry.favoriteKind ?? "personal"]));
+  const notes = media === "games" ? readGameNotes(dataDir) : {};
   return {
     ...MEDIA_CONFIG[media],
     media,
@@ -404,14 +410,17 @@ export function loadLibrary(dataDir, media, hiddenKeys, favorites, reportCache =
     knownKeys: [...new Set(parsed.entries.flatMap(stateKeys))],
     entries: parsed.entries
       .filter((entry) => stateKeys(entry).every((key) => !effectiveHiddenKeys.has(key)))
-      .map(({ lineStart, lineEnd, ...entry }) => ({ ...entry, favorite: stateKeys(entry).some((key) => favoriteKeys.has(key)) })),
+      .map(({ lineStart, lineEnd, ...entry }) => {
+        const key = stateKeys(entry).find(key => favoriteKeys.has(key));
+        return { ...entry, favorite: key !== undefined, ...(media === "games" ? { favoriteKind: key === undefined ? null : favoriteKeys.get(key), note: notes[String(entry.appid)] ?? "" } : {}) };
+      }),
     sections: parsed.sections,
   };
 }
 
 export function loadAllLibraries(dataDir, reportCache = null) {
   const hiddenKeys = new Set(readHiddenEntries(dataDir).map((entry) => entry.hideKey));
-  const favorites = new Set(readFavorites(dataDir).map((entry) => entry.key));
+  const favorites = new Map(readFavorites(dataDir).map((entry) => [entry.key, entry.favoriteKind ?? "personal"]));
   return Object.keys(MEDIA_CONFIG).map((media) => loadLibrary(dataDir, media, hiddenKeys, favorites, reportCache));
 }
 
@@ -422,24 +431,27 @@ export function readFavorites(dataDir) {
   try { parsed = JSON.parse(fs.readFileSync(filepath, "utf8")); }
   catch { throw new Error("收藏紀錄檔格式不正確，請先檢查檔案，原始紀錄尚未改動"); }
   if (parsed?.version !== 1 || !Array.isArray(parsed.entries)
-    || parsed.entries.some((entry) => !entry || typeof entry.key !== "string" || !Object.hasOwn(MEDIA_CONFIG, entry.media))) {
+    || parsed.entries.some((entry) => !entry || typeof entry.key !== "string" || !Object.hasOwn(MEDIA_CONFIG, entry.media)
+      || (entry.media === "games" && entry.favoriteKind !== undefined && !["personal", "shared"].includes(entry.favoriteKind)))) {
     throw new Error("收藏紀錄檔格式不正確，請先檢查檔案，原始紀錄尚未改動");
   }
   return parsed.entries;
 }
 
-export function setFavorite(dataDir, media, entryId, favorite) {
+export function setFavorite(dataDir, media, entryId, favorite, favoriteKind = "personal") {
   if (typeof favorite !== "boolean") throw new Error("收藏狀態不正確");
+  if (media === "games" && !["personal", "shared"].includes(favoriteKind)) throw new Error("收藏種類不正確");
   const entry = sourceEntries(dataDir, media).entries.find((item) => item.id === entryId);
   if (!entry) throw new Error("作品已變更或不存在，請重新載入清單");
   const records = readFavorites(dataDir);
   const keys = new Set(stateKeys(entry));
   const exists = records.some((record) => keys.has(record.key));
+  const sameKind = media !== "games" || records.filter(record => keys.has(record.key)).every(record => (record.favoriteKind ?? "personal") === favoriteKind);
   const hidden = media === "games" && favorite ? readHiddenEntries(dataDir) : null;
   const nextHidden = hidden?.filter(record => !keys.has(record.hideKey));
-  if (exists === favorite && (!hidden || nextHidden.length === hidden.length)) return;
+  if (exists === favorite && (!favorite || sameKind) && (!hidden || nextHidden.length === hidden.length)) return;
   const entries = favorite
-    ? exists ? records : [...records, { key: entry.hideKey, media, title: entry.title, savedAt: new Date().toISOString() }]
+    ? [...records.filter(record => !keys.has(record.key)), { key: entry.hideKey, media, title: entry.title, savedAt: records.find(record => keys.has(record.key))?.savedAt ?? new Date().toISOString(), ...(media === "games" ? { favoriteKind } : {}) }]
     : records.filter((record) => !keys.has(record.key));
   if (hidden) {
     const changes = [{ name: FAVORITES_FILE, before: readOptional(path.join(dataDir, FAVORITES_FILE)), after: personalJson(entries) }];
@@ -450,6 +462,7 @@ export function setFavorite(dataDir, media, entryId, favorite) {
 
 export function loadHiddenEntries(dataDir, reportCache = null) {
   const records = readHiddenEntries(dataDir);
+  const notes = records.some(record => record.media === "games") ? readGameNotes(dataDir) : {};
   const favorites = new Set(readFavorites(dataDir).map(record => record.key));
   const byMedia = new Map();
   return records.map((record) => {
@@ -457,9 +470,16 @@ export function loadHiddenEntries(dataDir, reportCache = null) {
       const entries = sourceEntries(dataDir, record.media, { reportCache }).entries;
       byMedia.set(record.media, new Map(entries.flatMap((entry) => stateKeys(entry).map((key) => [key, entry]))));
     }
-    const entry = byMedia.get(record.media).get(record.hideKey);
-    return { ...record, ...(record.media === "games" ? { reason: record.reason ?? "played" } : {}), title: entry?.title ?? record.title, periodLabel: entry?.periodLabel ?? "", available: Boolean(entry), entry: entry ? { ...entry, hiddenKey: record.hideKey, favorite: record.media !== "games" && stateKeys(entry).some(key => favorites.has(key)) } : null };
+    const source = byMedia.get(record.media).get(record.hideKey);
+    const entry = source && record.media === "games" ? { ...source, note: notes[String(source.appid)] ?? "" } : source;
+    return { ...record, ...(record.media === "games" ? { reason: record.reason ?? "played" } : {}), title: entry?.title ?? record.title, periodLabel: entry?.periodLabel ?? "", available: Boolean(entry), entry: entry ? { ...entry, hiddenKey: record.hideKey, favorite: record.media !== "games" && stateKeys(entry).some(key => favorites.has(key)), ...(record.media === "games" ? { favoriteKind: null } : {}) } : null };
   }).sort((a, b) => String(b.hiddenAt).localeCompare(String(a.hiddenAt)));
+}
+
+export function setGameNote(dataDir, entryId, text) {
+  const entry = sourceEntries(dataDir, "games").entries.find(item => item.id === entryId);
+  if (!entry) throw new Error("遊戲已變更或不存在，請重新讀取清單");
+  saveGameNote(dataDir, entry.appid, text);
 }
 
 export function restoreHiddenEntry(dataDir, hideKey) {

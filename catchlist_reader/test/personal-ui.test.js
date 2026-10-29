@@ -66,6 +66,6 @@ test("收錄狀態與新增紀錄分開，其他類別失敗不污染目前摘�
 test("遊戲分類導覽提供候補、玩過了與暫不考慮，其他媒體不增加入口", () => {
   const markup = viewNavigation("played", "games", [], 9, { backlog: 2, played: 4, not_interested: 3 });
   for (const key of ["watchlist", "backlog", "played", "not_interested"]) assert.ok(markup.includes(`data-view="${key}"`));
-  assert.match(markup, /data-view="played" aria-pressed="true">玩過了<span>4/);
+  assert.match(markup, /data-view="played" aria-pressed="true"[^>]*>玩過<span>4/);
   assert.doesNotMatch(viewNavigation("all", "anime", [], 0), /data-view="played"|data-view="not_interested"/);
 });

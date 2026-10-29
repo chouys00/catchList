@@ -1,6 +1,11 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("catchList", {
+  confirmSteam: requestId => ipcRenderer.invoke("steam:confirm", requestId),
+  cancelSteamConfirmation: requestId => ipcRenderer.invoke("steam:cancel", requestId),
+  steamWebsiteStatus: () => ipcRenderer.invoke("steam:status"),
+  clearSteamWebsiteData: () => ipcRenderer.invoke("steam:clear"),
+  refreshGame: (appid) => ipcRenderer.invoke("games:refresh", appid),
   resolveGameScreenshots: (appid) => ipcRenderer.invoke("games:screenshots", appid),
   previewGameBatch: (appids, action, reason) => ipcRenderer.invoke("games:preview-batch", appids, action, reason),
   cancelGameBatchPreview: () => ipcRenderer.invoke("games:cancel-batch"),
@@ -12,7 +17,8 @@ contextBridge.exposeInMainWorld("catchList", {
   cancelGamePreview: () => ipcRenderer.invoke("games:cancel-preview"),
   addGame: (token, destination) => ipcRenderer.invoke("games:add", token, destination),
   load: (media) => ipcRenderer.invoke("library:load", media),
-  setFavorite: (media, entryId, favorite) => ipcRenderer.invoke("library:set-favorite", media, entryId, favorite),
+  setGameNote: (entryId, text) => ipcRenderer.invoke("library:set-game-note", entryId, text),
+  setFavorite: (media, entryId, favorite, favoriteKind) => ipcRenderer.invoke("library:set-favorite", media, entryId, favorite, favoriteKind),
   setHiddenReason: (key, reason) => ipcRenderer.invoke("library:set-hidden-reason", key, reason),
   favoriteBacklog: (id) => ipcRenderer.invoke("library:favorite-backlog", id),
   restoreHidden: (hideKey) => ipcRenderer.invoke("library:restore-hidden", hideKey),

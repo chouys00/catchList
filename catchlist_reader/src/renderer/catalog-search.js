@@ -13,7 +13,7 @@ export function catalogGames(payload) {
   for (const record of payload.hiddenEntries ?? []) {
     if (record.media !== "games" || !record.available || !record.entry) continue;
     const entry = record.entry;
-    games.set(key(entry), { ...entry, favorite: false, hiddenKey: record.hideKey, catalogReason: record.reason ?? "played" });
+    games.set(key(entry), { ...entry, favorite: false, favoriteKind: null, hiddenKey: record.hideKey, catalogReason: record.reason ?? "played" });
   }
   const result = [...games.values()];
   snapshots.set(payload, result);
@@ -22,7 +22,7 @@ export function catalogGames(payload) {
 
 export function catalogLabels(entry) {
   const labels = [];
-  if (entry.favorite && !entry.catalogReason) labels.push("待玩收藏");
+  if (entry.favorite && !entry.catalogReason) labels.push(entry.favoriteKind === "shared" ? "共樂收藏" : "個人收藏");
   if (entry.catalogReason) labels.push(hiddenReasons[entry.catalogReason] ?? "隱藏管理");
   return labels.length ? labels : ["尚未分類"];
 }

@@ -1,0 +1,20 @@
+.steam-confirmation-shell { margin: 0; background: var(--surface); color: var(--ink); font-family: var(--sans); }
+.steam-confirmation-header { box-sizing: border-box; height: 156px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.steam-confirmation-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.steam-confirmation-heading > div:first-child { min-width: 0; }
+.steam-confirmation-heading .panel-kicker { margin: 0 0 4px; color: var(--lime); font-size: 12px; letter-spacing: .08em; }
+.steam-confirmation-heading h1 { margin: 0; font: 500 22px/1.3 var(--serif); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.steam-confirmation-actions { display: flex; flex-shrink: 0; gap: 8px; }
+.steam-confirmation-actions .button { min-height: 44px; font-family: var(--sans); }
+.steam-confirmation-actions .subtle { color: var(--ink); }
+.steam-confirmation-url { margin: 10px 0 5px; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#steamMessage { margin: 0; font-size: 14px; line-height: 1.5; max-height: 3em; overflow-y: auto; }
+.steam-confirmation-shell button:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
+@media (max-width: 560px) {
+  .steam-confirmation-header { height: 202px; padding: 14px 16px; }
+  .steam-confirmation-heading { align-items: stretch; flex-direction: column; gap: 10px; }
+  .steam-confirmation-actions .button { flex: 1; }
+  .steam-confirmation-actions { width: 100%; }
+  .steam-confirmation-heading h1 { font-size: 20px; }
+  #steamMessage { font-size: 13px; }
+}

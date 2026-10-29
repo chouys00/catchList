@@ -47,12 +47,15 @@ app.whenReady().then(async () => {
   await until("document.querySelectorAll('[data-game-row]').length === 50");
   assert.deepEqual(await rowIds(), expectedIds({ sort: "date" }));
   const performanceResults = [];
-  for (const [sort, direction] of [["score", "desc"], ["score", "asc"], ["date", "desc"], ["date", "asc"]]) {
+  assert.equal(await js("getComputedStyle(document.querySelector('[data-filter=sort]')).display"), "none");
+  for (const [sort, direction] of [["reviews", "desc"], ["reviews", "asc"], ["score", "desc"], ["score", "asc"], ["date", "desc"], ["date", "asc"]]) {
     const elapsed = await js(`new Promise(resolve => { const start = performance.now(); document.querySelector('[data-game-sort="${sort}"]').click(); const queryAndDOMMs = performance.now() - start; requestAnimationFrame(() => requestAnimationFrame(() => resolve({ queryAndDOMMs, nextFrameMs: performance.now() - start }))); })`);
     performanceResults.push({ sort, direction, queryAndDOMMs: Number(elapsed.queryAndDOMMs.toFixed(1)), nextFrameMs: Number(elapsed.nextFrameMs.toFixed(1)) });
     assert.deepEqual(await rowIds(), expectedIds({ sort, sortDirection: direction }));
     assert.equal(await js("document.querySelector('[data-filter=sort]').value"), `${sort}:${direction}`);
     assert.equal(await js(`document.querySelector('[data-game-sort="${sort}"] .sort-arrow').textContent`), direction === "asc" ? "↑" : "↓");
+    assert.equal(await js(`document.querySelector('[data-game-sort="${sort}"]').getAttribute('aria-pressed')`), "true");
+    assert.equal(await js("document.querySelectorAll('.column-sort.active').length"), 1);
     assert.equal(await js("document.activeElement.dataset.gameSort"), sort);
   }
   // 以真正鍵盤事件驗證原生表頭按鈕的 Enter 行為。
@@ -137,10 +140,10 @@ app.whenReady().then(async () => {
   assert.equal(await js("document.querySelector('[data-filter=min]').value"), "");
   assert.equal(await js("document.querySelector('[data-filter=max]').value"), "");
   await fill("min", "90"); await fill("max", "95");
-  const output = path.resolve(root, "../output/reader-rating-presets");
+  const output = path.resolve(root, "../output/reader-sort-toolbar");
   fs.mkdirSync(output, { recursive: true });
   const layout = [];
-  for (const width of [1440, 1100, 1024, 900, 760, 390]) {
+  for (const width of [1440, 1100, 1051, 1050, 1024, 900, 760, 390]) {
     win.setContentSize(width, 950); await pause();
     await js("window.scrollTo(0,0)"); await pause();
     const metrics = await js(`(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth, inputHeight: document.querySelector('[data-filter=max]').getBoundingClientRect().height, headerVisible: getComputedStyle(document.querySelector('.game-column-header')).display !== 'none' }))()`);
@@ -149,6 +152,9 @@ app.whenReady().then(async () => {
     assert.equal(bounds[0].top, bounds[1].top);
     if (width >= 1024) { assert.ok(Math.abs(bounds[0].top - bounds[2].top) <= 1); assert.equal(bounds[0].height, bounds[2].height); }
     assert.ok(metrics.scrollWidth <= metrics.clientWidth, JSON.stringify(metrics));
+    const selectVisible = await js("document.querySelector('[data-filter=sort]').getClientRects().length > 0");
+    assert.equal(metrics.headerVisible, width > 1050);
+    assert.equal(selectVisible, !metrics.headerVisible, "表頭與下拉選單只顯示其中一個排序入口");
     if (width === 390) { assert.ok(metrics.inputHeight >= 44); assert.equal(metrics.headerVisible, false); }
     layout.push(metrics);
     if ([1440, 1024, 390].includes(width)) {
@@ -160,6 +166,14 @@ app.whenReady().then(async () => {
       await sendKey('Escape');
     }
   }
+  await chooseSort("reviews:asc");
+  assert.deepEqual(await rowIds(), expectedIds({ min: "90", max: "95", sort: "reviews", sortDirection: "asc" }));
+  win.setContentSize(1440, 950); await pause();
+  assert.equal(await js("document.querySelector('[data-game-sort=reviews]').getAttribute('aria-pressed')"), "true");
+  await click('[data-game-sort=reviews]');
+  assert.deepEqual(await rowIds(), expectedIds({ min: "90", max: "95", sort: "reviews", sortDirection: "desc" }));
+  win.setContentSize(390, 950); await pause();
+  assert.equal(await js("document.querySelector('[data-filter=sort]').value"), "reviews:desc");
   await chooseSort("score:asc");
   assert.deepEqual(await rowIds(), expectedIds({ min: "90", max: "95", sort: "score", sortDirection: "asc" }));
   assert.ok(await js("document.querySelector('.list').getBoundingClientRect().top >= -1"), "窄版表頭隱藏時仍回到列表起點");

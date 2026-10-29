@@ -2,14 +2,19 @@ import { app, BrowserWindow, clipboard, dialog, ipcMain, session, shell } from "
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { setTimeout as wait } from "node:timers/promises";
 
-import { parseReport, sourceEntries, deleteEntry, hasReportFiles, hideEntry, loadAllLibraries, undoHide, setFavorite, loadHiddenEntries, restoreHiddenEntry, setHiddenReason, favoriteBacklogEntry, undoHiddenReason } from "./library.js";
+import { setGameNote, parseReport, sourceEntries, deleteEntry, hasReportFiles, hideEntry, loadAllLibraries, undoHide, setFavorite, loadHiddenEntries, restoreHiddenEntry, setHiddenReason, favoriteBacklogEntry, undoHiddenReason } from "./library.js";
 import { loadUpdateStatus } from "./update-status.js";
 import { GameCoverCache, GameCoverService } from "./game-cover-cache.js";
 import { resolveSteamCover } from "./steam-covers.js";
 import { ReportCache } from "./report-cache.js";
 import { VisitHistory } from "./visit-history.js";
 import { ManualGameService } from "./manual-game-service.js";
+import { GameRefreshService } from "./game-refresh-service.js";
+import { SteamAccess } from "./steam-access.js";
+import { SteamConfirmation } from "./steam-confirmation.js";
+import { parseSteamInput } from "./steam-game-lookup.js";
 import { GameBatchService } from "./game-batch-service.js";
 import { CoverRequestLog } from "./cover-request-log.js";
 import { GameScreenshots } from "./game-screenshots.js";
@@ -41,7 +46,20 @@ function animeEntry(id) {
 }
 const visits = new VisitHistory();
 const reportCache = new ReportCache(parseReport);
-const manualGames = new ManualGameService();
+let steamAccess;
+function steamService() { return steamAccess ??= new SteamAccess({ getParent: () => mainWindow }); }
+async function waitForSteamSlot(service, signal) {
+  const remaining = service.nextRequest - Date.now();
+  if (remaining > 1500) throw new Error("Steam 暫時限制請求，請稍後重新讀取");
+  if (remaining > 0) await wait(remaining, undefined, { signal });
+}
+const openSteam = options => steamService().open(options);
+openSteam.focus = () => steamService().focus();
+const steamConfirmation = new SteamConfirmation({ open: openSteam });
+let manualEpoch = 0;
+let directoryEpoch = 0;
+const manualGames = new ManualGameService({ lookup: (input, options) => steamService().lookupGame(input, options) });
+const gameRefresh = new GameRefreshService({ lookup: (input, options) => steamService().lookupStats(input, options) });
 const gameBatch = new GameBatchService();
 let activeMedia = "games";
 
@@ -103,6 +121,39 @@ async function resolveGameCovers(appids) {
 }
 
 function registerIpc() {
+  const trusted = event => {
+    if (!mainWindow || event.sender !== mainWindow.webContents || event.senderFrame !== mainWindow.webContents.mainFrame) throw new Error("不允許的閱讀器操作來源");
+  };
+  ipcMain.handle("steam:confirm", (event, requestId) => { trusted(event); return steamConfirmation.start(requestId); });
+  ipcMain.handle("steam:cancel", (event, requestId) => { trusted(event); steamConfirmation.cancel(null, requestId); });
+  ipcMain.handle("steam:status", event => { trusted(event); return steamService().status(); });
+  ipcMain.handle("steam:clear", async event => {
+    trusted(event);
+    if (steamConfirmation.request?.promise) throw new Error("請先完成或取消 Steam 確認");
+    const answer = await dialog.showMessageBox(mainWindow, { type: "question", title: "清除 Steam 網頁資料", message: "清除閱讀器內的 Steam 登入與確認狀態？",
+      detail: "下次可能需要重新登入或確認。清單、收藏與個人紀錄不受影響。", buttons: ["取消", "清除網頁資料"], defaultId: 0, cancelId: 0 });
+    if (answer.response !== 1) return { ...await steamService().status(), cancelled: true };
+    steamConfirmation.cancel();
+    return steamService().clear();
+  });
+  ipcMain.handle("games:refresh", async (event, input) => {
+    trusted(event);
+    if (!dataDir) throw new Error("請先選擇資料夾");
+    const appid = parseSteamInput(input);
+    const directory = dataDir;
+    const epoch = directoryEpoch;
+    const valid = () => dataDir === directory && epoch === directoryEpoch;
+    try { await gameRefresh.refresh(directory, appid, { valid }); return snapshot(); }
+    catch (error) {
+      if (error.code !== "STEAM_VERIFICATION_REQUIRED") throw error;
+      const title = sourceEntries(directory, "games", { strict: true }).entries.find(entry => entry.appid === appid)?.title ?? appid;
+      return steamConfirmation.issue({ appid, title, kind: "refresh", valid, retry: async options => {
+        await waitForSteamSlot(gameRefresh, options.signal);
+        await gameRefresh.refresh(directory, appid, options);
+        return snapshot();
+      } });
+    }
+  });
   ipcMain.handle("games:screenshots", (_event, appid) => {
     if (!dataDir || !sourceEntries(dataDir, "games", { reportCache }).entries.some(entry => String(entry.appid) === String(appid))) throw new Error("遊戲已不在目前清單中");
     gameScreenshots ??= new GameScreenshots(path.join(app.getPath("userData"), "steam-screenshots.json"));
@@ -124,25 +175,55 @@ function registerIpc() {
   ipcMain.handle("anime:resolve-media", (_event, id, retry) => animeService().resolve(animeEntry(id), { retry: retry === true }));
   ipcMain.handle("anime:search-media", (_event, id, query) => { animeEntry(id); return animeService().search(query); });
   ipcMain.handle("anime:select-media", (_event, id, malId) => animeService().select(animeEntry(id), malId));
-  ipcMain.handle("games:preview", (_event, input) => {
+  ipcMain.handle("games:preview", async (event, input) => {
+    trusted(event);
     if (!dataDir || activeMedia !== "games") throw new Error("請先開啟遊戲頁並選擇資料夾");
-    return manualGames.prepare(dataDir, input);
+    steamConfirmation.cancel("preview");
+    const epoch = ++manualEpoch;
+    const dirEpoch = directoryEpoch;
+    const directory = dataDir;
+    const appid = parseSteamInput(input);
+    const valid = () => manualEpoch === epoch && directoryEpoch === dirEpoch && dataDir === directory && activeMedia === "games";
+    const retry = async ({ signal }) => {
+      await waitForSteamSlot(manualGames, signal);
+      const result = await manualGames.prepare(directory, appid);
+      if (result.game?.verificationRequired) throw new Error("Steam 仍要求確認，尚未補齊社群標籤");
+      return result;
+    };
+    const createVerification = title => steamConfirmation.issue({ appid, title, kind: "preview", valid, retry });
+    try {
+      const result = await manualGames.prepare(directory, appid);
+      if (!valid()) throw new Error("遊戲預覽已取消");
+      if (result.game?.verificationRequired) result.verification = createVerification(result.game.title);
+      return result;
+    } catch (error) {
+      if (error.code !== "STEAM_VERIFICATION_REQUIRED" || !valid()) throw error;
+      return { verification: createVerification(appid) };
+    }
   });
-  ipcMain.handle("games:cancel-preview", () => { manualGames.cancel(); });
-  ipcMain.handle("games:add", (_event, token, destination) => {
+  ipcMain.handle("games:cancel-preview", event => { trusted(event); ++manualEpoch; steamConfirmation.cancel("preview"); manualGames.cancel(); });
+  ipcMain.handle("games:add", (event, token, destination) => {
+    trusted(event);
     if (!dataDir || activeMedia !== "games") throw new Error("請先開啟遊戲頁");
     const appid = manualGames.commit(dataDir, token, destination);
+    ++manualEpoch; steamConfirmation.cancel("preview");
     return { ...snapshot(), addedAppid: appid };
   });
   ipcMain.handle("library:load", (_event, media) => {
     gameBatch.cancel();
-    if (media !== "games") manualGames.cancel();
+    if (media !== "games") { ++manualEpoch; steamConfirmation.cancel(); manualGames.cancel(); }
     if (["games", "anime", "movies", "liveAction"].includes(media)) activeMedia = media;
     return snapshot();
   });
-  ipcMain.handle("library:set-favorite", (_event, media, entryId, favorite) => {
+  ipcMain.handle("library:set-game-note", (event, entryId, text) => {
+    trusted(event);
     if (!dataDir) throw new Error("尚未選擇資料夾");
-    setFavorite(dataDir, media, entryId, favorite);
+    setGameNote(dataDir, entryId, text);
+    return snapshot();
+  });
+  ipcMain.handle("library:set-favorite", (_event, media, entryId, favorite, favoriteKind) => {
+    if (!dataDir) throw new Error("尚未選擇資料夾");
+    setFavorite(dataDir, media, entryId, favorite, favoriteKind);
     return snapshot();
   });
   ipcMain.handle("library:set-hidden-reason", (_event, key, reason) => {
@@ -170,7 +251,7 @@ function registerIpc() {
     if (result.canceled) return snapshot();
     const selected = result.filePaths[0];
     if (!hasReportFiles(selected)) throw new Error("這個資料夾找不到 CatchList 報告或手動遊戲清單");
-    manualGames.cancel();
+    ++directoryEpoch; ++manualEpoch; steamConfirmation.cancel(); manualGames.cancel();
     gameBatch.cancel();
     dataDir = selected;
     saveDirectory(dataDir);
@@ -225,6 +306,7 @@ function createWindow() {
   mainWindow.removeMenu();
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   mainWindow.webContents.on("will-navigate", (event) => event.preventDefault());
+  mainWindow.on("closed", () => { ++directoryEpoch; ++manualEpoch; steamConfirmation.cancel(); manualGames.cancel(); });
   mainWindow.loadFile(path.join(sourceDir, "renderer", "index.html"));
 }
 
@@ -240,7 +322,7 @@ app.whenReady().then(() => {
   app.on("activate", () => BrowserWindow.getAllWindows().length === 0 && createWindow());
 });
 
-app.on("before-quit", () => coverRequestLog?.finish());
+app.on("before-quit", () => { steamConfirmation.cancel(); coverRequestLog?.finish(); });
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();

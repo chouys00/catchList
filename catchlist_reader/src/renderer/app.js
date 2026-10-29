@@ -1,5 +1,8 @@
+import { openGameNote } from "./game-note-ui.js";
 import { collectTagOptionsFromIndex, createTagIndex, createGameQuery, ratingRangeError } from "./game-browser.js";
 import { openManualGamePanel } from "./manual-game-panel.js";
+import { refreshingGames } from "./game-refresh-ui.js";
+import { requestSteamConfirmation } from "./steam-verification-ui.js";
 import { formatGameTitleCopyText, renderItemTemplate, renderGameTags } from "./item-template.js";
 import { entriesForView, viewNavigation, hiddenListMarkup, updateStatusMarkup, hiddenReasons, reasonOptions } from "./personal-ui.js";
 
@@ -10,6 +13,7 @@ import { RatingInputs, ratingInputMarkup } from "./rating-input.js";
 
 const GAME_BATCH_SIZE = 50;
 const MAX_EXTERNAL_BATCH_SIZE = 50;
+const awaitingSteamGames = new Set();
 
 const mediaCopy = {
   games: { title: "遊戲探索", search: "搜尋遊戲名稱或 Steam AppID…" },
@@ -237,7 +241,7 @@ function catalogSwitch() {
 
 function toolbar(data, count, openLabel) {
   const filter = state.filters[state.active];
-  const sorts = state.active === "games" ? [["date:desc", "發售日最新"], ["date:asc", "發售日最舊"], ["score:desc", "好評率最高"], ["score:asc", "好評率最低"], ["reviews:desc", "評論數最多"]]
+  const sorts = state.active === "games" ? [["date:desc", "發售日最新"], ["date:asc", "發售日最舊"], ["score:desc", "好評率最高"], ["score:asc", "好評率最低"], ["reviews:desc", "評論數最多"], ["reviews:asc", "評論數最少"]]
     : [["score", "評分最高"], ["date", "年份最新"], ...(state.active === "anime" ? [] : [["reviews", "票數最多"]])];
   const selected = state.active === "games" ? `${filter.sort}:${filter.sortDirection}` : filter.sort ?? "score";
   const newCount = entriesForView(data.entries, state.view).filter((entry) => entry.isNew).length;
@@ -318,7 +322,7 @@ function entriesMarkup(entries) {
       expanded: state.expandedGameTags.has(String(entry.appid ?? entry.id)),
       tagLimit: gameTagLimit(),
     } : undefined)).join("")
-    : `<div class="empty">${searchingCatalog() ? (state.catalogQuery.trim() ? "全部收錄中沒有符合的遊戲。<br>可試試原文名稱或 Steam AppID。" : "輸入遊戲名稱或 Steam AppID<br>一次查詢全部、收藏、待觀察、候補、玩過了與暫不考慮。") : state.view === "favorites" ? "目前沒有符合條件的收藏。<br>可調整篩選，或回到全部清單按作品旁的書籤加入收藏。" : "目前沒有符合條件的作品。<br>可調整搜尋文字或篩選條件。"}</div>`;
+    : `<div class="empty">${searchingCatalog() ? (state.catalogQuery.trim() ? "全部收錄中沒有符合的遊戲。<br>可試試原文名稱或 Steam AppID。" : "輸入遊戲名稱或 Steam AppID<br>一次查詢全部、個人收藏、共樂收藏、待觀察、候補、玩過了與暫不考慮。") : ["favorites", "shared"].includes(state.view) ? `目前沒有符合條件的${state.active === "games" ? state.view === "shared" ? "共樂收藏" : "個人收藏" : "收藏"}。<br>可調整篩選，或回到全部清單按作品旁的收藏圖示加入。` : "目前沒有符合條件的作品。<br>可調整搜尋文字或篩選條件。"}</div>`;
 }
 
 function gameLoadControlMarkup(visibleCount, totalCount) {
@@ -333,14 +337,14 @@ function gameListMarkup(entries) {
 
 function gameColumnHeader() {
   const filter = state.filters.games;
-  const sortable = (key, label) => {
+  const sortable = (key, label, text = label) => {
     const active = filter.sort === key;
     const ascending = filter.sortDirection === "asc";
     const next = active && !ascending ? "由小到大" : "由大到小";
     const order = key === "date" ? (next === "由小到大" ? "由舊到新" : "由新到舊") : next;
-    return `<button class="column-sort${active ? " active" : ""}" type="button" data-game-sort="${key}" aria-label="${label}，${active ? `目前${ascending ? "遞增" : "遞減"}，` : ""}點擊${order}" title="${label}：${order}">${label}<span class="sort-arrow" aria-hidden="true">${active ? ascending ? "↑" : "↓" : "↕"}</span></button>`;
+    return `<button class="column-sort${active ? " active" : ""}" type="button" data-game-sort="${key}" aria-pressed="${active}" aria-label="${label}，${active ? `目前${ascending ? "遞增" : "遞減"}，` : ""}點擊${order}" title="${label}：${order}">${text}<span class="sort-arrow" aria-hidden="true">${active ? ascending ? "↑" : "↓" : "↕"}</span></button>`;
   };
-  return `<div class="game-column-header"><span>封面</span><span>遊戲名稱</span>${sortable("score", "好評率")}${sortable("date", "發售日")}<span class="center">中文</span><span class="center" title="一人圖示：單人；群像圖示：多人；問號：未確認">模式</span><span>社群標籤</span><span class="center">管理</span></div>`;
+  return `<div class="game-column-header"><span>封面</span><span>遊戲名稱</span><div class="rating-column-sorts" role="group" aria-label="評價排序">${sortable("score", "好評率")}${sortable("reviews", "評論數", "評論")}</div>${sortable("date", "發售日")}<span class="center">中文</span><span class="center" title="一人圖示：單人；群像圖示：多人；問號：未確認">模式</span><span>社群標籤</span><span class="center">管理</span></div>`;
 }
 
 function applyGameSort(sort, sortDirection, focusHeader = false) {
@@ -412,7 +416,7 @@ function refreshResults({ hydrateCovers = true, resetGames = true } = {}) {
   const entries = filteredEntries();
   const count = app.querySelector("[data-result-count]");
   const screeningLaunch = app.querySelector('[data-action="screen-games"]');
-  if (screeningLaunch) screeningLaunch.disabled = state.view !== "all" || searchingCatalog() || !entries.length;
+  if (screeningLaunch) screeningLaunch.disabled = !["all", "favorites", "shared"].includes(state.view) || searchingCatalog() || !entries.length;
   const openFiltered = app.querySelector('[data-action="open-filtered"]');
   const list = app.querySelector(".list");
   if (!count || !list) return;
@@ -576,7 +580,7 @@ function render() {
   const hidden = (state.payload.hiddenEntries ?? []).filter((entry) => entry.media === state.active);
   const navigation = viewNavigation(searchingCatalog() ? "catalog" : state.view, state.active, state.payload.libraries.find(item => item.media === state.active)?.entries ?? [], hidden.length, Object.fromEntries(Object.keys(hiddenReasons).map(reason => [reason, hidden.filter(record => (record.reason ?? "played") === reason && record.available).length])));
   const update = updateStatusMarkup(state.payload, state.active, state.statusOpen);
-  const operations = state.active === "games" ? `${state.view === "hidden" && !searchingCatalog() ? catalogSwitch() : ""}<button class="button screening-launch" type="button" data-action="screen-games" ${state.view !== "all" || searchingCatalog() || !filteredEntries().length ? "disabled" : ""}>截圖快篩 <span aria-hidden="true">→</span></button><button class="button add-game-button" type="button" data-action="add-game" ${data.warning ? "disabled" : ""}><span aria-hidden="true">＋</span>新增遊戲</button>` : "";
+  const operations = state.active === "games" ? `${state.view === "hidden" && !searchingCatalog() ? catalogSwitch() : ""}<button class="button screening-launch" type="button" data-action="screen-games" ${!["all", "favorites", "shared"].includes(state.view) || searchingCatalog() || !filteredEntries().length ? "disabled" : ""}>截圖快篩 <span aria-hidden="true">→</span></button><button class="button add-game-button" type="button" data-action="add-game" ${data.warning ? "disabled" : ""}><span aria-hidden="true">＋</span>新增遊戲</button>` : "";
   const heading = `<div class="browse-heading">${navigation}<div class="browse-tools">${update}${operations}</div></div>${data.warning ? `<p class="status-warning" role="alert">${escapeHtml(data.warning)}</p>` : ""}${data.integrityWarning ? `<p class="status-warning" role="alert">${escapeHtml(data.integrityWarning)}</p>` : ""}`;
   stopGameAutoLoad();
   if (state.view === "hidden" && !searchingCatalog()) {
@@ -590,7 +594,7 @@ function render() {
   if (isGames) syncGameTagViewport();
   const openLabel = state.active === "liveAction" ? `開啟目前結果 ${entries.length}` : `搜尋目前結果 ${entries.length}`;
   stopGameAutoLoad();
-  app.innerHTML = `<div class="layout"><section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1>${heading}${isGames && state.view === "watchlist" && !searchingCatalog() ? `<aside class="watchlist-note" aria-label="待觀察說明"><div><strong>先留住興趣，之後再決定</strong><p>未上市、上市未滿六個月，或想再看看評價的遊戲，先放在這裡。一般列表不會顯示。</p><small>點遊戲名稱到 Steam 查看最新評價；決定想玩時，按書籤移到待玩收藏。手動資料保留加入時的評價，月報收錄後才會改用報告資料。</small></div></aside>` : ""}${toolbar(viewData, entries.length, openLabel)}${state.payload.visitWarning ? `<p class="status-warning" role="alert">${escapeHtml(state.payload.visitWarning)}</p>` : ""}${state.filters[state.active].newOnly && !searchingCatalog() ? '<p class="new-note">顯示本次來訪新增的作品。首次使用先建立基準；重新讀取不會清除本次標記。</p>' : ""}${isGames ? batchToolbar() + gameColumnHeader() : ""}<div class="list">${isGames ? gameListMarkup(entries) : entriesMarkup(entries)}</div></section></div>`;
+  app.innerHTML = `<div class="layout"><section class="content"><h1 class="sr-only">${mediaCopy[state.active].title}</h1>${heading}${isGames && state.view === "watchlist" && !searchingCatalog() ? `<aside class="watchlist-note" aria-label="待觀察說明"><div><strong>先留住興趣，之後再決定</strong><p>未上市、上市未滿六個月，或想再看看評價的遊戲，先放在這裡。一般列表不會顯示。</p><small>點遊戲名稱到 Steam 查看最新評價；決定想玩時，按書籤或書籤加雙人角標圖示移到個人收藏或共樂收藏。手動資料保留加入時的評價，月報收錄後才會改用報告資料。</small></div></aside>` : ""}${toolbar(viewData, entries.length, openLabel)}${state.payload.visitWarning ? `<p class="status-warning" role="alert">${escapeHtml(state.payload.visitWarning)}</p>` : ""}${state.filters[state.active].newOnly && !searchingCatalog() ? '<p class="new-note">顯示本次來訪新增的作品。首次使用先建立基準；重新讀取不會清除本次標記。</p>' : ""}${isGames ? batchToolbar() + gameColumnHeader() : ""}<div class="list">${isGames ? gameListMarkup(entries) : entriesMarkup(entries)}</div></section></div>`;
   if (isGames) {
     syncTagOptionsOverflow();
     setupGameAutoLoad();
@@ -725,6 +729,40 @@ async function openBatch(urls, label) {
 
 document.addEventListener("click", async (event) => {
   if (state.mutationPending && event.target.closest("#app, .tab, [data-action=undo], [data-action=choose-folder]")) return;
+  const refresh = event.target.closest("[data-refresh-game]");
+  if (refresh) {
+    const appid = refresh.dataset.refreshGame;
+    if (refreshingGames.has(appid) || awaitingSteamGames.has(appid)) return;
+    const directory = state.payload?.dataDir;
+    refreshingGames.add(appid);
+    refresh.disabled = true;
+    refresh.setAttribute("aria-busy", "true");
+    refresh.title = "更新中…";
+    refresh.setAttribute("aria-label", `${refresh.getAttribute("aria-label")}，更新中`);
+    try {
+      let payload = await window.catchList.refreshGame(appid);
+      if (payload.status === "verification-required") {
+        refreshingGames.delete(appid);
+        awaitingSteamGames.add(appid);
+        refresh.setAttribute("aria-busy", "false");
+        refresh.title = "等待 Steam 確認";
+        const confirmation = await requestSteamConfirmation(payload);
+        if (confirmation.status !== "completed") { showToast("已取消更新，原資訊已保留"); return; }
+        payload = confirmation.result;
+      }
+      if (directory === state.payload?.dataDir && payload.dataDir === directory) state.payload = payload;
+      showToast("已更新遊戲的標籤、好評率與評論數");
+    } catch (error) { showToast(`更新失敗，保留原資訊：${error.message}`); }
+    finally {
+      refreshingGames.delete(appid);
+      awaitingSteamGames.delete(appid);
+      const y = window.scrollY;
+      render();
+      window.scrollTo({ top: y, behavior: "instant" });
+      document.querySelector(`[data-refresh-game="${appid}"]`)?.focus({ preventScroll: true });
+    }
+    return;
+  }
   const modeButton = event.target.closest("[data-player-mode]");
   if (modeButton && state.active === "games") {
     clearGameSelection();
@@ -819,7 +857,7 @@ document.addEventListener("click", async (event) => {
       return;
     }
     if (action === "add-game" && state.active === "games") {
-      openManualGamePanel({ destination: state.view === "watchlist" ? "watchlist" : "backlog", onSaved: (payload) => { clearGameSelection(); const y = window.scrollY; state.payload = payload; toast.classList.remove("show"); render(); window.scrollTo({ top: y, behavior: "instant" }); }, onView: viewGame });
+      openManualGamePanel({ destination: ["watchlist", "favorites", "shared"].includes(state.view) ? state.view : "backlog", onSaved: (payload) => { clearGameSelection(); const y = window.scrollY; state.payload = payload; toast.classList.remove("show"); render(); window.scrollTo({ top: y, behavior: "instant" }); }, onView: viewGame });
     }
     if (action === "toggle-filters") {
       state.filtersOpen = !state.filtersOpen;
@@ -838,6 +876,24 @@ document.addEventListener("click", async (event) => {
       input?.focus({ preventScroll: true });
       return;
     }
+    const noteId = event.target.closest("[data-game-note]")?.dataset.gameNote;
+    if (noteId) {
+      if (state.mutationPending) return;
+      const entry = catalogGames(state.payload).find(item => item.id === noteId);
+      if (!entry) throw new Error("遊戲已變更，請重新讀取");
+      openGameNote(entry, {
+        save: (id, text) => window.catchList.setGameNote(id, text),
+        onSaved: payload => {
+          const y = window.scrollY;
+          state.payload = payload;
+          render();
+          window.scrollTo({ top: y, behavior: "instant" });
+          showToast("備註已儲存");
+        },
+        onClose: () => app.querySelector(`[data-game-note="${CSS.escape(noteId)}"]`)?.focus({ preventScroll: true }),
+      });
+      return;
+    }
     const favoriteId = event.target.closest("[data-favorite]")?.dataset.favorite;
     const restoreKey = event.target.closest("[data-restore]")?.dataset.restore;
     if (favoriteId || restoreKey) {
@@ -848,11 +904,13 @@ document.addEventListener("click", async (event) => {
         if (favoriteId) {
           const entry = library().entries.find((item) => item.id === favoriteId);
           if (!entry) throw new Error("作品已變更，請重新讀取");
-          const fromBacklog = searchingCatalog() ? ["backlog", "watchlist"].includes(entry.catalogReason) : ["backlog", "watchlist"].includes(state.view);
-          state.payload = fromBacklog ? await window.catchList.favoriteBacklog(favoriteId) : await window.catchList.setFavorite(state.active, favoriteId, !entry.favorite);
+          const kind = event.target.closest("[data-favorite]").dataset.favoriteKind ?? "personal";
+          const wasSelected = entry.favorite && (state.active !== "games" || (entry.favoriteKind ?? "personal") === kind);
+          state.payload = await window.catchList.setFavorite(state.active, favoriteId, !wasSelected, kind);
           render();
-          app.querySelector(`[data-favorite="${CSS.escape(favoriteId)}"]`)?.focus({ preventScroll: true });
-          showToast(fromBacklog ? `已收藏並恢復「${entry.title}」` : entry.favorite ? `已取消收藏「${entry.title}」` : `已收藏「${entry.title}」`);
+          (app.querySelector(`[data-favorite="${CSS.escape(favoriteId)}"][data-favorite-kind="${kind}"]`) ?? app.querySelector(`[data-favorite="${CSS.escape(favoriteId)}"]`) ?? app.querySelector(`.view-button.active`))?.focus({ preventScroll: true });
+          const name = state.active === "games" ? kind === "shared" ? "共樂收藏" : "個人收藏" : "收藏";
+          showToast(`已${wasSelected ? "取消" : "加入"}${name}「${entry.title}」`);
         } else {
           const record = state.payload.hiddenEntries.find((item) => item.hideKey === restoreKey);
           state.payload = await window.catchList.restoreHidden(restoreKey);
@@ -1013,7 +1071,7 @@ function viewGame(appid) {
   state.catalogSearch = false;
   const entry = library("games").entries.find((item) => item.appid === appid);
   const hidden = state.payload.hiddenEntries.find((item) => item.media === "games" && item.entry?.appid === appid);
-  state.view = hidden ? hidden.reason ?? "played" : entry?.favorite ? "favorites" : "all";
+  state.view = hidden ? hidden.reason ?? "played" : entry?.favorite ? entry.favoriteKind === "shared" ? "shared" : "favorites" : "all";
   Object.assign(state.filters.games, { query: "", min: "", max: "", minReviews: "0", chinese: "all", playerMode: "all", tags: [], tagQuery: "", manualOnly: "all", newOnly: false });
   const index = filteredEntries().findIndex((entry) => entry.appid === appid);
   state.visibleGameCount = Math.max(GAME_BATCH_SIZE, Math.ceil((index + 1) / GAME_BATCH_SIZE) * GAME_BATCH_SIZE);

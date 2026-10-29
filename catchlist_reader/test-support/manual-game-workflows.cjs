@@ -32,7 +32,7 @@ app.whenReady().then(async () => {
   ipcMain.handle("games:add", (_, token, destination) => { const addedAppid = service.commit(temp, token, destination); return { ...snapshot(), addedAppid }; });
   ipcMain.handle("library:favorite-backlog", (_, id) => { lib.favoriteBacklogEntry(temp, id); return snapshot(); });
   ipcMain.handle("library:set-hidden-reason", (_, key, reason) => { lib.setHiddenReason(temp, key, reason); return snapshot(); });
-  ipcMain.handle("library:set-favorite", (_, media, id, value) => { lib.setFavorite(temp, media, id, value); return snapshot(); });
+  ipcMain.handle("library:set-favorite", (_, media, id, value, kind) => { lib.setFavorite(temp, media, id, value, kind); return snapshot(); });
   ipcMain.handle("library:hide-entry", (_, media, id, reason) => { lastOperation = lib.hideEntry(temp, media, id, reason); return snapshot(); });
   ipcMain.handle("library:restore-hidden", (_, key) => { lib.restoreHiddenEntry(temp, key); return snapshot(); });
   ipcMain.handle("library:delete-entry", (_, media, id) => { lib.deleteEntry(temp, media, id); return snapshot(); });
@@ -81,8 +81,8 @@ app.whenReady().then(async () => {
   await openPanel(); await preview("123");
   assert.equal(fs.existsSync(path.join(temp, ".catchlist-manual-games.json")), false);
   assert.equal(await js('document.querySelector("[data-panel-save]").textContent'), "加入候補");
-  await click('input[value="favorites"]');
-  assert.equal(await js('document.querySelector("[data-panel-save]").textContent'), "加入收藏");
+  await click('input[value="shared"]');
+  assert.equal(await js('document.querySelector("[data-panel-save]").textContent'), "加入共樂收藏");
   await capture("manual-preview-desktop");
   for (const width of [1440, 1024, 390]) {
     win.setContentSize(width, 900);
@@ -97,8 +97,12 @@ app.whenReady().then(async () => {
   assert.ok(await js('!!document.querySelector("[data-game-row=\\"123\\"] .manual-source")'));
   assert.equal(await js('document.querySelector("[data-filter=query]").value'), "");
 
+  await click('[data-view="shared"]');
+  assert.equal(await js('document.querySelector("[data-game-row=\\"123\\"] [data-favorite-kind=shared]").getAttribute("aria-pressed")'), "true");
+  assert.equal(lib.loadLibrary(temp, "games").entries.find(e => e.appid === "123").favoriteKind, "shared");
+  await click('[data-game-row="123"] [data-favorite-kind="personal"]');
+  await until('!document.querySelector("[data-game-row=\\"123\\"]")');
   await click('[data-view="favorites"]');
-  assert.equal(await js('document.querySelector("[data-game-row=\\"123\\"] [data-favorite]").getAttribute("aria-pressed")'), "true");
   await click('[data-game-row="123"] [data-hide]'); await click('[data-reason="played"]');
   await until('!document.querySelector("[data-game-row=\\"123\\"]")');
   await openPanel(); await preview("123"); assert.equal(await js('document.querySelector("[data-panel-save]").textContent'), "恢復並查看");
@@ -144,7 +148,7 @@ app.whenReady().then(async () => {
   await click('#dialogConfirm'); await until('!document.querySelector("[data-game-row=\\"123\\"]")');
   assert.equal(lib.loadLibrary(temp, "games").entries.length, 7);
   now += 60000;
-  await openPanel(); await preview("456");
+  await openPanel(); await preview("456"); await click('input[value="backlog"]');
   await click('[data-panel-save]'); await until('document.querySelector("[data-panel-save]").textContent === "查看新增遊戲"');
   assert.equal(lib.loadHiddenEntries(temp).find(e => e.entry?.appid === "456").reason, "backlog");
   await click('[data-panel-save]'); await until('!document.querySelector("#manualGameDialog")');
@@ -197,7 +201,20 @@ app.whenReady().then(async () => {
   await click('[data-screen="undo"]');
   await until('document.querySelector(".screening-info h3").textContent === ' + JSON.stringify(screeningTitle));
   await click('[data-screen="close"]');
-  assert.ok(!screenshotRequests.includes("456") && !screenshotRequests.includes("789"));
+  // 從個人收藏快篩改為共樂，再復原，必須還原原種類而非只還原布林值。
+  await click('[data-view="favorites"]');
+  await js('localStorage.clear()');
+  await click('[data-action="screen-games"]');
+  await until('document.querySelectorAll(".screening-shot").length === 1');
+  assert.match(await js('document.querySelector(".screening-info h3").textContent'), /朋友推薦/);
+  await click('[data-screen="shared"]');
+  await until('!!document.querySelector(".screening-empty")');
+  assert.equal(lib.loadLibrary(temp, "games").entries.find(e => e.appid === "789").favoriteKind, "shared");
+  await click('[data-screen="undo"]');
+  await until('!!document.querySelector(".screening-info")');
+  assert.equal(lib.loadLibrary(temp, "games").entries.find(e => e.appid === "789").favoriteKind, "personal");
+  await click('[data-screen="close"]');
+  assert.ok(!screenshotRequests.includes("456"));
   assert.equal(lib.loadHiddenEntries(temp).find(e => e.entry?.appid === "456").reason, "backlog");
   assert.equal(lib.loadLibrary(temp, "games").entries.find(e => e.appid === "789").favorite, true);
   assert.equal(fs.readFileSync(path.join(temp, "遊戲.md"), "utf8"), fixture);

@@ -154,7 +154,8 @@ test("評論與標籤失敗可加入但明示缺漏；主資料失敗則拒絕",
   const urls = [];
   const fetcher = async (url) => { urls.push(url); return url.includes("appdetails") ? { ok: true, json: async () => ({ 123: { success: true, data: { type: "game", name: "測試" } } }) } : { ok: false, status: 429 }; };
   const result = await lookupSteamGame("123", { fetcher });
-  assert.equal(result.reviews, null); assert.equal(result.warnings.length, 2); assert.ok(urls[1].includes("language=all"));
+  assert.equal(result.reviews, null); assert.equal(result.warnings.length, 2);
+  assert.deepEqual(JSON.parse(new URL(urls[1]).searchParams.get("input_json")).languages, ["all"]);
   await assert.rejects(lookupSteamGame("123", { fetcher: async () => ({ ok: false, status: 500 }) }), /讀取失敗/);
 });
 

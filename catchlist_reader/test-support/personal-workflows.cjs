@@ -35,7 +35,8 @@ app.whenReady().then(async () => {
   let operation;
   const snapshot = () => ({ dataDir: temp, appVersion: version, ...visits.annotate(temp, lib.loadAllLibraries(temp, reportCache), activeMedia), hiddenEntries: lib.loadHiddenEntries(temp, reportCache), updateStatus: loadUpdateStatus(temp) });
   ipcMain.handle("library:load", (_, media) => { activeMedia = media ?? activeMedia; return snapshot(); });
-  ipcMain.handle("library:set-favorite", (_, media, id, favorite) => { lib.setFavorite(temp, media, id, favorite); return snapshot(); });
+  ipcMain.handle("library:set-game-note", (_, id, text) => { lib.setGameNote(temp, id, text); return snapshot(); });
+  ipcMain.handle("library:set-favorite", (_, media, id, favorite, kind) => { lib.setFavorite(temp, media, id, favorite, kind); return snapshot(); });
   ipcMain.handle("library:set-hidden-reason", (_, key, reason) => { operation = lib.setHiddenReason(temp, key, reason); return snapshot(); });
   ipcMain.handle("library:favorite-backlog", (_, id) => { lib.favoriteBacklogEntry(temp, id); return snapshot(); });
   ipcMain.handle("library:restore-hidden", (_, key) => { lib.restoreHiddenEntry(temp, key); return snapshot(); });
@@ -71,6 +72,45 @@ app.whenReady().then(async () => {
   };
   await win.loadFile(path.join(readerRoot, "src/renderer/index.html"));
   await until("document.querySelectorAll('.item.games').length === 7");
+  // 正式 preload 與磁碟往返：新增、取消、錯誤保留草稿、清空及重新載入。
+  await click('[data-game-note]');
+  await fill('#gameNoteText', '取消不儲存');
+  await click('[data-note-cancel]');
+  await until("!document.querySelector('.game-note-dialog')");
+  assert.equal(fs.existsSync(path.join(temp, '.catchlist-game-notes.json')), false);
+  await click('[data-game-note]');
+  await click('[data-note-preset="等後續更新"]');
+  await fill('#gameNoteText', '等後續更新；需要中文 MOD <測試>');
+  await capture('notes-editor-desktop');
+  await click('.game-note-dialog button[type="submit"]');
+  await until("!document.querySelector('.game-note-dialog')");
+  assert.match(await js("document.querySelector('.game-note-summary').textContent"), /需要中文 MOD <測試>/);
+  await click('[data-media="anime"]'); await click('[data-media="games"]');
+  assert.match(await js("document.querySelector('.game-note-summary').textContent"), /等後續更新/);
+  await capture('notes-saved-desktop');
+  await click('.game-note-summary');
+  const realNotes = fs.readFileSync(path.join(temp, '.catchlist-game-notes.json'), 'utf8');
+  fs.writeFileSync(path.join(temp, '.catchlist-game-notes.json'), 'broken');
+  await fill('#gameNoteText', '保留未儲存內容');
+  await click('.game-note-dialog button[type="submit"]');
+  await until("!document.querySelector('.game-note-error').hidden");
+  assert.equal(await js("document.querySelector('#gameNoteText').value"), '保留未儲存內容');
+  fs.writeFileSync(path.join(temp, '.catchlist-game-notes.json'), realNotes);
+  await click('[data-note-cancel]');
+  await until("!document.querySelector('.game-note-dialog')");
+  win.setContentSize(390, 844);
+  await new Promise(resolve => setTimeout(resolve, 150));
+  await click('.game-note-summary');
+  assert.ok(await js("document.documentElement.scrollWidth <= innerWidth"));
+  assert.ok(await js("document.querySelector('.game-note-dialog').getBoundingClientRect().right <= innerWidth"));
+  await capture('notes-editor-mobile');
+  await fill('#gameNoteText', '');
+  await click('.game-note-dialog button[type="submit"]');
+  await until("!document.querySelector('.game-note-dialog')");
+  assert.equal(await js("document.querySelectorAll('.game-note-summary').length"), 0);
+  await capture('notes-empty-mobile');
+  win.setContentSize(1440, 900);
+  await new Promise(resolve => setTimeout(resolve, 150));
   assert.equal(await js("document.querySelector('#advancedFilters').hidden"), true);
   assert.ok(await js("document.querySelector('.list').getBoundingClientRect().top < 240"), "桌面首筆結果應位於 240px 內，包含新增的工具列留白");
   await capture("compact-desktop");
@@ -114,7 +154,7 @@ app.whenReady().then(async () => {
   await capture("filters-desktop");
   await click('[data-action="clear-filters"]');
   await click('[data-action="toggle-filters"]');
-  assert.deepEqual(await js("[...document.querySelector('.game-column-header').children].map((item) => item.firstChild.textContent)"), ["封面", "遊戲名稱", "好評率", "發售日", "中文", "模式", "社群標籤", "管理"]);
+  assert.deepEqual(await js("[...document.querySelector('.game-column-header').children].map((item) => (item.querySelector('.column-sort') ?? item).firstChild.textContent)"), ["封面", "遊戲名稱", "好評率", "發售日", "中文", "模式", "社群標籤", "管理"]);
   assert.deepEqual(await js("[...document.querySelector('.item.games .game-facts').children].map((item) => item.classList[0])"), ["rating", "meta", "language-status", "language-status"]);
   assert.deepEqual(await js("(() => { const button = document.querySelector('#backToTop'); return { hidden: button.getAttribute('aria-hidden'), tabIndex: button.tabIndex }; })()"), { hidden: "true", tabIndex: -1 });
   win.setContentSize(1440, 280);
@@ -150,6 +190,34 @@ app.whenReady().then(async () => {
   await js("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))");
   assert.equal(await js("document.querySelector('.update-panel').open"), false);
 
+  // 共樂／個人收藏在三種寬度使用正式橋接驗證，並檢查導覽與操作列。
+  for (const width of [1440, 1024, 390]) {
+    win.setContentSize(width, 900);
+    await click('[data-media="games"]'); await click('[data-view="all"]');
+    await click('[data-favorite-kind="shared"]');
+    await until("document.querySelector('[data-view=shared] span').textContent === '1'");
+    await click('[data-view="shared"]');
+    assert.equal(await js("document.querySelector('[data-favorite-kind=shared]').getAttribute('aria-pressed')"), "true");
+    await js("document.querySelector('[data-favorite-kind=shared]').focus(); window.scrollTo(0, 0)");
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const geometry = await js(`(() => {
+      const nav = document.querySelector('.game-views');
+      const controls = [...nav.querySelectorAll('button')];
+      const buttons = [...document.querySelectorAll('.game-management button')];
+      const rects = buttons.map(button => button.getBoundingClientRect());
+      return { overflow: document.documentElement.scrollWidth > innerWidth, navClipped: controls.some(button => { const r = button.getBoundingClientRect(); return r.left < 0 || r.right > innerWidth; }), smallTargets: controls.some(button => button.getBoundingClientRect().height < 44), overlap: rects.some((r,i) => rects.slice(i+1).some(s => r.left < s.right && r.right > s.left && r.top < s.bottom && r.bottom > s.top)), focused: document.activeElement.dataset.favoriteKind, iconCount: document.querySelectorAll('.game-management .favorite-button svg').length };
+    })()`);
+    assert.deepEqual(geometry, { overflow: false, navClipped: false, smallTargets: false, overlap: false, focused: "shared", iconCount: 2 });
+    await capture(`shared-favorites-${width}`);
+    await click('[data-favorite-kind="personal"]');
+    await until("document.querySelector('[data-view=shared] span').textContent === '0'");
+    await click('[data-view="favorites"]');
+    assert.equal(await js("document.querySelectorAll('.item.games').length"), 1);
+    await click('[data-favorite-kind="personal"]');
+    await until("document.querySelectorAll('.item.games').length === 0");
+    await click('[data-view="all"]');
+  }
+  win.setContentSize(1440, 900);
   const flows = [];
   for (const media of ["games", "anime", "movies", "liveAction"]) {
     await click(`[data-media="${media}"]`);
@@ -164,14 +232,21 @@ app.whenReady().then(async () => {
     if (media === "games") await click('[data-reason="played"]');
     else { await until("document.querySelector('#confirmDialog').open"); await click("#dialogConfirm"); }
     await until("document.querySelectorAll('.item').length === 0");
-    await click('[data-view="hidden"]');
-    await until("document.querySelectorAll('.hidden-row').length === 1");
-    if (media === "games") await capture("hidden-desktop");
-    await fill("[data-hidden-query]", "找不到的名稱");
-    assert.equal(await js("document.querySelectorAll('.hidden-row').length"), 0);
-    await fill("[data-hidden-query]", "");
-    await click("[data-restore]");
-    await until("document.querySelectorAll('.hidden-row').length === 0");
+    if (media === "games") {
+      assert.equal(await js("document.querySelector('[data-view=hidden]')"), null);
+      await click('[data-view="played"]');
+      await until("document.querySelectorAll('.item.games').length === 1");
+      await click('[data-hide]'); await click('[data-reason="restore"]');
+      await until("document.querySelectorAll('.item.games').length === 0");
+    } else {
+      await click('[data-view="hidden"]');
+      await until("document.querySelectorAll('.hidden-row').length === 1");
+      await fill("[data-hidden-query]", "找不到的名稱");
+      assert.equal(await js("document.querySelectorAll('.hidden-row').length"), 0);
+      await fill("[data-hidden-query]", "");
+      await click("[data-restore]");
+      await until("document.querySelectorAll('.hidden-row').length === 0");
+    }
     await click('[data-view="favorites"]');
     if (media === "games") {
       assert.equal(await js("document.querySelectorAll('.item').length"), 0);
@@ -187,12 +262,12 @@ app.whenReady().then(async () => {
   lib.hideEntry(temp, "games", game.id);
   visits = new VisitHistory();
   await win.loadFile(path.join(readerRoot, "src/renderer/index.html"));
-  await until("document.querySelector('[data-view=\"hidden\"]') !== null");
+  await until("document.querySelector('[data-view=played]') !== null");
   assert.equal(await js("document.querySelector('.new-filter span').textContent"), "0");
-  await click('[data-view="hidden"]');
-  assert.equal(await js("document.querySelectorAll('.hidden-row').length"), 1);
-  await click("[data-restore]");
-  await until("document.querySelectorAll('.hidden-row').length === 0");
+  await click('[data-view="played"]');
+  assert.equal(await js("document.querySelectorAll('.item.games').length"), 1);
+  await click('[data-hide]'); await click('[data-reason="restore"]');
+  await until("document.querySelectorAll('.item.games').length === 0");
   await click('[data-view="favorites"]');
   assert.equal(await js("document.querySelectorAll('.item').length"), 0);
   await click('[data-view="all"]');
@@ -242,16 +317,14 @@ app.whenReady().then(async () => {
     await click('[data-favorite]'); await until("document.querySelectorAll('.item.games').length === 0");
     await click('[data-view="all"]'); await click('[data-hide]'); await click('[data-reason="not_interested"]');
     await until("document.querySelector('[data-action=undo]') !== null");
-    await click('[data-view="hidden"]');
-    await js("(() => { const el = document.querySelector('[data-reason-filter]'); el.value = 'all'; el.dispatchEvent(new Event('change', { bubbles: true })); })()");
-    await js("(() => { const el = document.querySelector('[data-hidden-reason]'); el.value = 'played'; el.dispatchEvent(new Event('change', { bubbles: true })); })()");
-    await until("document.querySelector('[data-hidden-reason]').value === 'played' && document.querySelector('#toast').textContent.includes('已修改')");
-    await js("(() => { const el = document.querySelector('[data-reason-filter]'); el.value = 'backlog'; el.dispatchEvent(new Event('change', { bubbles: true })); })()");
-    assert.equal(await js("document.querySelectorAll('.hidden-row').length"), 0);
-    await js("(() => { const el = document.querySelector('[data-reason-filter]'); el.value = 'played'; el.dispatchEvent(new Event('change', { bubbles: true })); })()");
-    assert.equal(await js("document.querySelectorAll('.hidden-row').length"), 1);
-    await capture(`classification-hidden-${label}`);
-    await click('[data-restore]'); await until("document.querySelectorAll('.hidden-row').length === 0");
+    await click('[data-view="not_interested"]');
+    await click('[data-hide]'); await click('[data-reason="played"]');
+    await until("document.querySelectorAll('.item.games').length === 0");
+    await click('[data-view="played"]');
+    assert.equal(await js("document.querySelectorAll('.item.games').length"), 1);
+    await capture(`classification-played-${label}`);
+    await click('[data-hide]'); await click('[data-reason="restore"]');
+    await until("document.querySelectorAll('.item.games').length === 0");
     await click('[data-view="all"]'); await click('[data-action="toggle-filters"]');
     await select('min', '90'); await select('max', '95');
     assert.ok(await js("[...document.querySelectorAll('.rating strong')].every(el => parseInt(el.textContent) >= 90 && parseInt(el.textContent) <= 95)"));
@@ -276,7 +349,8 @@ app.whenReady().then(async () => {
       assert.equal(await js("document.querySelectorAll('.item.games').length"), 1);
       assert.ok(await js("!!document.querySelector('.item .game-cover') && !!document.querySelector('.item .title-primary') && !!document.querySelector('.item .rating') && !!document.querySelector('.item .game-date') && !!document.querySelector('.item .game-tags')"));
       await until("document.querySelector('.item .game-cover img')?.naturalWidth > 0");
-      assert.equal(await js("document.querySelectorAll('.item .game-management button').length"), 3);
+      assert.equal(await js("document.querySelectorAll('.item .game-management button').length"), 5);
+      assert.ok(await js("!!document.querySelector('.item .game-management [data-refresh-game]')"));
       await fill('[data-filter="query"]', '不會找到');
       assert.equal(await js("document.querySelectorAll('.item.games').length"), 0);
       await fill('[data-filter="query"]', '');

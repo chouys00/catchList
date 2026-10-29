@@ -81,30 +81,33 @@ if (location.protocol.startsWith("http") && !window.catchList) {
       window.__releasePreviewCovers.push(() => resolve(Object.fromEntries(appids.map((appid) => [appid, `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/header_tchinese.jpg`]))));
     })
     : undefined;
-  const favorites = new Set();
+  const notes = new Map();
+  const favorites = new Map();
   const hidden = new Map();
   let lastHidden;
-  const snapshot = () => ({ ...payload, hiddenEntries: [...hidden.values()].map(record => ({ ...record, entry: { ...record.entry, favorite: favorites.has(record.hideKey) } })), libraries: payload.libraries.map((library) => ({ ...library, entries: library.entries.filter((entry) => !hidden.has(entry.id)).map((entry) => ({ ...entry, favorite: favorites.has(entry.id) })) })) });
+  const snapshot = () => ({ ...payload, hiddenEntries: [...hidden.values()].map(record => ({ ...record, entry: { ...record.entry, note: notes.get(record.entry.id) ?? "", favorite: record.media !== "games" && favorites.has(record.hideKey), favoriteKind: null } })), libraries: payload.libraries.map((library) => ({ ...library, entries: library.entries.filter((entry) => !hidden.has(entry.id)).map((entry) => ({ ...entry, note: notes.get(entry.id) ?? "", favorite: favorites.has(entry.id), favoriteKind: favorites.get(entry.id) ?? null })) })) });
   window.catchList = {
     load: async () => snapshot(), chooseDirectory: async () => snapshot(),
     copyText: async (text) => { window.__catchListCopyTextCalls.push(text); return true; },
     openUrls: async (urls) => { window.__catchListOpenUrlCalls.push(urls); return true; },
-    setFavorite: async (_media, id, favorite) => { if (favorite) favorites.add(id); else favorites.delete(id); return snapshot(); },
+    setGameNote: async (id, text) => { notes.set(id, text.trim()); return snapshot(); },
+    setFavorite: async (media, id, favorite, kind = "personal") => { if (favorite) { favorites.set(id, kind); if (media === "games") hidden.delete(id); } else favorites.delete(id); return snapshot(); },
     hideEntry: async (media, id, reason = "played") => {
       const entry = payload.libraries.find((library) => library.media === media).entries.find((item) => item.id === id);
-      lastHidden = { hideKey: id, media, reason, entry: { ...entry, hiddenKey: id }, title: entry.title, periodLabel: entry.periodLabel, available: true, hiddenAt: new Date().toISOString() };
+      lastHidden = { favoriteKind: favorites.get(id), hideKey: id, media, reason, entry: { ...entry, hiddenKey: id }, title: entry.title, periodLabel: entry.periodLabel, available: true, hiddenAt: new Date().toISOString() };
       hidden.set(id, lastHidden);
+      if (media === "games") favorites.delete(id);
       return snapshot();
     },
     setHiddenReason: async (key, reason) => { const record = hidden.get(key); lastHidden = { ...record, previousReason: record.reason, changedReason: reason }; hidden.set(key, { ...record, reason }); return snapshot(); },
-    favoriteBacklog: async (id) => { favorites.add(id); hidden.delete(id); return snapshot(); },
+    favoriteBacklog: async (id) => { favorites.set(id, "personal"); hidden.delete(id); return snapshot(); },
     restoreHidden: async (key) => { hidden.delete(key); return snapshot(); },
     deleteEntry: async (media, id) => {
       const library = payload.libraries.find((item) => item.media === media);
       library.entries = library.entries.filter((entry) => entry.id !== id);
       return snapshot();
     },
-    undoLastOperation: async () => { const restored = lastHidden; if (restored.changedReason) hidden.set(restored.hideKey, { ...hidden.get(restored.hideKey), reason: restored.previousReason }); else hidden.delete(restored.hideKey); return { ...snapshot(), restored }; },
+    undoLastOperation: async () => { const restored = lastHidden; if (restored.changedReason) hidden.set(restored.hideKey, { ...hidden.get(restored.hideKey), reason: restored.previousReason }); else { hidden.delete(restored.hideKey); if (restored.favoriteKind) favorites.set(restored.hideKey, restored.favoriteKind); } return { ...snapshot(), restored }; },
     resolveGameCovers,
   };
 }

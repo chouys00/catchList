@@ -86,7 +86,7 @@ app.whenReady().then(async () => {
     await click(`[data-view="${view}"]`);assert.ok(await js("Boolean(document.querySelector('[data-action=toggle-select]'))"));
     await click('[data-action="select-loaded"]');assert.equal(await count(),'已選 1 款');
   }
-  await click('[data-view="hidden"]');assert.equal(await js("document.querySelector('[data-action=toggle-select]')"),null);
+  assert.equal(await js("document.querySelector('[data-view=hidden]')"),null);
   await click('[data-view="all"]');await click('[data-action="toggle-catalog"]');
   await fill('query','1000');await until("document.querySelector('[data-select-game=\"1000\"]')");await click('[data-action="select-loaded"]');
   assert.equal(await count(),'已選 1 款');

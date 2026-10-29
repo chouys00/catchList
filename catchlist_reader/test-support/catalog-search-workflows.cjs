@@ -35,7 +35,7 @@ app.whenReady().then(async () => {
   let operation;
   const snapshot = () => ({ dataDir: temp, appVersion: version, ...visits.annotate(temp, lib.loadAllLibraries(temp, reportCache), activeMedia), hiddenEntries: lib.loadHiddenEntries(temp, reportCache), updateStatus: loadUpdateStatus(temp) });
   ipcMain.handle("library:load", (_, media) => { activeMedia = media ?? activeMedia; return snapshot(); });
-  ipcMain.handle("library:set-favorite", (_, media, id, favorite) => { lib.setFavorite(temp, media, id, favorite); return snapshot(); });
+  ipcMain.handle("library:set-favorite", (_, media, id, favorite, kind) => { lib.setFavorite(temp, media, id, favorite, kind); return snapshot(); });
   ipcMain.handle("library:set-hidden-reason", (_, key, reason) => { operation = lib.setHiddenReason(temp, key, reason); return snapshot(); });
   ipcMain.handle("library:favorite-backlog", (_, id) => { lib.favoriteBacklogEntry(temp, id); return snapshot(); });
   ipcMain.handle("library:restore-hidden", (_, key) => { lib.restoreHiddenEntry(temp, key); return snapshot(); });
@@ -95,17 +95,17 @@ app.whenReady().then(async () => {
   }
   await fill(search,games[2].appid);
   assert.match(await js("document.querySelector('.catalog-classification').textContent"), /玩過了/);
-  assert.doesNotMatch(await js("document.querySelector('.catalog-classification').textContent"), /待玩收藏/);
+  assert.doesNotMatch(await js("document.querySelector('.catalog-classification').textContent"), /個人收藏/);
   assert.equal(await js("document.querySelector('[data-favorite]').getAttribute('aria-pressed')"), 'false');
   await click('[data-favorite]');
-  await until("document.querySelector('.catalog-classification')?.textContent.includes('待玩收藏') && !document.querySelector('.catalog-classification')?.textContent.includes('玩過了')");
+  await until("document.querySelector('.catalog-classification')?.textContent.includes('個人收藏') && !document.querySelector('.catalog-classification')?.textContent.includes('玩過了')");
   await click('[data-hide]'); await click('[data-reason=played]');
-  await until("document.querySelector('.catalog-classification')?.textContent.includes('玩過了') && !document.querySelector('.catalog-classification')?.textContent.includes('待玩收藏')");
+  await until("document.querySelector('.catalog-classification')?.textContent.includes('玩過了') && !document.querySelector('.catalog-classification')?.textContent.includes('個人收藏')");
   await capture('catalog-on-desktop');
   // 候補轉收藏必須走正式轉移流程，不能只切換書籤。
   await fill(search,games[1].appid);
   await click('[data-favorite]');
-  await until("document.querySelector('.catalog-classification')?.textContent.includes('待玩收藏') && !document.querySelector('.catalog-classification')?.textContent.includes('候補')");
+  await until("document.querySelector('.catalog-classification')?.textContent.includes('個人收藏') && !document.querySelector('.catalog-classification')?.textContent.includes('候補')");
   assert.equal(await js("document.querySelectorAll('.item.games').length"),1);
   await click('[data-hide]'); await click('[data-reason=played]');
   await until("document.querySelector('.catalog-classification')?.textContent.includes('玩過了')");
@@ -133,11 +133,11 @@ app.whenReady().then(async () => {
   }
   await click('[data-view=favorites]');
   assert.equal(await js("document.querySelector('.catalog-switch').getAttribute('aria-checked')"),'false');
-  await click('[data-view=hidden]');
+  await click('[data-view=played]');
   await click(toggle); await fill(search,games[2].appid);
   assert.equal(await js("document.querySelectorAll('.item.games').length"),1);
   await click(toggle);
-  assert.ok(await js("Boolean(document.querySelector('.hidden-list'))"));
+  assert.ok(await js("Boolean(document.querySelector('[data-view=played].active'))"));
   for (const [filename, content] of Object.entries(fixtures)) assert.equal(fs.readFileSync(path.join(temp, filename), "utf8"), content);
   clearTimeout(deadline);
   console.log(JSON.stringify({ catalogSearch:true, reportBytesUnchanged:true }));

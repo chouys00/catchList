@@ -60,6 +60,10 @@ app.whenReady().then(async () => {
       fs.writeFileSync(path.join(output, `${process.env.CATCHLIST_SCREENING_REAL ? "real-" : ""}${name}.png`), (await window.webContents.capturePage()).toPNG());
       return result;
     };
+    // 同一輪事件立即關閉並重開，延後到達的 close 不得使新截圖失效。
+    await run(`document.querySelector('[data-screen="close"]').click(); document.querySelector('[data-action="screen-games"]').click()`);
+    await delay(200);
+    assert.equal(await run(`document.querySelectorAll('.screening-shot').length`), 3);
     const desktop = await lint("desktop");
     window.setContentSize(390, 844);
     await delay(400);
@@ -85,10 +89,17 @@ app.whenReady().then(async () => {
     assert.notEqual(await title(), second);
     await click("undo");
     assert.equal(await title(), second);
+    await run(`document.querySelector('.screening-dialog').dispatchEvent(new KeyboardEvent('keydown', { key: '3', bubbles: true }))`);
+    await delay(100);
+    assert.notEqual(await title(), second);
+    assert.equal(await run(`window.catchList.load('games').then(payload => payload.libraries.find(l => l.media === 'games').entries.find(e => e.title === ${JSON.stringify(second)}).favoriteKind)`), 'shared');
+    await click("undo");
+    assert.equal(await title(), second);
+    assert.equal(await run(`window.catchList.load('games').then(payload => payload.libraries.find(l => l.media === 'games').entries.find(e => e.title === ${JSON.stringify(second)}).favorite)`), false);
     // Repeated keys must not apply decisions; one normal shortcut does.
     await run(`document.querySelector('.screening-dialog').dispatchEvent(new KeyboardEvent('keydown', { key: '1', repeat: true, bubbles: true }))`);
     assert.equal(await title(), second);
-    await run(`document.querySelector('.screening-dialog').dispatchEvent(new KeyboardEvent('keydown', { key: '3', bubbles: true }))`);
+    await run(`document.querySelector('.screening-dialog').dispatchEvent(new KeyboardEvent('keydown', { key: '4', bubbles: true }))`);
     await delay(80);
     assert.notEqual(await title(), second);
     for (let i = 0; i < 10; i++) {

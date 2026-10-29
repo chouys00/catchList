@@ -14,6 +14,26 @@
   --sans: "Segoe UI", "Noto Sans TC", sans-serif;
 }
 
+.game-note-button { color: var(--muted); }
+.game-note-button.has-note { color: var(--lime); }
+.game-note-summary { display: block; max-width: 100%; padding: 0; margin-top: 4px; border: 0; background: none; color: var(--lime); font: 12px/1.5 var(--sans); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.game-note-summary:hover { text-decoration: underline; text-underline-offset: 3px; }
+.game-note-summary:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
+.game-note-dialog { max-height: calc(100dvh - 32px); overflow-y: auto; }
+.game-note-dialog h2 { font-size: 25px; }
+.game-note-dialog .game-note-name { margin: 0 0 18px; overflow-wrap: anywhere; color: var(--ink); }
+.game-note-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.game-note-dialog textarea { display: block; width: 100%; resize: vertical; min-height: 112px; max-height: 35dvh; font: 14px/1.65 var(--sans); }
+.game-note-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 8px; color: var(--muted); font-size: 12px; }
+.game-note-dialog .game-note-error { color: var(--danger); }
+.game-note-dialog .dialog-actions { margin-top: 22px; }
+.game-note-dialog button:focus-visible, .game-note-dialog textarea:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
+@media (max-width: 560px) {
+  .game-note-dialog form { padding: 20px; }
+  .game-note-dialog .button { min-height: 44px; }
+  .game-note-button { min-width: 32px; min-height: 32px; }
+}
+
 /* Screening uses the reader's existing surface, ink and lime tokens. */
 .screening-launch { border-color: var(--lime); color: var(--lime); }
 .screening-dialog { width: min(1180px, calc(100vw - 40px)); max-width: none; max-height: calc(100dvh - 40px); padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); overflow-y: auto; }
@@ -173,7 +193,7 @@ button.game-tag:hover { border-color: var(--muted); color: var(--ink); }
 
 .list { border-top: 1px solid var(--line); }
 .game-column-header,
-.item.games { grid-template-columns: 140px minmax(180px, 1.45fr) 104px 88px 36px 36px minmax(140px, 1.25fr) 106px; }
+.item.games { grid-template-columns: 140px minmax(180px, 1.45fr) 104px 88px 36px 36px minmax(140px, 1.25fr) 178px; }
 .game-column-header { display: grid; gap: 14px; align-items: end; padding: 10px 8px 8px; color: var(--dim); font-size: 10px; font-weight: 700; letter-spacing: .1em; }
 .game-column-header .center { text-align: center; }
 .game-load-sentinel { display: flex; justify-content: center; align-items: center; gap: 12px; min-height: 88px; color: var(--muted); font-size: 12px; }
@@ -294,7 +314,7 @@ button.game-cover:hover { border-color: var(--lime); }
 @media (min-width: 901px) and (max-width: 1200px) {
   .item.anime, .item.movies, .item.live-action { grid-template-columns: minmax(0, 1fr) auto; }
   .item .actions { grid-column: 1 / -1; }
-  .game-column-header, .item.games { grid-template-columns: 140px minmax(130px, 1fr) 100px 82px 32px minmax(90px, 1fr) 106px; gap: 8px; }
+  .game-column-header, .item.games { grid-template-columns: 140px minmax(130px, 1fr) 100px 82px 32px minmax(90px, 1fr) 142px; gap: 8px; }
 }
 .empty { padding: 70px 20px; border: 1px dashed var(--line); color: var(--muted); text-align: center; line-height: 1.7; }
 .missing { min-height: calc(100vh - 74px); display: grid; place-items: center; padding: 30px; }
@@ -518,7 +538,7 @@ button.game-cover:hover { border-color: var(--lime); }
 .game-filter-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .game-filter-actions .button { min-height: 32px; font-size: 13px; }
 @media (max-width: 1200px) and (min-width: 901px) {
-  .game-column-header, .item.games { grid-template-columns: 140px minmax(140px, 1.3fr) 94px 82px 30px 30px minmax(120px, 1fr) 102px; gap: 10px; }
+  .game-column-header, .item.games { grid-template-columns: 140px minmax(140px, 1.3fr) 94px 82px 30px 30px minmax(120px, 1fr) 178px; gap: 10px; }
 }
 @media (max-width: 1000px) {
   #advancedFilters .toolbar.game-filter-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -569,6 +589,16 @@ button.game-cover:hover { border-color: var(--lime); }
 .column-sort .sort-arrow { font-size: 15px; line-height: 1; }
 .column-sort.active, .column-sort:hover { color: var(--lime); }
 .column-sort:focus-visible { outline: 2px solid var(--lime); outline-offset: 4px; border-radius: 2px; }
+.game-column-header { align-items: center; font-size: 12px; letter-spacing: 0; }
+.rating-column-sorts { display: flex; gap: 4px; }
+.game-column-header .column-sort { min-height: 28px; margin: 0; padding: 3px 0; font-size: 12px; letter-spacing: 0; }
+.rating-column-sorts .column-sort { gap: 2px; }
+.rating-column-sorts .sort-arrow { font-size: 12px; }
+@media (min-width: 1051px) {
+  .games-toolbar { grid-template-columns: minmax(180px, 1fr) auto auto auto auto; }
+  .games-toolbar .sort-field { display: none; }
+  .games-toolbar .game-search-group { grid-column: auto; }
+}
 @media (max-width: 560px) { .rating-input .field, .rating-option { min-height: 44px; } }
 [data-rating-error]:empty { display: none; }
 [data-rating-error] { color: var(--danger); line-height: 1.5; }
@@ -707,3 +737,53 @@ button.anime-cover:hover { border-color: var(--lime); }
 .manual-destination-options .watchlist-destination:has(:checked) { border-color: var(--watchlist); }
 .watchlist-destination input { accent-color: var(--watchlist); }
 @media (max-width: 560px) { .watchlist-note { padding: 14px 16px; } }
+
+/* 遊戲分類採短標籤與穩定點擊範圍，收藏圖示在各入口共用。 */
+.browse-heading .library-views.game-views { gap: 4px 10px; flex-wrap: wrap; }
+.game-views .view-button { gap: 6px; min-height: 44px; padding-inline: 5px; font-size: 14px; }
+.game-views .view-button > span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 400; }
+.game-views svg, .manual-destination-options strong svg, .screening-decisions svg { width: 17px; height: 17px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.game-views .view-button.active { color: var(--lime); }
+.manual-destination-options strong { display: flex; align-items: center; gap: 6px; }
+.manual-destination-options .watchlist-destination { grid-column: auto; }
+.screening-decisions { flex-wrap: wrap; }
+.screening-decisions .button { flex: 1 1 180px; white-space: nowrap; }
+@media (max-width: 560px) {
+  .browse-heading .library-views.game-views { gap: 2px 8px; }
+  .game-views .view-button { padding-inline: 3px; }
+  .item.games > .game-management { flex-wrap: nowrap; max-width: none; }
+  .screening-decisions .button { flex: 1 1 calc(50% - 8px); font-size: 14px; }
+  .screening-decisions .button:last-child { flex-basis: calc(50% - 8px); }
+}
+
+/* 更新資訊與管理操作對齊，讀取狀態不改變列高。 */
+.game-management { align-items: center; }
+.game-management .icon-button { flex: 0 0 auto; }
+.game-refresh-button { color: var(--muted); }
+.steam-verification-dialog .steam-session-note { border-top: 1px solid var(--line); padding-top: 12px; font-size: 13px; }
+.steam-verification-dialog .dialog-actions .button { min-height: 44px; }
+.steam-inline-confirmation { border: 1px solid var(--line); border-left: 3px solid var(--lime); background: var(--surface-2); padding: 16px; margin: 12px 0 20px; }
+.steam-inline-confirmation p, .steam-website-details p { color: var(--muted); font-size: 14px; line-height: 1.65; }
+.steam-inline-confirmation .button, .steam-website-tools .button { min-height: 44px; }
+.steam-website-tools { border-top: 1px solid var(--line); padding-top: 8px; margin-bottom: 12px; }
+.steam-website-tools > .button { padding-left: 0; color: var(--muted); }
+.steam-website-details { padding: 0 4px 12px; }
+.steam-website-message { color: var(--ink) !important; }
+@media (max-width: 560px) { .steam-verification-dialog form { padding: 20px; } .steam-verification-dialog h2 { font-size: 25px; } .steam-verification-dialog .dialog-actions { flex-wrap: wrap; } }
+.game-refresh-button:hover { color: var(--lime); border-color: color-mix(in srgb, var(--lime) 38%, var(--line)); background: color-mix(in srgb, var(--lime) 7%, var(--surface)); }
+.game-refresh-button:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; color: var(--lime); }
+.game-refresh-button:disabled { cursor: wait; color: var(--lime); }
+.game-refresh-button[aria-busy="true"] svg { animation: game-refresh-spin 1.2s linear infinite; }
+@keyframes game-refresh-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .game-refresh-button[aria-busy="true"] svg { animation: none; } }
+
+@media (max-width: 560px) {
+  .item.games > .game-management { grid-column: 1 / -1; justify-self: end; }
+}
+
+/* 窄視窗先讓名稱使用整行，避免備註、複製及時數圖示擠壓長名稱。 */
+@media (max-width: 560px) {
+  .game-title-cell .game-title-actions { flex-wrap: wrap; row-gap: 4px; }
+  .game-title-cell .game-title-link { flex: 1 1 100%; }
+  .game-title-cell .copy-title-button { margin-top: 0; }
+}
